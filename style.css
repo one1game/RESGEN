@@ -13,17 +13,18 @@ body {
   .main {
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: 20px;
   }
   
   .inventory {
     display: grid;
     grid-template-columns: repeat(3, 80px);
     gap: 6px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     border: 1px solid #444;
-    padding: 6px;
+    padding: 8px;
     border-radius: 8px;
+    background-color: #1a1a1a;
   }
   
   .left-slots, .right-slots {
@@ -51,15 +52,17 @@ body {
     flex-direction: column;
     user-select: none;
     box-shadow: 0 0 4px #000;
-    border-radius: 5px;
+    border-radius: 6px;
   }
   
   .special-slot {
-    background: #004;
+    background: #003366;
     width: 160px;
     height: 40px;
-    font-size: 12px;
+    font-size: 13px;
     margin-bottom: 10px;
+    color: #0ff;
+    font-weight: bold;
   }
   
   .slot.dragging {
@@ -67,22 +70,41 @@ body {
   }
   
   button {
-    padding: 10px 20px;
+    padding: 8px 16px;
     background: #0f0;
     border: none;
     color: #000;
     font-weight: bold;
     cursor: pointer;
     margin: 5px;
+    border-radius: 5px;
+    transition: background 0.2s;
+  }
+  
+  button:hover {
+    background: #0c0;
   }
   
   .cooldown {
-    font-size: 8px;
+    font-size: 9px;
     color: #aaa;
   }
   
   #timeDisplay {
     margin: 10px;
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  
+  #messageBox {
+    margin-top: 10px;
+    color: #ff0;
+    font-size: 13px;
+    min-height: 16px;
+  }
+  
+  .button-row {
+    display: flex;
+    gap: 10px;
   }
   

@@ -8,6 +8,16 @@ const rightPanelItems = ['', '', '', '', ''];
 
 let gameTime = 60;
 let isDay = true;
+let messageTimeout;
+
+function showMessage(text) {
+  const box = document.getElementById('messageBox');
+  box.innerText = text;
+  clearTimeout(messageTimeout);
+  messageTimeout = setTimeout(() => {
+    box.innerText = '';
+  }, 2000);
+}
 
 function updateTimeDisplay() {
   document.getElementById('timeDisplay').innerText = `⏰ ${isDay ? 'День' : 'Ночь'} — ${gameTime}с осталось`;
@@ -76,22 +86,26 @@ function render() {
 function mine() {
   const now = Date.now();
   if (!isDay && !inventory['Уголь']) {
-    alert('Ночь. Без угля добыча невозможна.');
+    showMessage('🌙 Ночь. Без угля добыча невозможна.');
     return;
   }
 
-  if (lastMined['Уголь'] && now - lastMined['Уголь'] < resourceCooldowns['Уголь']) {
-    alert('⏳ Подождите перед следующей добычей.');
+  const cooldown = resourceCooldowns['Уголь'];
+  const last = lastMined['Уголь'] || 0;
+  if (now - last < cooldown) {
+    const wait = Math.ceil((cooldown - (now - last)) / 1000);
+    showMessage(`⏳ Уголь готов через ${wait}с`);
     return;
   }
 
   inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
   lastMined['Уголь'] = now;
+  showMessage('✅ Уголь добыт');
   render();
 }
 
 function craft() {
-  alert('Крафт временно отключён.');
+  showMessage('🔧 Крафт временно отключён.');
 }
 
 function addDragListeners() {
@@ -104,7 +118,7 @@ function addDragListeners() {
       slot.classList.add('dragging');
     });
 
-    slot.addEventListener('dragend', (e) => {
+    slot.addEventListener('dragend', () => {
       slot.classList.remove('dragging');
     });
 
@@ -112,7 +126,7 @@ function addDragListeners() {
       e.preventDefault();
     });
 
-    slot.addEventListener('drop', (e) => {
+    slot.addEventListener('drop', () => {
       const dropRes = slot.dataset.resource;
       if (!dragSrc || !dropRes || dragSrc === dropRes) return;
       const tmp = inventory[dragSrc];
