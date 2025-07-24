@@ -47,6 +47,7 @@ body {
     user-select: none;
     box-shadow: 0 0 4px #000;
     border-radius: 5px;
+    cursor: pointer;
   }
   .special-slot {
     background: #004;
@@ -54,6 +55,7 @@ body {
     height: 40px;
     font-size: 12px;
     margin-bottom: 10px;
+    cursor: default;
   }
   .slot.dragging {
     opacity: 0.5;

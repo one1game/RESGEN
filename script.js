@@ -1,17 +1,17 @@
-const inventory = { 'ИИ': 1 };
+const inventory = { 'ИИ': 1, 'Уголь': 0 };
 const maxSlots = 9;
-const resourceCooldowns = { 'Уголь': 3000 };
-const lastMined = {};
+let coalEnabled = false;
+let gameTime = 15;
+let isDay = true;
 
 const leftPanelItems = ['ТЭЦ', '', '', '', ''];
 const rightPanelItems = ['', '', '', '', ''];
 
-let gameTime = 60;
-let isDay = true;
+let passiveTick = 0;
 
 function updateTimeDisplay() {
-  document.getElementById('timeDisplay').innerText =
-    `⏰ ${isDay ? 'День' : 'Ночь'} — ${gameTime}с осталось`;
+  const icon = isDay ? '🌞' : '🌙';
+  document.getElementById('timeDisplay').innerText = `${icon} ${isDay ? 'День' : 'Ночь'} — ${gameTime}с осталось`;
 }
 
 function render() {
@@ -24,17 +24,25 @@ function render() {
   leftDiv.innerHTML = '';
   rightDiv.innerHTML = '';
 
-  const now = Date.now();
-  const keys = Object.keys(inventory);
   let renderedSlots = 0;
-
-  keys.forEach((name) => {
+  Object.keys(inventory).forEach(name => {
     if (name === 'ИИ') return;
     const slot = document.createElement('div');
     slot.className = 'slot';
-    slot.draggable = true;
     slot.dataset.resource = name;
     slot.innerHTML = `${name} x${inventory[name]}`;
+    if (name === 'Уголь') {
+      slot.style.borderColor = coalEnabled ? 'lime' : '#888';
+      slot.addEventListener('click', () => {
+        if (coalEnabled) {
+          coalEnabled = false;
+        } else if (inventory['Уголь'] > 0) {
+          coalEnabled = true;
+          inventory['Уголь']--;
+        }
+        render();
+      });
+    }
     invDiv.appendChild(slot);
     renderedSlots++;
   });
@@ -60,75 +68,66 @@ function render() {
     rightDiv.appendChild(slot);
   });
 
-  aiSlot.innerText = (inventory['ИИ'] && (!isDay && inventory['Уголь'] > 0 || isDay)) 
-    ? '🤖 ИИ активен' 
-    : '🛑 ИИ неактивен';
+  const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
+  aiSlot.innerText = aiActive ? '🤖 ИИ активен' : '🛑 ИИ неактивен';
 
   updateTimeDisplay();
-  addDragListeners();
 }
 
-function mine() {
-  const now = Date.now();
-  const coalCount = inventory['Уголь'] || 0;
-
-  const chance = coalCount > 0 ? 0.5 : 0.15;
+document.getElementById('mineBtn').addEventListener('click', () => {
+  const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
+  if (!aiActive) return;
+  const chance = coalEnabled ? 0.07 : 0.04;
   if (Math.random() < chance) {
-    inventory['Уголь'] = coalCount + 1;
+    inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
   }
-  lastMined['Уголь'] = now;
   render();
-}
+});
 
-function craft() {
+document.getElementById('craftBtn').addEventListener('click', () => {
   alert('Крафт временно отключён.');
-}
-
-function addDragListeners() {
-  const slots = document.querySelectorAll('.slot');
-  let dragSrc = null;
-
-  slots.forEach((slot) => {
-    slot.addEventListener('dragstart', () => {
-      dragSrc = slot.dataset.resource;
-      slot.classList.add('dragging');
-    });
-
-    slot.addEventListener('dragend', () => {
-      slot.classList.remove('dragging');
-    });
-
-    slot.addEventListener('dragover', (e) => {
-      e.preventDefault();
-    });
-
-    slot.addEventListener('drop', () => {
-      const dropRes = slot.dataset.resource;
-      if (!dragSrc || !dropRes || dragSrc === dropRes) return;
-      const tmp = inventory[dragSrc];
-      inventory[dragSrc] = inventory[dropRes];
-      inventory[dropRes] = tmp;
-      render();
-    });
-  });
-}
-
-document.getElementById('mineBtn').addEventListener('click', mine);
-document.getElementById('craftBtn').addEventListener('click', craft);
+});
 
 setInterval(() => {
   gameTime--;
+  passiveTick++;
+
   if (gameTime <= 0) {
-    gameTime = 60;
+    gameTime = 15;
     isDay = !isDay;
 
-    if (inventory['Уголь'] && inventory['Уголь'] > 0) {
-      inventory['Уголь'] -= 1;
+    if (!isDay && coalEnabled) {
+      if (inventory['Уголь'] > 0) {
+        inventory['Уголь']--;
+      } else {
+        coalEnabled = false;
+      }
     }
   }
+
+  const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
+
+  // Пассивная добыча раз в 7 сек
+  if (passiveTick >= 7) {
+    passiveTick = 0;
+    let chance = 0;
+    if (aiActive) {
+      if (!isDay && coalEnabled) {
+        chance = 0.07;
+      } else if (isDay && coalEnabled) {
+        chance = 0.07;
+      } else if (isDay && !coalEnabled) {
+        chance = 0.03;
+      }
+    }
+
+    if (Math.random() < chance) {
+      inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
+    }
+  }
+
   render();
 }, 1000);
 
 render();
-
 
