@@ -4,7 +4,83 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CoreBox</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: monospace;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .main {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+    }
+    .inventory {
+      display: grid;
+      grid-template-columns: repeat(3, 80px);
+      gap: 6px;
+      margin-bottom: 20px;
+      border: 1px solid #444;
+      padding: 6px;
+      border-radius: 8px;
+    }
+    .left-slots, .right-slots {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .center-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .slot, .special-slot {
+      background: #222;
+      border: 2px solid #888;
+      width: 70px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      text-align: center;
+      flex-direction: column;
+      user-select: none;
+      box-shadow: 0 0 4px #000;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .special-slot {
+      background: #004;
+      width: 160px;
+      height: 40px;
+      font-size: 12px;
+      margin-bottom: 10px;
+      cursor: default;
+    }
+    .slot.dragging {
+      opacity: 0.5;
+    }
+    button {
+      padding: 10px 20px;
+      background: #0f0;
+      border: none;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 5px;
+    }
+    #timeDisplay {
+      margin: 10px;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
   <h1>CoreBox</h1>
@@ -19,9 +95,134 @@
     </div>
     <div class="right-slots" id="rightSlots"></div>
   </div>
-  <script src="script.js"></script>
+
+  <script>
+    const inventory = { 'ИИ': 1, 'Уголь': 0 };
+    const maxSlots = 9;
+    let coalEnabled = false;
+    let gameTime = 15;
+    let isDay = true;
+    let passiveCounter = 0;
+
+    const leftPanelItems = ['ТЭЦ', '', '', '', ''];
+    const rightPanelItems = ['', '', '', '', ''];
+
+    function updateTimeDisplay() {
+      const icon = isDay ? '🌞' : '🌙';
+      document.getElementById('timeDisplay').innerText = `${icon} ${isDay ? 'День' : 'Ночь'} — ${gameTime}с осталось`;
+    }
+
+    function render() {
+      const invDiv = document.getElementById('inventory');
+      const leftDiv = document.getElementById('leftSlots');
+      const rightDiv = document.getElementById('rightSlots');
+      const aiSlot = document.getElementById('aiSlot');
+
+      invDiv.innerHTML = '';
+      leftDiv.innerHTML = '';
+      rightDiv.innerHTML = '';
+
+      let renderedSlots = 0;
+      Object.keys(inventory).forEach(name => {
+        if (name === 'ИИ') return;
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.dataset.resource = name;
+        slot.innerHTML = `${name} x${inventory[name]}`;
+        if (name === 'Уголь') {
+          slot.style.borderColor = coalEnabled ? 'lime' : '#888';
+          slot.addEventListener('click', () => {
+            if (coalEnabled) {
+              coalEnabled = false;
+              render();
+            } else if (inventory['Уголь'] > 0) {
+              coalEnabled = true;
+              inventory['Уголь']--;
+              render();
+            }
+          });
+        }
+        invDiv.appendChild(slot);
+        renderedSlots++;
+      });
+
+      for (let i = renderedSlots; i < maxSlots; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.innerText = '[пусто]';
+        invDiv.appendChild(slot);
+      }
+
+      leftPanelItems.forEach(name => {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.innerText = name || '[пусто]';
+        leftDiv.appendChild(slot);
+      });
+
+      rightPanelItems.forEach(name => {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.innerText = name || '[пусто]';
+        rightDiv.appendChild(slot);
+      });
+
+      const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
+      aiSlot.innerText = aiActive ? '🤖 ИИ активен' : '🛑 ИИ неактивен';
+
+      updateTimeDisplay();
+    }
+
+    document.getElementById('mineBtn').addEventListener('click', () => {
+      const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
+      if (!aiActive || (!isDay && !coalEnabled)) return;
+      const chance = coalEnabled ? 0.07 : 0.03;
+      if (Math.random() < chance) {
+        inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
+      }
+      render();
+    });
+
+    document.getElementById('craftBtn').addEventListener('click', () => {
+      alert('Крафт временно отключён.');
+    });
+
+    setInterval(() => {
+      gameTime--;
+      if (gameTime <= 0) {
+        gameTime = 15;
+        isDay = !isDay;
+        if (!isDay && coalEnabled) {
+          if (inventory['Уголь'] > 0) {
+            inventory['Уголь']--;
+          } else {
+            coalEnabled = false;
+          }
+        }
+      }
+
+      // Пассивная добыча каждые 7 секунд
+      passiveCounter++;
+      if (passiveCounter >= 7) {
+        passiveCounter = 0;
+        const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
+        if (!isDay && !coalEnabled) return;
+        if (aiActive) {
+          const chance = coalEnabled ? 0.07 : 0.03;
+          if (Math.random() < chance) {
+            inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
+          }
+        }
+      }
+
+      render();
+    }, 1000);
+
+    render();
+  </script>
 </body>
 </html>
+
 
 
 
