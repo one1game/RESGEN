@@ -25,7 +25,7 @@
       display: grid;
       grid-template-columns: repeat(3, 80px);
       gap: 6px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
       border: 1px solid #444;
       padding: 6px;
       border-radius: 8px;
@@ -64,9 +64,6 @@
       margin-bottom: 10px;
       cursor: default;
     }
-    .slot.dragging {
-      opacity: 0.5;
-    }
     button {
       padding: 10px 20px;
       background: #0f0;
@@ -80,6 +77,18 @@
       margin: 10px;
       font-size: 14px;
     }
+    #logBox {
+      margin-top: 10px;
+      width: 100%;
+      max-width: 400px;
+      height: 120px;
+      background: #222;
+      overflow-y: auto;
+      font-size: 12px;
+      padding: 5px;
+      border-radius: 6px;
+      border: 1px solid #444;
+    }
   </style>
 </head>
 <body>
@@ -92,6 +101,7 @@
       <div class="inventory" id="inventory"></div>
       <button id="mineBtn">Добыть уголь</button>
       <button id="craftBtn">Крафт</button>
+      <div id="logBox"></div>
     </div>
     <div class="right-slots" id="rightSlots"></div>
   </div>
@@ -106,6 +116,12 @@
 
     const leftPanelItems = ['ТЭЦ', '', '', '', ''];
     const rightPanelItems = ['', '', '', '', ''];
+
+    function log(message) {
+      const box = document.getElementById('logBox');
+      box.innerHTML += `🟢 ${message}<br>`;
+      box.scrollTop = box.scrollHeight;
+    }
 
     function updateTimeDisplay() {
       const icon = isDay ? '🌞' : '🌙';
@@ -134,10 +150,12 @@
           slot.addEventListener('click', () => {
             if (coalEnabled) {
               coalEnabled = false;
+              log('Уголь 🔥 выключен');
               render();
             } else if (inventory['Уголь'] > 0) {
               coalEnabled = true;
               inventory['Уголь']--;
+              log('Уголь 🔥 включён (−1)');
               render();
             }
           });
@@ -179,6 +197,7 @@
       const chance = coalEnabled ? 0.07 : 0.03;
       if (Math.random() < chance) {
         inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
+        log('Активная добыча: найден уголь 🪨');
       }
       render();
     });
@@ -195,9 +214,13 @@
         if (!isDay && coalEnabled) {
           if (inventory['Уголь'] > 0) {
             inventory['Уголь']--;
+            log('Наступила ночь 🌙 — сгорел 1 уголь');
           } else {
             coalEnabled = false;
+            log('Наступила ночь 🌙 — уголь закончился, ИИ отключён');
           }
+        } else {
+          log(isDay ? 'Наступил день 🌞' : 'Наступила ночь 🌙');
         }
       }
 
@@ -211,6 +234,7 @@
           const chance = coalEnabled ? 0.07 : 0.03;
           if (Math.random() < chance) {
             inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
+            log('Пассивная добыча: найден уголь 🪨');
           }
         }
       }
@@ -222,6 +246,7 @@
   </script>
 </body>
 </html>
+
 
 
 
