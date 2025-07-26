@@ -112,3 +112,27 @@ button {
   border-color: #8a2be2 !important;
   color: #8a2be2;
 }
+
+#adPanel {
+  font-family: monospace;
+  font-size: 14px;
+}
+
+#adPanel button {
+  background: #444;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+#adPanel button:hover {
+  background: #555;
+}
+
+#adPanel input, #adPanel textarea {
+  background: #333;
+  color: white;
+  border: 1px solid #444;
+  padding: 5px;
+}
