@@ -1,5 +1,5 @@
-
 const STORAGE_KEY = 'coreboxSave';
+let adsManager; // Добавлено для рекламной системы
 
 const inventory = { 'ИИ': 1, 'Уголь': 0, 'Мусор': 0, 'Кристалл': 0 };
 let tng = 0;
@@ -37,7 +37,7 @@ function generateNewQuest() {
   currentQuest = {
     resource: randomResource,
     amount: 1,
-    reward: 2000 // Увеличено до 2000₸
+    reward: 2000
   };
   questCompleted = false;
   crystalFoundToday = false;
@@ -71,6 +71,7 @@ function saveGame() {
     currentQuest,
     questCompleted,
     crystalFoundToday,
+    advertisements: adsManager ? adsManager.getAdsData() : [], // Добавлено для рекламы
     lastUpdate: Date.now()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
@@ -109,6 +110,18 @@ function loadGame() {
             crystalFoundToday = false;
           }
         }
+      }
+      
+      // Инициализация рекламной системы
+      adsManager = new AdsManager({
+        tng: tng,
+        log: log,
+        updateCurrencyDisplay: updateCurrencyDisplay,
+        saveGame: saveGame
+      });
+      
+      if (data.advertisements) {
+        adsManager.loadAds(data.advertisements);
       }
       
       if (currentQuest) {
@@ -229,7 +242,7 @@ document.getElementById('mineBtn').addEventListener('click', () => {
   
   const coalChance = (coalEnabled ? 0.07 : 0.04) / 2;
   const trashChance = (coalEnabled ? 0.02 : 0.01) / 2;
-  const crystalChance = (!crystalFoundToday && currentQuest && !questCompleted) ? 0.0167 : 0; // 1.67% шанс
+  const crystalChance = (!crystalFoundToday && currentQuest && !questCompleted) ? 0.0167 : 0;
 
   if (Math.random() < coalChance) {
     inventory['Уголь']++;
@@ -301,12 +314,22 @@ setInterval(() => {
         log('Пассивно найден мусор ♻️');
         saveGame();
       }
-      // Пассивная добыча кристалла удалена
     }
   }
 
   render();
 }, 1000);
 
+// Инициализация игры
 loadGame();
 render();
+
+// Инициализация рекламной системы, если не загрузилась
+if (!adsManager) {
+  adsManager = new AdsManager({
+    tng: tng,
+    log: log,
+    updateCurrencyDisplay: updateCurrencyDisplay,
+    saveGame: saveGame
+  });
+}
