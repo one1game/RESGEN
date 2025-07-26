@@ -36,7 +36,7 @@ function generateNewQuest() {
   currentQuest = {
     resource: randomResource,
     amount: 1,
-    reward: 50
+    reward: 2000 // Увеличено до 2000₸
   };
   questCompleted = false;
   crystalFoundToday = false;
@@ -139,7 +139,6 @@ function render() {
   Object.keys(inventory).forEach(name => {
     if (name === 'ИИ') return;
     
-    // Не отображаем ячейку кристалла, если их нет
     if (name === 'Кристалл' && inventory[name] === 0) return;
     
     const slot = document.createElement('div');
@@ -148,7 +147,6 @@ function render() {
     slot.innerHTML = `${name} x${inventory[name]}`;
 
     if (name === 'Кристалл' && inventory[name] > 0) {
-      // Автоматически удаляем кристалл
       inventory['Кристалл'] = 0;
       saveGame();
     }
@@ -230,7 +228,7 @@ document.getElementById('mineBtn').addEventListener('click', () => {
   
   const coalChance = (coalEnabled ? 0.07 : 0.04) / 2;
   const trashChance = (coalEnabled ? 0.02 : 0.01) / 2;
-  const crystalChance = (!crystalFoundToday && currentQuest && !questCompleted) ? 0.5 : 0;
+  const crystalChance = (!crystalFoundToday && currentQuest && !questCompleted) ? 0.0167 : 0; // 1.67% шанс
 
   if (Math.random() < coalChance) {
     inventory['Уголь']++;
@@ -291,7 +289,6 @@ setInterval(() => {
     if (aiActive) {
       const coalChance = coalEnabled ? 0.01 : 0.005;
       const trashChance = coalEnabled ? 0.01 : 0.005;
-      const crystalChance = (!crystalFoundToday && currentQuest && !questCompleted) ? 0.002 : 0;
       
       if (Math.random() < coalChance) {
         inventory['Уголь']++;
@@ -303,13 +300,7 @@ setInterval(() => {
         log('Пассивно найден мусор ♻️');
         saveGame();
       }
-      if (Math.random() < crystalChance) {
-        inventory['Кристалл'] = 1;
-        crystalFoundToday = true;
-        log('✨ Пассивно найден кристалл! (исчезнет при обновлении инвентаря)');
-        checkQuest('Кристалл');
-        saveGame();
-      }
+      // Пассивная добыча кристалла удалена
     }
   }
 
