@@ -237,7 +237,9 @@ function render() {
         sellLabel.className = 'sell-label';
         sellLabel.innerText = count > 0 ? 'Продать' : 'Нет мусора';
         slot.appendChild(sellLabel);
-        slot.onclick = (e) => {
+        
+        // Обработчик клика для продажи мусора
+        slot.addEventListener('click', (e) => {
           e.stopPropagation();
           if (count <= 0) {
             log('Нет мусора для продажи');
@@ -250,48 +252,45 @@ function render() {
           updateCurrencyDisplay();
           saveGame();
           render();
-        };
+        });
       }
-    } else if (name === 'Уголь') {
+    } 
+    else if (name === 'Уголь') {
       // Подсветка если уголь включен
       if (coalEnabled) {
         slot.style.border = '2px solid gold';
-        slot.style.background = 'rgba(255, 215, 0, 0.1)';
+        slot.style.boxShadow = '0 0 10px gold';
       } else {
         slot.style.border = '1px solid #888';
-        slot.style.background = '';
+        slot.style.boxShadow = 'none';
       }
       
-      slot.onclick = (e) => {
+      // Обработчик клика для переключения угля
+      slot.addEventListener('click', (e) => {
         e.stopPropagation();
         if (sellMode) {
           log('В режиме торговли нельзя управлять углем');
           return;
         }
         
-        // Переключаем режим угля
-        const newCoalState = !coalEnabled;
-        
-        // Проверяем можно ли включить
-        if (newCoalState && count <= 0) {
-          log('Недостаточно угля! Добывайте больше угля');
-          return;
+        // Пытаемся включить уголь
+        if (!coalEnabled) {
+          if (count <= 0) {
+            log('Нет угля для активации!');
+            return;
+          }
+          coalEnabled = true;
+          log('Угольная ТЭЦ активирована');
+        } 
+        // Или выключаем
+        else {
+          coalEnabled = false;
+          log('Угольная ТЭЦ отключена');
         }
-        
-        coalEnabled = newCoalState;
-        log(coalEnabled ? 'Режим угля включен' : 'Режим угля выключен');
         
         saveGame();
         render();
-      };
-    } else if (name === 'Кристалл') {
-      // Обычный слот для кристалла
-      slot.onclick = (e) => {
-        e.stopPropagation();
-        if (sellMode) {
-          log('Кристаллы нельзя продавать');
-        }
-      };
+      });
     }
 
     invDiv.appendChild(slot);
