@@ -99,15 +99,14 @@
     <div class="center-panel">
       <div class="special-slot" id="aiSlot">🤖 ИИ активен</div>
       <div class="inventory" id="inventory"></div>
-      <button id="mineBtn">Добыть уголь</button>
-      <button id="craftBtn">Крафт</button>
+      <button id="mineBtn">Добыть ресурсы</button>
       <div id="logBox"></div>
     </div>
     <div class="right-slots" id="rightSlots"></div>
   </div>
 
   <script>
-    const inventory = { 'ИИ': 1, 'Уголь': 0 };
+    const inventory = { 'ИИ': 1, 'Уголь': 0, 'Мусор': 0 };
     const maxSlots = 9;
     let coalEnabled = false;
     let gameTime = 15;
@@ -194,16 +193,18 @@
     document.getElementById('mineBtn').addEventListener('click', () => {
       const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
       if (!aiActive || (!isDay && !coalEnabled)) return;
-      const chance = coalEnabled ? 0.07 : 0.03;
-      if (Math.random() < chance) {
-        inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
-        log('Активная добыча: найден уголь 🪨');
+      const coalChance = coalEnabled ? 0.07 : 0.04;
+      const trashChance = coalEnabled ? 0.02 : 0.01;
+
+      if (Math.random() < coalChance) {
+        inventory['Уголь']++;
+        log('Найден уголь 🪨');
+      }
+      if (Math.random() < trashChance) {
+        inventory['Мусор']++;
+        log('Найден мусор ♻️');
       }
       render();
-    });
-
-    document.getElementById('craftBtn').addEventListener('click', () => {
-      alert('Крафт временно отключён.');
     });
 
     setInterval(() => {
@@ -224,17 +225,21 @@
         }
       }
 
-      // Пассивная добыча каждые 7 секунд
       passiveCounter++;
       if (passiveCounter >= 7) {
         passiveCounter = 0;
         const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
         if (!isDay && !coalEnabled) return;
         if (aiActive) {
-          const chance = coalEnabled ? 0.07 : 0.03;
-          if (Math.random() < chance) {
-            inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
-            log('Пассивная добыча: найден уголь 🪨');
+          const coalChance = coalEnabled ? 0.01 : 0.005;
+          const trashChance = coalEnabled ? 0.01 : 0.005;
+          if (Math.random() < coalChance) {
+            inventory['Уголь']++;
+            log('Пассивно найден уголь 🪨');
+          }
+          if (Math.random() < trashChance) {
+            inventory['Мусор']++;
+            log('Пассивно найден мусор ♻️');
           }
         }
       }
@@ -246,8 +251,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
