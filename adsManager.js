@@ -11,57 +11,33 @@ class AdsManager {
   
     init() {
       this.createWidget();
+      this.addResponsiveStyles();
+      window.addEventListener('resize', () => this.handleResize());
     }
   
     createWidget() {
       this.widget = document.createElement('div');
       this.widget.id = 'ads-manager-widget';
-      this.widget.style.cssText = `
-        position: fixed;
-        bottom: 15px;
-        right: 15px;
-        z-index: 1000;
-        font-family: monospace;
-      `;
       
       this.toggleBtn = document.createElement('button');
       this.toggleBtn.textContent = 'Реклама';
-      this.toggleBtn.style.cssText = `
-        background: #333;
-        color: #fff;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-      `;
+      this.toggleBtn.className = 'ads-toggle-btn';
       
       this.panel = document.createElement('div');
-      this.panel.style.cssText = `
-        position: absolute;
-        bottom: 100%;
-        right: 0;
-        width: 280px;
-        background: rgba(30, 30, 30, 0.95);
-        border: 1px solid #444;
-        border-radius: 6px;
-        padding: 12px;
-        display: none;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      `;
-      
+      this.panel.className = 'ads-panel';
       this.panel.innerHTML = `
-        <div style="margin-bottom: 10px;">
-          <h3 style="margin: 0 0 10px 0; font-size: 16px;">Рекламная система</h3>
-          <div id="ads-manager-ads-list" style="max-height: 200px; overflow-y: auto;"></div>
+        <div class="ads-panel-header">
+          <h3>Рекламная система</h3>
+          <button class="ads-close-btn">×</button>
         </div>
-        <button id="ads-manager-buy-btn" style="width: 100%; padding: 8px; margin-bottom: 8px; background: #3a3a3a; color: #fff; border: none; border-radius: 4px;">
+        <div id="ads-manager-ads-list" class="ads-list"></div>
+        <button id="ads-manager-buy-btn" class="ads-buy-btn">
           Купить место (${this.AD_PRICE}₸)
         </button>
-        <div id="ads-manager-form" style="display: none;">
-          <input type="text" id="ads-manager-link" placeholder="Ваша ссылка" style="width: 100%; padding: 6px; margin-bottom: 6px; background: #222; color: #fff; border: 1px solid #444;">
-          <textarea id="ads-manager-text" placeholder="Текст (до 50 символов)" style="width: 100%; padding: 6px; margin-bottom: 6px; height: 60px; background: #222; color: #fff; border: 1px solid #444;"></textarea>
-          <button id="ads-manager-submit" style="width: 100%; padding: 8px; background: #4a4a4a; color: #fff; border: none; border-radius: 4px;">Разместить</button>
+        <div id="ads-manager-form" class="ads-form">
+          <input type="text" id="ads-manager-link" placeholder="Ваша ссылка">
+          <textarea id="ads-manager-text" placeholder="Текст (до 50 символов)"></textarea>
+          <button id="ads-manager-submit" class="ads-submit-btn">Разместить</button>
         </div>
       `;
       
@@ -70,15 +46,189 @@ class AdsManager {
       document.body.appendChild(this.widget);
       
       this.toggleBtn.addEventListener('click', () => this.togglePanel());
+      this.panel.querySelector('.ads-close-btn').addEventListener('click', () => this.togglePanel(false));
       document.getElementById('ads-manager-buy-btn').addEventListener('click', () => this.showForm());
       document.getElementById('ads-manager-submit').addEventListener('click', () => this.submitAd());
     }
   
-    togglePanel() {
-      this.isPanelVisible = !this.isPanelVisible;
+    addResponsiveStyles() {
+      const style = document.createElement('style');
+      style.textContent = `
+        #ads-manager-widget {
+          position: fixed;
+          z-index: 1000;
+          font-family: monospace;
+        }
+        
+        .ads-toggle-btn {
+          background: #333;
+          color: #fff;
+          border: none;
+          padding: 8px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          position: fixed;
+          bottom: 15px;
+          right: 15px;
+          transition: all 0.3s ease;
+        }
+        
+        .ads-toggle-btn:hover {
+          background: #444;
+        }
+        
+        .ads-panel {
+          position: fixed;
+          background: rgba(30, 30, 30, 0.95);
+          border: 1px solid #444;
+          border-radius: 6px;
+          padding: 12px;
+          box-shadow: 0 0 10px rgba(0,0,0,0.5);
+          display: none;
+          width: 280px;
+          max-width: 90vw;
+          max-height: 70vh;
+          overflow-y: auto;
+          bottom: 60px;
+          right: 10px;
+          backdrop-filter: blur(5px);
+        }
+        
+        .ads-panel-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+        }
+        
+        .ads-panel-header h3 {
+          margin: 0;
+          font-size: 16px;
+        }
+        
+        .ads-close-btn {
+          background: none;
+          border: none;
+          color: #aaa;
+          font-size: 20px;
+          cursor: pointer;
+          padding: 0 5px;
+        }
+        
+        .ads-list {
+          max-height: 200px;
+          overflow-y: auto;
+          margin-bottom: 10px;
+        }
+        
+        .ads-buy-btn {
+          width: 100%;
+          padding: 8px;
+          margin-bottom: 8px;
+          background: #3a3a3a;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        
+        .ads-form {
+          display: none;
+          margin-top: 10px;
+        }
+        
+        .ads-form input,
+        .ads-form textarea {
+          width: 100%;
+          padding: 6px;
+          margin-bottom: 6px;
+          background: #222;
+          color: #fff;
+          border: 1px solid #444;
+          border-radius: 4px;
+        }
+        
+        .ads-form textarea {
+          height: 60px;
+          resize: vertical;
+        }
+        
+        .ads-submit-btn {
+          width: 100%;
+          padding: 8px;
+          background: #4a4a4a;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        
+        .ad-item {
+          background: rgba(40, 40, 40, 0.7);
+          padding: 8px;
+          margin-bottom: 8px;
+          border-radius: 4px;
+          border-left: 3px solid #8a2be2;
+          word-break: break-word;
+        }
+        
+        .ad-item p {
+          margin: 0 0 5px 0;
+        }
+        
+        .ad-item a {
+          color: #5af;
+          font-size: 12px;
+          text-decoration: none;
+        }
+        
+        @media (max-width: 768px) {
+          .ads-panel {
+            width: 90vw;
+            right: 5vw;
+            bottom: 70px;
+            padding: 10px;
+          }
+          
+          .ads-toggle-btn {
+            bottom: 10px;
+            right: 10px;
+            padding: 10px 15px;
+            font-size: 16px;
+          }
+          
+          .ads-form input,
+          .ads-form textarea {
+            font-size: 16px;
+            padding: 8px;
+          }
+          
+          .ads-panel-header h3 {
+            font-size: 18px;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  
+    handleResize() {
+      if (window.innerWidth <= 768) {
+        this.panel.style.width = '90vw';
+        this.panel.style.right = '5vw';
+      } else {
+        this.panel.style.width = '280px';
+        this.panel.style.right = '10px';
+      }
+    }
+  
+    togglePanel(show = null) {
+      this.isPanelVisible = show !== null ? show : !this.isPanelVisible;
       this.panel.style.display = this.isPanelVisible ? 'block' : 'none';
       this.toggleBtn.textContent = this.isPanelVisible ? 'Закрыть' : 'Реклама';
-      if (this.isPanelVisible) this.renderAds();
+      if (this.isPanelVisible) {
+        this.renderAds();
+      }
     }
   
     showForm() {
@@ -158,17 +308,10 @@ class AdsManager {
       
       this.advertisements.forEach(ad => {
         const adElement = document.createElement('div');
-        adElement.style.cssText = `
-          background: rgba(40, 40, 40, 0.7);
-          padding: 8px;
-          margin-bottom: 8px;
-          border-radius: 4px;
-          border-left: 3px solid #8a2be2;
-          word-break: break-word;
-        `;
+        adElement.className = 'ad-item';
         adElement.innerHTML = `
-          <p style="margin: 0 0 5px 0;">${ad.text}</p>
-          <a href="${ad.link}" target="_blank" style="color: #5af; font-size: 12px;">${this.shortenLink(ad.link)}</a>
+          <p>${ad.text}</p>
+          <a href="${ad.link}" target="_blank">${this.shortenLink(ad.link)}</a>
         `;
         container.appendChild(adElement);
       });
