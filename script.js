@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'coreboxSave';
 
-const inventory = { 'ИИ': 1, 'Уголь': 0, 'Мусор': 0 };
+const inventory = { 'ИИ': 1, 'Уголь': 0, 'Мусор': 0, 'Кристалл': 0 };
 let tng = 0;
 const maxSlots = 9;
 let coalEnabled = false;
@@ -8,6 +8,10 @@ let gameTime = 15;
 let isDay = true;
 let passiveCounter = 0;
 let sellMode = false;
+let currentQuest = null;
+let questCompleted = false;
+let crystalFoundToday = false;
+const questResources = ['Кристалл'];
 
 const leftPanelItems = ['ТЭЦ', '', '', '', ''];
 const rightPanelItems = ['', '', '', '', ''];
@@ -27,6 +31,33 @@ function updateCurrencyDisplay() {
   document.getElementById('currencyDisplay').innerText = `TNG: ${tng}₸`;
 }
 
+function generateNewQuest() {
+  const randomResource = questResources[Math.floor(Math.random() * questResources.length)];
+  currentQuest = {
+    resource: randomResource,
+    amount: 1,
+    reward: 50
+  };
+  questCompleted = false;
+  crystalFoundToday = false;
+  log(`📜 Новый квест: добыть ${currentQuest.resource}! Награда: ${currentQuest.reward}₸`);
+  document.getElementById('questInfo').textContent = `📌 Квест: ${currentQuest.resource} (${currentQuest.reward}₸)`;
+  saveGame();
+}
+
+function checkQuest(resource) {
+  if (!currentQuest || questCompleted) return;
+  
+  if (resource === currentQuest.resource) {
+    questCompleted = true;
+    tng += currentQuest.reward;
+    log(`🎉 Квест выполнен! Получено ${currentQuest.reward}₸`);
+    updateCurrencyDisplay();
+    setTimeout(generateNewQuest, 2000);
+    saveGame();
+  }
+}
+
 function saveGame() {
   const saveData = {
     inventory,
@@ -36,6 +67,10 @@ function saveGame() {
     isDay,
     passiveCounter,
     sellMode,
+    currentQuest,
+    questCompleted,
+    crystalFoundToday,
+    lastUpdate: Date.now()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
 }
@@ -56,9 +91,37 @@ function loadGame() {
       isDay = data.isDay ?? true;
       passiveCounter = data.passiveCounter ?? 0;
       sellMode = data.sellMode ?? false;
+      currentQuest = data.currentQuest || null;
+      questCompleted = data.questCompleted || false;
+      crystalFoundToday = data.crystalFoundToday ?? false;
+      
+      if (data.lastUpdate) {
+        const secondsPassed = Math.floor((Date.now() - data.lastUpdate) / 1000);
+        gameTime = data.gameTime ?? 15;
+        
+        while (secondsPassed > 0) {
+          gameTime--;
+          secondsPassed--;
+          if (gameTime <= 0) {
+            gameTime = 15;
+            isDay = !isDay;
+            crystalFoundToday = false;
+          }
+        }
+      }
+      
+      if (currentQuest) {
+        document.getElementById('questInfo').textContent = 
+          questCompleted 
+            ? '🔄 Квест обновляется...' 
+            : `📌 Квест: ${currentQuest.resource} (${currentQuest.reward}₸)`;
+      }
     } catch (e) {
       console.error('Ошибка загрузки сохранения', e);
     }
+  }
+  if (!currentQuest) {
+    generateNewQuest();
   }
 }
 
@@ -75,10 +138,20 @@ function render() {
   let renderedSlots = 0;
   Object.keys(inventory).forEach(name => {
     if (name === 'ИИ') return;
+    
+    // Не отображаем ячейку кристалла, если их нет
+    if (name === 'Кристалл' && inventory[name] === 0) return;
+    
     const slot = document.createElement('div');
-    slot.className = 'slot';
+    slot.className = 'slot' + (name === 'Кристалл' ? ' crystal-slot' : '');
     slot.dataset.resource = name;
     slot.innerHTML = `${name} x${inventory[name]}`;
+
+    if (name === 'Кристалл' && inventory[name] > 0) {
+      // Автоматически удаляем кристалл
+      inventory['Кристалл'] = 0;
+      saveGame();
+    }
 
     if (sellMode && name === 'Мусор' && inventory[name] > 0) {
       slot.classList.add('sell-mode');
@@ -154,8 +227,10 @@ function render() {
 document.getElementById('mineBtn').addEventListener('click', () => {
   const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
   if (!aiActive || (!isDay && !coalEnabled)) return;
-  const coalChance = coalEnabled ? 0.07 : 0.04;
-  const trashChance = coalEnabled ? 0.02 : 0.01;
+  
+  const coalChance = (coalEnabled ? 0.07 : 0.04) / 2;
+  const trashChance = (coalEnabled ? 0.02 : 0.01) / 2;
+  const crystalChance = (!crystalFoundToday && currentQuest && !questCompleted) ? 0.5 : 0;
 
   if (Math.random() < coalChance) {
     inventory['Уголь']++;
@@ -165,6 +240,13 @@ document.getElementById('mineBtn').addEventListener('click', () => {
   if (Math.random() < trashChance) {
     inventory['Мусор']++;
     log('Найден мусор ♻️');
+    saveGame();
+  }
+  if (Math.random() < crystalChance) {
+    inventory['Кристалл'] = 1;
+    crystalFoundToday = true;
+    log('✨ Найден редкий кристалл! (исчезнет при обновлении инвентаря)');
+    checkQuest('Кристалл');
     saveGame();
   }
   render();
@@ -186,6 +268,7 @@ setInterval(() => {
   if (gameTime <= 0) {
     gameTime = 15;
     isDay = !isDay;
+    crystalFoundToday = false;
     if (!isDay && coalEnabled) {
       if (inventory['Уголь'] > 0) {
         inventory['Уголь']--;
@@ -208,6 +291,8 @@ setInterval(() => {
     if (aiActive) {
       const coalChance = coalEnabled ? 0.01 : 0.005;
       const trashChance = coalEnabled ? 0.01 : 0.005;
+      const crystalChance = (!crystalFoundToday && currentQuest && !questCompleted) ? 0.002 : 0;
+      
       if (Math.random() < coalChance) {
         inventory['Уголь']++;
         log('Пассивно найден уголь 🪨');
@@ -216,6 +301,13 @@ setInterval(() => {
       if (Math.random() < trashChance) {
         inventory['Мусор']++;
         log('Пассивно найден мусор ♻️');
+        saveGame();
+      }
+      if (Math.random() < crystalChance) {
+        inventory['Кристалл'] = 1;
+        crystalFoundToday = true;
+        log('✨ Пассивно найден кристалл! (исчезнет при обновлении инвентаря)');
+        checkQuest('Кристалл');
         saveGame();
       }
     }
