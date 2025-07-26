@@ -1,199 +1,236 @@
-// script.js
+const STORAGE_KEY = 'coreboxSave';
 
-const inventorySize = 9;
-const inventory = new Array(inventorySize).fill(null);
-const leftSlots = document.getElementById('leftSlots');
-const rightSlots = document.getElementById('rightSlots');
-const inventoryDiv = document.getElementById('inventory');
-const mineBtn = document.getElementById('mineBtn');
-const logBox = document.getElementById('logBox');
-const aiSlot = document.getElementById('aiSlot');
-const timeDisplay = document.getElementById('timeDisplay');
-const toggleTradeBtn = document.getElementById('toggleTrade');
-const currencyDisplay = document.getElementById('currencyDisplay');
-
-let coalSlotIndex = 0;
-let sellMode = false;
-let currency = 0;
+const inventory = { 'ИИ': 1, 'Уголь': 0, 'Мусор': 0 };
+let tng = 0; // валюта
+const maxSlots = 9;
+let coalEnabled = false;
+let gameTime = 15;
 let isDay = true;
-let coalActive = false;
-let aiActive = true;
-let lastMineTime = 0;
+let passiveCounter = 0;
+let sellMode = false;
 
-function log(msg) {
-  const entry = document.createElement('div');
-  entry.textContent = msg;
-  logBox.appendChild(entry);
-  logBox.scrollTop = logBox.scrollHeight;
+const leftPanelItems = ['ТЭЦ', '', '', '', ''];
+const rightPanelItems = ['', '', '', '', ''];
+
+function log(message) {
+  const box = document.getElementById('logBox');
+  box.innerHTML += `🟢 ${message}<br>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function updateTimeDisplay() {
+  const icon = isDay ? '🌞' : '🌙';
+  document.getElementById('timeDisplay').innerText = `${icon} ${isDay ? 'День' : 'Ночь'} — ${gameTime}s осталось`;
 }
 
 function updateCurrencyDisplay() {
-  currencyDisplay.textContent = `TNG: ${currency}₸`;
-}
-
-function updateInventory() {
-  inventoryDiv.innerHTML = '';
-  inventory.forEach((item, i) => {
-    const slot = document.createElement('div');
-    slot.className = 'slot';
-    if (item) {
-      slot.innerHTML = `${item.icon}<br>${item.name} (${item.count})`;
-    }
-    if (sellMode && item?.name === 'Мусор') {
-      slot.classList.add('sell-mode');
-      const sellLabel = document.createElement('div');
-      sellLabel.className = 'sell-label';
-      sellLabel.textContent = 'Продать';
-      slot.appendChild(sellLabel);
-    }
-    slot.addEventListener('click', () => {
-      if (sellMode && item?.name === 'Мусор') {
-        currency += item.count;
-        inventory[i] = null;
-        updateCurrencyDisplay();
-        updateInventory();
-        saveGame();
-        return;
-      }
-
-      if (i === coalSlotIndex && item?.name === 'Уголь') {
-        if (!coalActive && item.count > 0) {
-          coalActive = true;
-          item.count--;
-          if (item.count === 0) inventory[i] = null;
-          updateInventory();
-          log('Уголь активирован.');
-        }
-        saveGame();
-      }
-    });
-    inventoryDiv.appendChild(slot);
-  });
-}
-
-function passiveMine() {
-  if (!aiActive) return;
-  if (Math.random() < 0.01) {
-    addItem({ name: 'Мусор', icon: '🗑️', count: 1 });
-  }
-}
-
-function mineResources() {
-  if (!aiActive) return;
-  const now = Date.now();
-  if (now - lastMineTime < 3000) return;
-  lastMineTime = now;
-
-  let chance = coalActive ? 0.07 : isDay ? 0.04 : 0;
-  if (Math.random() < chance) {
-    addItem({ name: 'Мусор', icon: '🗑️', count: 1 });
-  } else {
-    log('Ничего не найдено.');
-  }
-  updateInventory();
-  saveGame();
-}
-
-function addItem(newItem) {
-  for (let i = 0; i < inventory.length; i++) {
-    const item = inventory[i];
-    if (item && item.name === newItem.name) {
-      item.count += newItem.count;
-      return;
-    }
-  }
-  for (let i = 0; i < inventory.length; i++) {
-    if (!inventory[i]) {
-      inventory[i] = newItem;
-      return;
-    }
-  }
-}
-
-function updateAISlot() {
-  aiSlot.textContent = aiActive ? '🤖 ИИ активен' : '💤 ИИ неактивен';
-}
-
-function switchTime() {
-  isDay = !isDay;
-  timeDisplay.textContent = isDay ? '🌞 День' : '🌙 Ночь';
-
-  if (!isDay) {
-    const coalItem = inventory[coalSlotIndex];
-    if (coalActive && coalItem && coalItem.name === 'Уголь' && coalItem.count > 0) {
-      coalItem.count--;
-      if (coalItem.count === 0) inventory[coalSlotIndex] = null;
-      aiActive = true;
-      log('Сожжён 1 уголь для питания ИИ.');
-    } else {
-      aiActive = false;
-    }
-  } else {
-    aiActive = true;
-  }
-  updateAISlot();
-  updateInventory();
-  saveGame();
-}
-
-function toggleTradeMode() {
-  sellMode = !sellMode;
-  toggleTradeBtn.textContent = sellMode ? 'Выход из торговли' : 'Торговля';
-  updateInventory();
+  document.getElementById('currencyDisplay').innerText = `TNG: ${tng}₸`;
 }
 
 function saveGame() {
-  localStorage.setItem('inventory', JSON.stringify(inventory));
-  localStorage.setItem('currency', currency);
-  localStorage.setItem('isDay', isDay);
-  localStorage.setItem('coalActive', coalActive);
-  localStorage.setItem('startTime', startTime);
+  const saveData = {
+    inventory,
+    tng,
+    coalEnabled,
+    gameTime,
+    isDay,
+    passiveCounter,
+    sellMode,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
 }
 
 function loadGame() {
-  const savedInv = JSON.parse(localStorage.getItem('inventory'));
-  if (savedInv) {
-    for (let i = 0; i < inventorySize; i++) {
-      inventory[i] = savedInv[i];
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      if (data.inventory) {
+        Object.keys(inventory).forEach(key => {
+          if (data.inventory[key] !== undefined) inventory[key] = data.inventory[key];
+        });
+      }
+      tng = data.tng ?? 0;
+      coalEnabled = data.coalEnabled ?? false;
+      gameTime = data.gameTime ?? 15;
+      isDay = data.isDay ?? true;
+      passiveCounter = data.passiveCounter ?? 0;
+      sellMode = data.sellMode ?? false;
+    } catch (e) {
+      console.error('Ошибка загрузки сохранения', e);
     }
   }
-  const savedCurr = localStorage.getItem('currency');
-  if (savedCurr !== null) currency = +savedCurr;
-
-  const savedDay = localStorage.getItem('isDay');
-  if (savedDay !== null) isDay = savedDay === 'true';
-
-  const savedCoal = localStorage.getItem('coalActive');
-  if (savedCoal !== null) coalActive = savedCoal === 'true';
-
-  const savedStart = localStorage.getItem('startTime');
-  if (savedStart) startTime = parseInt(savedStart);
 }
 
-// Время
-let startTime = Date.now();
-function initTime() {
-  if (!localStorage.getItem('startTime')) {
-    startTime = Date.now();
-    localStorage.setItem('startTime', startTime);
-  } else {
-    startTime = parseInt(localStorage.getItem('startTime'));
+function render() {
+  const invDiv = document.getElementById('inventory');
+  const leftDiv = document.getElementById('leftSlots');
+  const rightDiv = document.getElementById('rightSlots');
+  const aiSlot = document.getElementById('aiSlot');
+
+  invDiv.innerHTML = '';
+  leftDiv.innerHTML = '';
+  rightDiv.innerHTML = '';
+
+  let renderedSlots = 0;
+  Object.keys(inventory).forEach(name => {
+    if (name === 'ИИ') return;
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.dataset.resource = name;
+    slot.innerHTML = `${name} x${inventory[name]}`;
+
+    // Если в режиме продажи, подсвечиваем мусор красным и добавляем "Продать"
+    if (sellMode && name === 'Мусор' && inventory[name] > 0) {
+      slot.classList.add('sell-mode');
+      const sellLabel = document.createElement('div');
+      sellLabel.className = 'sell-label';
+      sellLabel.innerText = 'Продать';
+      slot.appendChild(sellLabel);
+      slot.addEventListener('click', () => {
+        const count = inventory['Мусор'];
+        if (count > 0) {
+          inventory['Мусор'] = 0;
+          tng += count; // добавляем валюту
+          log(`Продано ${count} мусора за ${count}₸`);
+          sellMode = false; // выключаем режим продажи после продажи
+          updateCurrencyDisplay();
+          saveGame();
+          render();
+        }
+      });
+    }
+
+    // Обработка угля - включение/выключение, только если не в режиме продажи
+    if (name === 'Уголь') {
+      slot.style.borderColor = coalEnabled ? 'lime' : '#888';
+      slot.addEventListener('click', () => {
+        if (sellMode) return; // не включаем уголь в режиме продажи
+        if (coalEnabled) {
+          coalEnabled = false;
+          log('Уголь 🔥 выключен');
+          saveGame();
+          render();
+        } else if (inventory['Уголь'] > 0) {
+          coalEnabled = true;
+          inventory['Уголь']--;
+          log('Уголь 🔥 включён (−1)');
+          saveGame();
+          render();
+        }
+      });
+    }
+
+    invDiv.appendChild(slot);
+    renderedSlots++;
+  });
+
+  for (let i = renderedSlots; i < maxSlots; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.innerText = '[пусто]';
+    invDiv.appendChild(slot);
   }
-  const tick = () => {
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    const phase = Math.floor(elapsed / 15) % 2 === 0;
-    if (phase !== isDay) switchTime();
-    setTimeout(tick, 1000);
-  };
-  tick();
+
+  leftPanelItems.forEach(name => {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.innerText = name || '[пусто]';
+    leftDiv.appendChild(slot);
+  });
+
+  rightPanelItems.forEach(name => {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.innerText = name || '[пусто]';
+    rightDiv.appendChild(slot);
+  });
+
+  const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
+  aiSlot.innerText = aiActive ? '🤖 ИИ активен' : '🛑 ИИ неактивен';
+
+  updateTimeDisplay();
+  updateCurrencyDisplay();
 }
 
-mineBtn.addEventListener('click', mineResources);
-toggleTradeBtn.addEventListener('click', toggleTradeMode);
+// Инициализация игры
+function init() {
+  document.getElementById('mineBtn').addEventListener('click', () => {
+    const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
+    if (!aiActive || (!isDay && !coalEnabled)) return;
+    const coalChance = coalEnabled ? 0.07 : 0.04;
+    const trashChance = coalEnabled ? 0.02 : 0.01;
 
-loadGame();
-updateCurrencyDisplay();
-updateAISlot();
-updateInventory();
-initTime();
-setInterval(passiveMine, 7000);
+    if (Math.random() < coalChance) {
+      inventory['Уголь']++;
+      log('Найден уголь 🪨');
+      saveGame();
+    }
+    if (Math.random() < trashChance) {
+      inventory['Мусор']++;
+      log('Найден мусор ♻️');
+      saveGame();
+    }
+    render();
+  });
+
+  document.getElementById('toggleTrade').addEventListener('click', () => {
+    sellMode = !sellMode;
+    if (sellMode) {
+      log('Режим торговли включён. Нажмите на мусор для продажи.');
+    } else {
+      log('Режим торговли выключен.');
+    }
+    saveGame();
+    render();
+  });
+
+  setInterval(() => {
+    gameTime--;
+    if (gameTime <= 0) {
+      gameTime = 15;
+      isDay = !isDay;
+      if (!isDay && coalEnabled) {
+        if (inventory['Уголь'] > 0) {
+          inventory['Уголь']--;
+          log('Наступила ночь 🌙 — сгорел 1 уголь');
+        } else {
+          coalEnabled = false;
+          log('Наступила ночь 🌙 — уголь закончился, ИИ отключён');
+        }
+      } else {
+        log(isDay ? 'Наступил день 🌞' : 'Наступила ночь 🌙');
+      }
+      saveGame();
+    }
+
+    passiveCounter++;
+    if (passiveCounter >= 7) {
+      passiveCounter = 0;
+      const aiActive = isDay || (coalEnabled && inventory['Уголь'] >= 0);
+      if (!isDay && !coalEnabled) return;
+      if (aiActive) {
+        const coalChance = coalEnabled ? 0.01 : 0.005;
+        const trashChance = coalEnabled ? 0.01 : 0.005;
+        if (Math.random() < coalChance) {
+          inventory['Уголь']++;
+          log('Пассивно найден уголь 🪨');
+          saveGame();
+        }
+        if (Math.random() < trashChance) {
+          inventory['Мусор']++;
+          log('Пассивно найден мусор ♻️');
+          saveGame();
+        }
+      }
+    }
+
+    render();
+  }, 1000);
+
+  loadGame();
+  render();
+}
+
+// Запуск игры при загрузке страницы
+window.addEventListener('DOMContentLoaded', init);
