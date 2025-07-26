@@ -1,22 +1,3 @@
-// После объявления других переменных
-let adsManager;
-
-// В функции loadGame() после загрузки данных:
-adsManager = new AdsManager(this);
-if (data.advertisements) {
-  adsManager.loadAds(data.advertisements);
-}
-
-// В функции saveGame() в объект saveData добавьте:
-advertisements: adsManager.getSaveData(),
-
-// В конце скрипта (после loadGame()):
-adsManager = new AdsManager({
-  tng,
-  log: log,
-  updateCurrencyDisplay: updateCurrencyDisplay,
-  saveGame: saveGame
-});
 
 const STORAGE_KEY = 'coreboxSave';
 
