@@ -56,8 +56,6 @@ function log(message) {
 function updateTimeDisplay() {
   const dayIcon = isDay ? '🌞' : '🌙';
   const timeLeft = Math.ceil(gameTime);
-  
-  // Упрощенное отображение времени без информации об энергии
   document.getElementById('timeDisplay').innerText = 
     `${dayIcon} ${isDay ? 'День' : 'Ночь'} — ${timeLeft} сек`;
   
