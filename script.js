@@ -242,13 +242,17 @@ function handleCoalClick() {
   
   if (coalEnabled) {
     coalEnabled = false;
-    log('Уголь выключен');
+    log('Режим угля выключен');
   } else if (inventory['Уголь'] > 0) {
     coalEnabled = true;
-    addToInventory('Уголь', -1);
-    log('Уголь включён (-1)');
+    addToInventory('Уголь', -1); // Тратим уголь сразу при активации
+    log('Режим угля включен (-1 уголь)');
+  } else {
+    log('Недостаточно угля!');
+    return;
   }
   
+  saveGame();
   render();
 }
 
@@ -297,9 +301,10 @@ function render() {
       slot.onclick = handleTrashClick;
     }
 
-    if (name === 'Уголь' && count > 0) {
+    if (name === 'Уголь') {
       slot.style.borderColor = coalEnabled ? 'lime' : '#888';
-      slot.onclick = handleCoalClick;
+      slot.onclick = count > 0 ? handleCoalClick : null;
+      if (count <= 0) slot.style.opacity = '0.5';
     }
 
     invDiv.appendChild(slot);
@@ -327,7 +332,8 @@ function render() {
     rightDiv.appendChild(slot);
   });
 
-  const aiActive = isDay || (coalEnabled && inventory['Уголь'] > 0);
+  // ИИ активен всегда, когда есть энергия (уголь включен или день и уголь выключен)
+  const aiActive = (coalEnabled && inventory['Уголь'] > 0) || (!coalEnabled && isDay);
   aiSlot.innerText = aiActive ? '🤖 ИИ активен' : '🛑 ИИ неактивен';
   aiSlot.style.color = aiActive ? 'lime' : 'red';
 
@@ -336,12 +342,13 @@ function render() {
 }
 
 document.getElementById('mineBtn').addEventListener('click', () => {
-  const aiActive = isDay || (coalEnabled && inventory['Уголь'] > 0);
+  const aiActive = (coalEnabled && inventory['Уголь'] > 0) || (!coalEnabled && isDay);
   if (!aiActive) {
     log('❌ ИИ неактивен! Нужна энергия');
     return;
   }
   
+  // Используем угольные шансы если уголь включен, иначе солнечные
   const chances = coalEnabled ? COAL_ENERGY_CHANCES : SOLAR_ENERGY_CHANCES;
   const crystalChance = (crystalCooldown <= 0 && !questCompleted) ? chances.CRYSTAL : 0;
 
@@ -382,14 +389,13 @@ function gameLoop() {
     gameTime = 15;
     isDay = !isDay;
     
-    if (!isDay && coalEnabled) {
-      if (inventory['Уголь'] > 0) {
-        addToInventory('Уголь', -1);
-        log('🌙 Ночь — сгорел 1 уголь');
-      } else {
-        coalEnabled = false;
-        log('🌙 Ночь — уголь закончился');
-      }
+    // Ночью тратим уголь, если он включен
+    if (!isDay && coalEnabled && inventory['Уголь'] > 0) {
+      addToInventory('Уголь', -1);
+      log('🌙 Ночь — сгорел 1 уголь');
+    } else if (!isDay && coalEnabled && inventory['Уголь'] <= 0) {
+      coalEnabled = false;
+      log('🌙 Ночь — уголь закончился, режим отключён');
     } else {
       log(isDay ? '🌞 День' : '🌙 Ночь');
     }
@@ -409,7 +415,7 @@ function gameLoop() {
 
   if (passiveCounter >= 7) {
     passiveCounter = 0;
-    const aiActive = isDay || (coalEnabled && inventory['Уголь'] > 0);
+    const aiActive = (coalEnabled && inventory['Уголь'] > 0) || (!coalEnabled && isDay);
     
     if (aiActive) {
       const chances = coalEnabled ? COAL_ENERGY_CHANCES : SOLAR_ENERGY_CHANCES;
