@@ -248,20 +248,35 @@ function render() {
         };
       }
     } else if (name === 'Уголь') {
-      slot.style.borderColor = coalEnabled ? 'lime' : '#888';
+      // Яркая подсветка если уголь включен
+      if (coalEnabled) {
+        slot.style.border = '2px solid gold';
+        slot.style.background = 'rgba(255, 215, 0, 0.1)';
+      } else {
+        slot.style.border = '1px solid #888';
+        slot.style.background = '';
+      }
+      
       slot.onclick = (e) => {
         e.stopPropagation();
-        if (sellMode) return;
+        if (sellMode) {
+          log('В режиме торговли нельзя управлять углем');
+          return;
+        }
         
         if (coalEnabled) {
+          // Выключаем уголь
           coalEnabled = false;
           log('Режим угля выключен');
-        } else if (count > 0) {
-          coalEnabled = true;
-          log('Уголь включён');
         } else {
-          log('Недостаточно угля!');
-          return;
+          // Включаем уголь только если он есть
+          if (count > 0) {
+            coalEnabled = true;
+            log('Режим угля включен');
+          } else {
+            log('Недостаточно угля! Добывайте больше угля');
+            return;
+          }
         }
         saveGame();
         render();
@@ -352,10 +367,10 @@ function gameLoop() {
     
     if (!isDay && coalEnabled && inventory['Уголь'] > 0) {
       addToInventory('Уголь', -1);
-      log('🌙 Ночь — сгорел 1 Уголь');
+      log('🌙 Ночь — сгорел 1 уголь');
     } else if (!isDay && coalEnabled && inventory['Уголь'] <= 0) {
       coalEnabled = false;
-      log('🌙 Ночь — Уголь закончился, режим отключён');
+      log('🌙 Ночь — уголь закончился, режим отключён');
     } else {
       log(isDay ? '🌞 День' : '🌙 Ночь');
     }
@@ -382,7 +397,7 @@ function gameLoop() {
       
       if (Math.random() < chances.COAL / 2) {
         addToInventory('Уголь', 1);
-        log(`Пассивно: Уголь 🪨`);
+        log(`Пассивно: уголь 🪨`);
       }
       
       if (Math.random() < chances.TRASH / 2) {
