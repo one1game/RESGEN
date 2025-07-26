@@ -2,6 +2,7 @@ const STORAGE_KEY = 'coreboxSave';
 let adsManager;
 let lastSavedState = '';
 let lastRenderState = '';
+let lastSaveTime = 0;
 
 const inventory = { 'ИИ': 1, 'Уголь': 0, 'Мусор': 0, 'Кристалл': 0 };
 let tng = 0;
@@ -13,10 +14,10 @@ let passiveCounter = 0;
 let sellMode = false;
 let currentQuest = null;
 let questCompleted = false;
-let crystalCooldown = 0; // Таймер отката в секундах
+let crystalCooldown = 0;
 const CRYSTAL_COOLDOWN = 3 * 60 * 60; // 3 часа в секундах
-const CRYSTAL_GOAL = 10; // Нужно собрать 10 кристаллов
-const CRYSTAL_REWARD = 10; // Награда за 10 кристаллов
+const CRYSTAL_GOAL = 10;
+const CRYSTAL_REWARD = 10;
 const questResources = ['Кристалл'];
 
 const leftPanelItems = ['ТЭЦ', '', '', '', ''];
@@ -36,17 +37,18 @@ function log(message) {
 
 function updateTimeDisplay() {
   const icon = isDay ? '🌞' : '🌙';
-  document.getElementById('timeDisplay').innerText = `${icon} ${isDay ? 'День' : 'Ночь'} — ${Math.ceil(gameTime)}s осталось`;
+  const timeLeft = Math.ceil(gameTime);
+  document.getElementById('timeDisplay').innerText = `${icon} ${isDay ? 'День' : 'Ночь'} — ${timeLeft}s`;
   
-  // Обновляем отображение таймера кристаллов
+  // Обновляем информацию о кристаллах
   if (crystalCooldown > 0) {
     const hours = Math.floor(crystalCooldown / 3600);
     const minutes = Math.floor((crystalCooldown % 3600) / 60);
-    document.getElementById('crystalCooldown').textContent = 
-      `⏳ Кристаллы: ${hours}ч ${minutes}м до нового квеста`;
+    document.getElementById('crystalInfo').textContent = 
+      `⏳ Кристаллы: ${hours}ч ${minutes}м до возобновления`;
   } else {
-    document.getElementById('crystalCooldown').textContent = 
-      '✨ Кристаллы: можно искать!';
+    document.getElementById('crystalInfo').textContent = 
+      `✨ Кристаллы: ${inventory['Кристалл']}/${CRYSTAL_GOAL}`;
   }
 }
 
@@ -78,7 +80,7 @@ function generateNewQuest() {
 }
 
 function checkCrystalQuest() {
-  if (!currentQuest || questCompleted || crystalCooldown > 0) return;
+  if (!currentQuest || questCompleted || crystalCooldown > 0 || currentQuest.resource !== 'Кристалл') return;
   
   if (inventory['Кристалл'] >= currentQuest.amount) {
     questCompleted = true;
@@ -90,7 +92,7 @@ function checkCrystalQuest() {
     log(`⏳ Новые кристаллы будут доступны через 3 часа`);
     
     updateCurrencyDisplay();
-    document.getElementById('questInfo').textContent = '🔄 Квест выполнен!';
+    document.getElementById('questInfo').textContent = '✅ Квест выполнен!';
     saveGame();
   }
 }
@@ -103,7 +105,6 @@ function addToInventory(resource, amount = 1) {
   
   inventory[resource] = Math.max(0, (inventory[resource] || 0) + amount);
   
-  // Проверяем квест при добавлении кристаллов
   if (resource === 'Кристалл') {
     checkCrystalQuest();
   }
@@ -113,6 +114,8 @@ function addToInventory(resource, amount = 1) {
 }
 
 function saveGame() {
+  if (Date.now() - lastSaveTime < 2000) return; // Не сохранять чаще чем раз в 2 секунды
+  
   const saveData = {
     inventory,
     tng,
@@ -132,6 +135,7 @@ function saveGame() {
   if (currentState !== lastSavedState) {
     localStorage.setItem(STORAGE_KEY, currentState);
     lastSavedState = currentState;
+    lastSaveTime = Date.now();
   }
 }
 
@@ -141,7 +145,14 @@ function loadGame() {
     try {
       const data = JSON.parse(saved);
       
-      // Валидация и загрузка данных
+      // Проверка целостности данных
+      if (data.inventory && typeof data.inventory !== 'object') {
+        console.error('Неверный формат инвентаря');
+        resetGame();
+        return;
+      }
+
+      // Загрузка данных
       if (data.inventory) {
         Object.keys(inventory).forEach(key => {
           if (data.inventory[key] !== undefined) {
@@ -160,27 +171,33 @@ function loadGame() {
       questCompleted = !!data.questCompleted;
       crystalCooldown = typeof data.crystalCooldown === 'number' ? data.crystalCooldown : 0;
       
-      // Корректировка времени и кулдауна
+      // Коррекция времени при загрузке
       if (data.lastUpdate) {
         const secondsPassed = Math.floor((Date.now() - data.lastUpdate) / 1000);
         
-        // Обновляем игровое время
-        const fullCycles = Math.floor(secondsPassed / 30);
+        // Коррекция времени суток
+        const fullCycles = Math.floor(secondsPassed / 15);
         for (let i = 0; i < fullCycles; i++) {
           isDay = !isDay;
         }
-        gameTime = data.gameTime - (secondsPassed % 30);
+        
+        gameTime = data.gameTime - (secondsPassed % 15);
         if (gameTime <= 0) {
           gameTime += 15;
           isDay = !isDay;
         }
         
-        // Обновляем кулдаун кристаллов
+        // Коррекция кулдауна кристаллов
         if (crystalCooldown > 0) {
           crystalCooldown = Math.max(0, crystalCooldown - secondsPassed);
         }
       }
       
+      // Очистка кристаллов если квест выполнен
+      if (questCompleted && inventory['Кристалл'] > 0) {
+        inventory['Кристалл'] = 0;
+      }
+
       // Инициализация рекламной системы
       adsManager = new AdsManager({
         tng: tng,
@@ -193,7 +210,7 @@ function loadGame() {
         adsManager.loadAds(data.advertisements);
       }
       
-      // Обновление информации о квесте
+      // Обновление интерфейса
       if (currentQuest) {
         document.getElementById('questInfo').textContent = 
           questCompleted 
@@ -201,7 +218,6 @@ function loadGame() {
             : `📌 Квест: ${currentQuest.amount} ${currentQuest.resource} (${currentQuest.reward}₸)`;
       }
       
-      // Обновление информации о кристаллах
       updateTimeDisplay();
       
     } catch (error) {
@@ -246,6 +262,8 @@ function handleCoalClick() {
 }
 
 function handleTrashClick() {
+  if (!sellMode) return;
+  
   const count = inventory['Мусор'];
   if (count > 0) {
     inventory['Мусор'] = 0;
@@ -259,8 +277,7 @@ function handleTrashClick() {
 }
 
 function render() {
-  const currentState = JSON.stringify(inventory) + tng + isDay + Math.floor(gameTime) + 
-    sellMode + coalEnabled + crystalCooldown + questCompleted;
+  const currentState = `${inventory['Кристалл']}|${tng}|${isDay}|${Math.floor(gameTime)}|${sellMode}|${coalEnabled}|${crystalCooldown}|${questCompleted}`;
   if (currentState === lastRenderState) return;
   lastRenderState = currentState;
 
@@ -373,7 +390,7 @@ let lastFrameTime = Date.now();
 
 function gameLoop() {
   const currentTime = Date.now();
-  const deltaTime = (currentTime - lastFrameTime) / 1000;
+  const deltaTime = Math.min((currentTime - lastFrameTime) / 1000, 1.0);
   lastFrameTime = currentTime;
 
   // Обновление игрового времени
@@ -402,6 +419,7 @@ function gameLoop() {
     crystalCooldown = Math.max(0, crystalCooldown - deltaTime);
     if (crystalCooldown <= 0 && questCompleted) {
       questCompleted = false;
+      generateNewQuest();
       log('🔄 Теперь можно снова искать кристаллы!');
       saveGame();
     }
@@ -415,6 +433,7 @@ function gameLoop() {
     if (aiActive) {
       const coalChance = coalEnabled ? 0.01 : 0.005;
       const trashChance = coalEnabled ? 0.01 : 0.005;
+      const crystalChance = (crystalCooldown <= 0 && !questCompleted) ? 0.001 : 0;
       
       if (Math.random() < coalChance) {
         addToInventory('Уголь', 1);
@@ -424,6 +443,11 @@ function gameLoop() {
       if (Math.random() < trashChance) {
         addToInventory('Мусор', 1);
         log('Пассивно найден мусор ♻️');
+      }
+
+      if (Math.random() < crystalChance) {
+        addToInventory('Кристалл', 1);
+        log('✨ Пассивно найден кристалл!');
       }
     }
   } else {
@@ -443,6 +467,11 @@ if (!adsManager) {
     saveGame: saveGame
   });
 }
+
+// Добавляем элементы интерфейса для кристаллов
+document.body.insertAdjacentHTML('beforeend', `
+  <div id="crystalInfo" style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px; border-radius: 5px;"></div>
+`);
 
 loadGame();
 gameLoop();
