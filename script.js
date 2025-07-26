@@ -315,7 +315,7 @@ document.getElementById('mineBtn').addEventListener('click', () => {
 
   if (Math.random() < chances.COAL) {
     addToInventory('Уголь', 1);
-    log(`Найден уголь 🪨`);
+    log(`Найден Уголь 🪨`);
   }
   
   if (Math.random() < chances.TRASH) {
@@ -352,10 +352,10 @@ function gameLoop() {
     
     if (!isDay && coalEnabled && inventory['Уголь'] > 0) {
       addToInventory('Уголь', -1);
-      log('🌙 Ночь — сгорел 1 уголь');
+      log('🌙 Ночь — сгорел 1 Уголь');
     } else if (!isDay && coalEnabled && inventory['Уголь'] <= 0) {
       coalEnabled = false;
-      log('🌙 Ночь — уголь закончился, режим отключён');
+      log('🌙 Ночь — Уголь закончился, режим отключён');
     } else {
       log(isDay ? '🌞 День' : '🌙 Ночь');
     }
@@ -382,7 +382,7 @@ function gameLoop() {
       
       if (Math.random() < chances.COAL / 2) {
         addToInventory('Уголь', 1);
-        log(`Пассивно: уголь 🪨`);
+        log(`Пассивно: Уголь 🪨`);
       }
       
       if (Math.random() < chances.TRASH / 2) {
