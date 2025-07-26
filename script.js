@@ -44,11 +44,7 @@ const rightPanelItems = ['', '', '', '', ''];
 function log(message) {
   const box = document.getElementById('logBox');
   const entries = box.innerHTML.split('<br>');
-  
-  if (entries.length > 100) {
-    entries.shift();
-  }
-  
+  if (entries.length > 100) entries.shift();
   box.innerHTML = entries.join('<br>') + `🟢 ${message}<br>`;
   box.scrollTop = box.scrollHeight;
 }
@@ -75,8 +71,7 @@ function updateCurrencyDisplay() {
 }
 
 function generateNewQuest() {
-  const randomIndex = Math.floor(Math.random() * questResources.length);
-  const randomResource = questResources[randomIndex];
+  const randomResource = questResources[Math.floor(Math.random() * questResources.length)];
   currentQuest = {
     resource: randomResource,
     amount: CRYSTAL_GOAL,
@@ -97,10 +92,8 @@ function checkCrystalQuest() {
     tng += currentQuest.reward;
     inventory['Кристалл'] = 0;
     crystalCooldown = CRYSTAL_COOLDOWN;
-    
     log(`🎉 Квест выполнен! +${currentQuest.reward}₸`);
     log(`⏳ Новые кристаллы через 3 часа`);
-    
     updateCurrencyDisplay();
     document.getElementById('questInfo').textContent = '✅ Квест выполнен!';
     saveGame();
@@ -108,22 +101,15 @@ function checkCrystalQuest() {
 }
 
 function addToInventory(resource, amount = 1) {
-  if (!inventory.hasOwnProperty(resource)) {
-    console.error('Неизвестный ресурс:', resource);
-    return false;
-  }
-  
+  if (!inventory.hasOwnProperty(resource)) return false;
   inventory[resource] = Math.max(0, (inventory[resource] || 0) + amount);
-  
   if (resource === 'Кристалл') checkCrystalQuest();
-  
   saveGame();
   return true;
 }
 
 function saveGame() {
   if (Date.now() - lastSaveTime < 2000) return;
-  
   const saveData = {
     inventory: inventory,
     tng: tng,
@@ -138,7 +124,6 @@ function saveGame() {
     advertisements: adsManager?.getAdsData?.() || [],
     lastUpdate: Date.now()
   };
-  
   const currentState = JSON.stringify(saveData);
   if (currentState !== lastSavedState) {
     localStorage.setItem(STORAGE_KEY, currentState);
@@ -153,10 +138,8 @@ function loadGame() {
     generateNewQuest();
     return;
   }
-
   try {
     const data = JSON.parse(saved);
-    
     Object.keys(inventory).forEach(key => {
       if (data.inventory?.[key] !== undefined) {
         inventory[key] = data.inventory[key];
@@ -176,15 +159,12 @@ function loadGame() {
     if (data.lastUpdate) {
       const secondsPassed = Math.floor((Date.now() - data.lastUpdate) / 1000);
       const fullCycles = Math.floor(secondsPassed / 15);
-      
       for (let i = 0; i < fullCycles; i++) isDay = !isDay;
-      
       gameTime = (data.gameTime || 15) - (secondsPassed % 15);
       if (gameTime <= 0) {
         gameTime += 15;
         isDay = !isDay;
       }
-      
       if (crystalCooldown > 0) {
         crystalCooldown = Math.max(0, crystalCooldown - secondsPassed);
       }
@@ -215,7 +195,6 @@ function loadGame() {
     }
     
     updateTimeDisplay();
-    
   } catch (error) {
     console.error('Ошибка загрузки:', error);
     resetGame();
@@ -237,6 +216,7 @@ function resetGame() {
   saveGame();
 }
 
+// Исправленные функции для угля и мусора
 function handleCoalClick() {
   if (sellMode) return;
   
@@ -249,25 +229,20 @@ function handleCoalClick() {
     log('Уголь включён (-1)');
   } else {
     log('Недостаточно угля!');
-    return;
   }
-  
   saveGame();
   render();
 }
 
 function handleTrashClick() {
-  if (!sellMode) return;
-  
+  if (!sellMode || inventory['Мусор'] <= 0) return;
   const count = inventory['Мусор'];
-  if (count > 0) {
-    inventory['Мусор'] = 0;
-    tng += count;
-    log(`Продано ${count} мусора +${count}₸`);
-    updateCurrencyDisplay();
-    saveGame();
-    render();
-  }
+  inventory['Мусор'] = 0;
+  tng += count;
+  log(`Продано ${count} мусора +${count}₸`);
+  updateCurrencyDisplay();
+  saveGame();
+  render();
 }
 
 function render() {
@@ -397,7 +372,6 @@ function gameLoop() {
     } else {
       log(isDay ? '🌞 День' : '🌙 Ночь');
     }
-    
     saveGame();
   }
 
