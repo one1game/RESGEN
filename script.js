@@ -258,10 +258,10 @@ function render() {
           log('Режим угля выключен');
         } else if (count > 0) {
           coalEnabled = true;
-          addToInventory('Уголь', -1);
-          log('Уголь включён (-1)');
+          log('Уголь включён');
         } else {
           log('Недостаточно угля!');
+          return;
         }
         saveGame();
         render();
