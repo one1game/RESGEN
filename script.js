@@ -231,17 +231,22 @@ function render() {
     slot.innerHTML = `${name} x${count}`;
 
     if (name === 'Мусор') {
-      if (sellMode && count > 0) {
+      if (sellMode) {
         slot.classList.add('sell-mode');
         const sellLabel = document.createElement('div');
         sellLabel.className = 'sell-label';
-        sellLabel.innerText = 'Продать';
+        sellLabel.innerText = count > 0 ? 'Продать' : 'Нет мусора';
         slot.appendChild(sellLabel);
         slot.onclick = (e) => {
           e.stopPropagation();
+          if (count <= 0) {
+            log('Нет мусора для продажи');
+            return;
+          }
+          const earned = count;
           inventory['Мусор'] = 0;
-          tng += count;
-          log(`Продано ${count} мусора +${count}₸`);
+          tng += earned;
+          log(`Продано ${earned} мусора +${earned}₸`);
           updateCurrencyDisplay();
           saveGame();
           render();
@@ -252,6 +257,9 @@ function render() {
       if (coalEnabled) {
         slot.style.border = '2px solid gold';
         slot.style.background = 'rgba(255, 215, 0, 0.1)';
+      } else {
+        slot.style.border = '1px solid #888';
+        slot.style.background = '';
       }
       
       slot.onclick = (e) => {
@@ -262,18 +270,27 @@ function render() {
         }
         
         // Переключаем режим угля
-        coalEnabled = !coalEnabled;
+        const newCoalState = !coalEnabled;
         
-        // Если включаем без угля - сразу выключаем
-        if (coalEnabled && count <= 0) {
-          coalEnabled = false;
+        // Проверяем можно ли включить
+        if (newCoalState && count <= 0) {
           log('Недостаточно угля! Добывайте больше угля');
-        } else {
-          log(coalEnabled ? 'Режим угля включен' : 'Режим угля выключен');
+          return;
         }
+        
+        coalEnabled = newCoalState;
+        log(coalEnabled ? 'Режим угля включен' : 'Режим угля выключен');
         
         saveGame();
         render();
+      };
+    } else if (name === 'Кристалл') {
+      // Обычный слот для кристалла
+      slot.onclick = (e) => {
+        e.stopPropagation();
+        if (sellMode) {
+          log('Кристаллы нельзя продавать');
+        }
       };
     }
 
