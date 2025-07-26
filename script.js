@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'coreboxSave';
-let adsManager; // Добавлено для рекламной системы
+let adsManager; // Добавлена переменная для рекламной системы
 
 const inventory = { 'ИИ': 1, 'Уголь': 0, 'Мусор': 0, 'Кристалл': 0 };
 let tng = 0;
@@ -71,7 +71,7 @@ function saveGame() {
     currentQuest,
     questCompleted,
     crystalFoundToday,
-    advertisements: adsManager ? adsManager.getAdsData() : [], // Добавлено для рекламы
+    advertisements: adsManager ? adsManager.getAdsData() : [], // Добавлено сохранение рекламы
     lastUpdate: Date.now()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
@@ -320,11 +320,10 @@ setInterval(() => {
   render();
 }, 1000);
 
-// Инициализация игры
 loadGame();
 render();
 
-// Инициализация рекламной системы, если не загрузилась
+// Инициализация рекламной системы
 if (!adsManager) {
   adsManager = new AdsManager({
     tng: tng,
