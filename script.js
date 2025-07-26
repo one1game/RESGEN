@@ -238,8 +238,7 @@ function render() {
         sellLabel.innerText = count > 0 ? 'Продать' : 'Нет мусора';
         slot.appendChild(sellLabel);
         
-        // Обработчик клика для продажи мусора
-        slot.addEventListener('click', (e) => {
+        slot.onclick = (e) => {
           e.stopPropagation();
           if (count <= 0) {
             log('Нет мусора для продажи');
@@ -252,7 +251,9 @@ function render() {
           updateCurrencyDisplay();
           saveGame();
           render();
-        });
+        };
+      } else {
+        slot.onclick = null; // Убираем обработчик, если не в режиме торговли
       }
     } 
     else if (name === 'Уголь') {
@@ -265,15 +266,13 @@ function render() {
         slot.style.boxShadow = 'none';
       }
       
-      // Обработчик клика для переключения угля
-      slot.addEventListener('click', (e) => {
+      slot.onclick = (e) => {
         e.stopPropagation();
         if (sellMode) {
           log('В режиме торговли нельзя управлять углем');
           return;
         }
         
-        // Пытаемся включить уголь
         if (!coalEnabled) {
           if (count <= 0) {
             log('Нет угля для активации!');
@@ -281,16 +280,17 @@ function render() {
           }
           coalEnabled = true;
           log('Угольная ТЭЦ активирована');
-        } 
-        // Или выключаем
-        else {
+          // Сразу расходуем 1 уголь при активации
+          addToInventory('Уголь', -1);
+        } else {
           coalEnabled = false;
           log('Угольная ТЭЦ отключена');
         }
-        
         saveGame();
         render();
-      });
+      };
+    } else {
+      slot.onclick = null; // Убираем обработчики для других слотов
     }
 
     invDiv.appendChild(slot);
