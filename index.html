@@ -129,6 +129,8 @@
   </div>
 
   <script>
+    const STORAGE_KEY = 'coreboxSave';
+
     const inventory = { 'ИИ': 1, 'Уголь': 0, 'Мусор': 0 };
     let tng = 0; // валюта
     const maxSlots = 9;
@@ -154,6 +156,41 @@
 
     function updateCurrencyDisplay() {
       document.getElementById('currencyDisplay').innerText = `TNG: ${tng}₸`;
+    }
+
+    function saveGame() {
+      const saveData = {
+        inventory,
+        tng,
+        coalEnabled,
+        gameTime,
+        isDay,
+        passiveCounter,
+        sellMode,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+    }
+
+    function loadGame() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.inventory) {
+            Object.keys(inventory).forEach(key => {
+              if (data.inventory[key] !== undefined) inventory[key] = data.inventory[key];
+            });
+          }
+          tng = data.tng ?? 0;
+          coalEnabled = data.coalEnabled ?? false;
+          gameTime = data.gameTime ?? 15;
+          isDay = data.isDay ?? true;
+          passiveCounter = data.passiveCounter ?? 0;
+          sellMode = data.sellMode ?? false;
+        } catch (e) {
+          console.error('Ошибка загрузки сохранения', e);
+        }
+      }
     }
 
     function render() {
@@ -189,6 +226,7 @@
               log(`Продано ${count} мусора за ${count}₸`);
               sellMode = false; // выключаем режим продажи после продажи
               updateCurrencyDisplay();
+              saveGame();
               render();
             }
           });
@@ -202,11 +240,13 @@
             if (coalEnabled) {
               coalEnabled = false;
               log('Уголь 🔥 выключен');
+              saveGame();
               render();
             } else if (inventory['Уголь'] > 0) {
               coalEnabled = true;
               inventory['Уголь']--;
               log('Уголь 🔥 включён (−1)');
+              saveGame();
               render();
             }
           });
@@ -253,10 +293,12 @@
       if (Math.random() < coalChance) {
         inventory['Уголь']++;
         log('Найден уголь 🪨');
+        saveGame();
       }
       if (Math.random() < trashChance) {
         inventory['Мусор']++;
         log('Найден мусор ♻️');
+        saveGame();
       }
       render();
     });
@@ -268,6 +310,7 @@
       } else {
         log('Режим торговли выключен.');
       }
+      saveGame();
       render();
     });
 
@@ -287,6 +330,7 @@
         } else {
           log(isDay ? 'Наступил день 🌞' : 'Наступила ночь 🌙');
         }
+        saveGame();
       }
 
       passiveCounter++;
@@ -300,10 +344,12 @@
           if (Math.random() < coalChance) {
             inventory['Уголь']++;
             log('Пассивно найден уголь 🪨');
+            saveGame();
           }
           if (Math.random() < trashChance) {
             inventory['Мусор']++;
             log('Пассивно найден мусор ♻️');
+            saveGame();
           }
         }
       }
@@ -311,6 +357,7 @@
       render();
     }, 1000);
 
+    loadGame();
     render();
   </script>
 </body>
