@@ -35,7 +35,14 @@ function renderInventory() {
   Object.entries(inventory).forEach(([item, count]) => {
     const cell = document.createElement('div');
     cell.className = 'item-cell';
-    cell.textContent = `${item}: ${count}`;
+
+    const label = document.createElement('div');
+    label.textContent = item;
+    cell.appendChild(label);
+
+    const amount = document.createElement('div');
+    amount.textContent = count;
+    cell.appendChild(amount);
 
     // Клик на ячейку "Уголь" — включает/выключает
     if (item === 'Уголь') {
@@ -52,6 +59,7 @@ function renderInventory() {
           log('Нет угля для включения.');
         }
         renderInventory();
+        renderAIState();
       });
     }
 
@@ -137,7 +145,7 @@ function mineResources() {
   renderInventory();
 }
 
-// Сохранение и загрузка (опционально, можно расширить)
+// Сохранение и загрузка (опционально)
 function saveGame() {
   const state = JSON.stringify({ inventory, tng });
   localStorage.setItem(STORAGE_KEY, state);
@@ -169,7 +177,6 @@ setInterval(() => {
 }, 1000);
 
 // Кнопки
-
 document.getElementById('mineBtn').addEventListener('click', mineResources);
 
 // Старт
