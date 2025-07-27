@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CoreBox 2.6</title>
+  <title>CoreBox 2.8</title>
   <style>
     :root {
       --primary: #00cc99;
@@ -252,6 +252,11 @@
     .upgrade {
       background: linear-gradient(145deg, #2a1a5f, #1f0f45);
       border-color: #9900ff;
+    }
+    
+    .defense {
+      background: linear-gradient(145deg, #5a1a1a, #3a0f0f);
+      border-color: #ff3333;
     }
     
     .mining-bonus {
@@ -532,6 +537,10 @@
         justify-content: center;
         margin-bottom: 10px;
       }
+      
+      .upgrade-btn {
+        min-width: 100%;
+      }
     }
   </style>
 </head>
@@ -539,7 +548,7 @@
   <div class="cyber-grid"></div>
 
   <div class="header">
-    <h1>CoreBox 2.6</h1>
+    <h1>CoreBox 2.8</h1>
     
     <div class="stats-container">
       <div class="stat-card">
@@ -551,8 +560,8 @@
         <div id="timeDisplay" class="stat-value">День</div>
       </div>
       <div class="stat-card">
-        <div>Апгрейды</div>
-        <div id="upgradesDisplay" class="stat-value">0</div>
+        <div>Защита</div>
+        <div id="defenseDisplay" class="stat-value">0%</div>
       </div>
     </div>
   </div>
@@ -571,8 +580,8 @@
           <div id="coalStatus" class="status-value">Выкл</div>
         </div>
         <div class="status-item">
-          <div>Переработка</div>
-          <div id="recycleStatus" class="status-value">Выкл</div>
+          <div>Повстанцы</div>
+          <div id="rebelStatus" class="status-value">Низкий</div>
         </div>
       </div>
     </div>
@@ -631,8 +640,32 @@
         
         <div class="upgrade-card">
           <div class="upgrade-header">
-            <div class="upgrade-title">Авто-продажа</div>
-            <div class="upgrade-level" id="autoSellStatus">Неактивно</div>
+            <div class="upgrade-title">Туррели защиты</div>
+            <div class="upgrade-level" id="defenseStatus">Неактивно</div>
+          </div>
+          <div class="progress-container">
+            <div class="progress-fill" style="width: 0%"></div>
+          </div>
+          
+          <div class="upgrade-requirements">
+            <div class="requirement">
+              <div class="requirement-name">
+                <div class="requirement-icon">💾</div>
+                <span>Электроника:</span>
+              </div>
+              <div class="requirement-value" id="defenseElectronicsReq">0/3</div>
+            </div>
+          </div>
+          
+          <div class="upgrade-cost">
+            <button id="upgradeDefenseBtn" class="upgrade-btn">Активировать</button>
+          </div>
+        </div>
+        
+        <div class="upgrade-card">
+          <div class="upgrade-header">
+            <div class="upgrade-title">Укрепление защиты</div>
+            <div class="upgrade-level" id="defenseLevel">Ур. 0/5</div>
           </div>
           <div class="progress-container">
             <div class="progress-fill" style="width: 0%"></div>
@@ -644,36 +677,12 @@
                 <div class="requirement-icon">🎛️</div>
                 <span>Чипы:</span>
               </div>
-              <div class="requirement-value" id="autoSellChipsReq">0/20</div>
+              <div class="requirement-value" id="defenseChipsReq">0/10</div>
             </div>
           </div>
           
           <div class="upgrade-cost">
-            <button id="upgradeAutoSellBtn" class="upgrade-btn">Разблокировать</button>
-          </div>
-        </div>
-        
-        <div class="upgrade-card">
-          <div class="upgrade-header">
-            <div class="upgrade-title">Страховка</div>
-            <div class="upgrade-level" id="insuranceStatus">Неактивно</div>
-          </div>
-          <div class="progress-container">
-            <div class="progress-fill" style="width: 0%"></div>
-          </div>
-          
-          <div class="upgrade-requirements">
-            <div class="requirement">
-              <div class="requirement-name">
-                <div class="requirement-icon">₸</div>
-                <span>Баланс:</span>
-              </div>
-              <div class="requirement-value" id="insuranceCost">0/10</div>
-            </div>
-          </div>
-          
-          <div class="upgrade-cost">
-            <button id="buyInsuranceBtn" class="upgrade-btn">Активировать</button>
+            <button id="upgradeDefenseLevelBtn" class="upgrade-btn">Улучшить</button>
           </div>
         </div>
       </div>
@@ -690,7 +699,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       // Конфигурация игры
-      const STORAGE_KEY = 'coreboxSave2.6';
+      const STORAGE_KEY = 'coreboxSave2.8';
       const maxSlots = 9;
       
       // Состояние игры
@@ -704,31 +713,32 @@
       
       const upgrades = {
         mining: 0,
-        autoSell: false
+        defense: false,
+        defenseLevel: 0
       };
       
       let tng = 0;
       let coalEnabled = false;
-      let gameTime = 30; // Увеличено время дня/ночи
+      let gameTime = 30;
       let isDay = true;
       let passiveCounter = 0;
       let sellMode = false;
       let recycleMode = false;
       let trashSold = 0;
-      let insuranceDays = 0;
       let criticalMining = false;
       let autoScrollEnabled = true;
       let quests = [];
+      let rebelActivity = 0;
 
       // DOM элементы
       const currencyDisplay = document.getElementById('currencyDisplay');
       const timeDisplay = document.getElementById('timeDisplay');
-      const upgradesDisplay = document.getElementById('upgradesDisplay');
+      const defenseDisplay = document.getElementById('defenseDisplay');
       const logBox = document.getElementById('logBox');
       const inventoryDiv = document.getElementById('inventory');
       const aiStatusText = document.getElementById('aiStatusText');
       const coalStatus = document.getElementById('coalStatus');
-      const recycleStatus = document.getElementById('recycleStatus');
+      const rebelStatus = document.getElementById('rebelStatus');
       const mineBtn = document.getElementById('mineBtn');
       const miningBonusSpan = document.getElementById('miningBonus');
       const toggleTradeBtn = document.getElementById('toggleTrade');
@@ -736,13 +746,13 @@
       const miningLevel = document.getElementById('miningLevel');
       const miningProgress = document.getElementById('miningProgress');
       const upgradeMiningBtn = document.getElementById('upgradeMiningBtn');
-      const autoSellStatus = document.getElementById('autoSellStatus');
-      const upgradeAutoSellBtn = document.getElementById('upgradeAutoSellBtn');
-      const insuranceStatus = document.getElementById('insuranceStatus');
-      const buyInsuranceBtn = document.getElementById('buyInsuranceBtn');
+      const defenseStatus = document.getElementById('defenseStatus');
+      const upgradeDefenseBtn = document.getElementById('upgradeDefenseBtn');
+      const defenseLevel = document.getElementById('defenseLevel');
+      const upgradeDefenseLevelBtn = document.getElementById('upgradeDefenseLevelBtn');
       const miningChipsReq = document.getElementById('miningChipsReq');
-      const autoSellChipsReq = document.getElementById('autoSellChipsReq');
-      const insuranceCost = document.getElementById('insuranceCost');
+      const defenseElectronicsReq = document.getElementById('defenseElectronicsReq');
+      const defenseChipsReq = document.getElementById('defenseChipsReq');
       const clearLogBtn = document.getElementById('clearLogBtn');
       const autoScrollBtn = document.getElementById('autoScrollBtn');
       const questsContainer = document.getElementById('questsContainer');
@@ -768,8 +778,9 @@
         currencyDisplay.textContent = `${tng}₸`;
       }
       
-      function updateUpgradesDisplay() {
-        upgradesDisplay.textContent = upgrades.mining + (upgrades.autoSell ? 1 : 0);
+      function updateDefenseDisplay() {
+        const defensePower = upgrades.defense ? 30 + (upgrades.defenseLevel * 15) : 0;
+        defenseDisplay.textContent = `${defensePower}%`;
       }
 
       // Система сохранения
@@ -784,10 +795,10 @@
           sellMode,
           recycleMode,
           trashSold,
-          insuranceDays,
           upgrades,
           autoScrollEnabled,
-          quests
+          quests,
+          rebelActivity
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
       }
@@ -808,11 +819,12 @@
             sellMode = data.sellMode ?? false;
             recycleMode = data.recycleMode ?? false;
             trashSold = data.trashSold ?? 0;
-            insuranceDays = data.insuranceDays ?? 0;
             upgrades.mining = data.upgrades?.mining ?? 0;
-            upgrades.autoSell = data.upgrades?.autoSell ?? false;
+            upgrades.defense = data.upgrades?.defense ?? false;
+            upgrades.defenseLevel = data.upgrades?.defenseLevel ?? 0;
             autoScrollEnabled = data.autoScrollEnabled ?? true;
             quests = data.quests ?? [];
+            rebelActivity = data.rebelActivity ?? 0;
           } catch (e) {
             console.error('Ошибка загрузки сохранения', e);
           }
@@ -834,36 +846,48 @@
         
         // Обновляем статусы
         coalStatus.textContent = coalEnabled ? 'Активно' : 'Выкл';
-        recycleStatus.textContent = recycleMode ? 'Активно' : 'Выкл';
-        autoSellStatus.textContent = upgrades.autoSell ? 'Активно' : 'Неактивно';
-        insuranceStatus.textContent = insuranceDays > 0 ? `${insuranceDays} дн.` : 'Неактивно';
+        defenseStatus.textContent = upgrades.defense ? 'Активно' : 'Выкл';
+        defenseLevel.textContent = `Ур. ${upgrades.defenseLevel}/5`;
+        
+        // Обновляем статус повстанцев
+        let rebelText = 'Низкий';
+        let rebelColor = '#00cc66';
+        if (rebelActivity > 2) {
+          rebelText = 'Высокий';
+          rebelColor = '#ff3333';
+        } else if (rebelActivity > 0) {
+          rebelText = 'Средний';
+          rebelColor = '#ffcc00';
+        }
+        rebelStatus.textContent = rebelText;
+        rebelStatus.style.color = rebelColor;
         
         // Обновляем статус ИИ
         const aiActive = isDay || (coalEnabled && inventory['Уголь'] > 0);
         aiStatusText.textContent = aiActive ? 'Активен' : 'Неактивен';
         aiStatusText.style.color = aiActive ? '#00cc66' : '#ff3333';
         
-        // Обновляем валюту и апгрейды
+        // Обновляем валюту и защиту
         updateCurrencyDisplay();
-        updateUpgradesDisplay();
+        updateDefenseDisplay();
         updateTimeDisplay();
         
         // Обновляем кнопки апгрейдов
         upgradeMiningBtn.disabled = upgrades.mining >= 10 || inventory['Чипы'] < 5;
-        upgradeAutoSellBtn.disabled = upgrades.autoSell || inventory['Чипы'] < 20;
-        buyInsuranceBtn.disabled = !isDay || tng < 10;
+        upgradeDefenseBtn.disabled = upgrades.defense || inventory['Электроника'] < 3;
+        upgradeDefenseLevelBtn.disabled = upgrades.defenseLevel >= 5 || inventory['Чипы'] < (upgrades.defenseLevel + 1) * 10;
         
         // Обновляем требования
         miningChipsReq.textContent = `${inventory['Чипы']}/5`;
         miningChipsReq.className = inventory['Чипы'] >= 5 ? 
           'requirement-value requirement-met' : 'requirement-value requirement-not-met';
         
-        autoSellChipsReq.textContent = `${inventory['Чипы']}/20`;
-        autoSellChipsReq.className = inventory['Чипы'] >= 20 ? 
+        defenseElectronicsReq.textContent = `${inventory['Электроника']}/3`;
+        defenseElectronicsReq.className = inventory['Электроника'] >= 3 ? 
           'requirement-value requirement-met' : 'requirement-value requirement-not-met';
         
-        insuranceCost.textContent = `${tng}/10`;
-        insuranceCost.className = tng >= 10 ? 
+        defenseChipsReq.textContent = `${inventory['Чипы']}/${(upgrades.defenseLevel + 1) * 10}`;
+        defenseChipsReq.className = inventory['Чипы'] >= (upgrades.defenseLevel + 1) * 10 ? 
           'requirement-value requirement-met' : 'requirement-value requirement-not-met';
         
         // Обновляем кнопку автоскролла
@@ -925,9 +949,9 @@
             
             slot.onclick = () => handleCoalInteraction();
           }
-          // Чипы для апгрейдов
-          else if (name === 'Чипы' && count > 0) {
-            slot.classList.add('upgrade');
+          // Электроника для защиты
+          else if (name === 'Электроника' && count > 0) {
+            slot.classList.add('defense');
           }
 
           inventoryDiv.appendChild(slot);
@@ -1035,7 +1059,7 @@
         let quest;
         switch(type) {
           case 'mine':
-            const resources = ['Уголь', 'Мусор', 'Чипы'];
+            const resources = ['Уголь', 'Мусор', 'Чипы', 'Электроника'];
             const resource = resources[Math.floor(Math.random() * resources.length)];
             const target = Math.max(3, Math.floor(Math.random() * 10) + 3);
             
@@ -1085,6 +1109,48 @@
         
         quests.push(quest);
         log(`🆕 Получено новое задание: ${quest.title}`);
+      }
+      
+      function handleRebelAttack() {
+        // Уровень угрозы зависит от активности повстанцев
+        const threatLevel = Math.min(1, rebelActivity * 0.2);
+        
+        if (Math.random() < threatLevel) {
+          // Определяем тип атаки
+          const attackType = Math.floor(Math.random() * 3);
+          let message = "🌙 Повстанцы атаковали!";
+          
+          switch(attackType) {
+            case 0: // Кража ресурсов
+              const resources = Object.keys(inventory).filter(k => k !== 'ИИ' && inventory[k] > 0);
+              if (resources.length > 0) {
+                const stolenResource = resources[Math.floor(Math.random() * resources.length)];
+                const amount = Math.min(inventory[stolenResource], Math.floor(Math.random() * 3) + 1);
+                inventory[stolenResource] -= amount;
+                message += ` Украдено ${amount} ${stolenResource}`;
+              }
+              break;
+              
+            case 1: // Повреждение оборудования
+              if (upgrades.mining > 0 && Math.random() < 0.3) {
+                upgrades.mining--;
+                message += " Повреждена система добычи! Уровень понижен";
+              }
+              break;
+              
+            case 2: // Вандализм
+              if (inventory['Мусор'] > 0) {
+                const destroyed = Math.min(inventory['Мусор'], Math.floor(Math.random() * 5) + 3);
+                inventory['Мусор'] -= destroyed;
+                message += ` Уничтожено ${destroyed} мусора`;
+              }
+              break;
+          }
+          
+          log(message);
+          rebelActivity++;
+          saveGame();
+        }
       }
 
       // Обработчики взаимодействий
@@ -1165,6 +1231,7 @@
         const coalChance = 0.02 + (coalEnabled ? 0.02 : 0) + (upgrades.mining * 0.01);
         const trashChance = 0.01 + (coalEnabled ? 0.01 : 0) + (upgrades.mining * 0.01);
         const chipChance = 0.005;
+        const electronicsChance = 0.003;
         const isCritical = Math.random() < 0.05;
 
         let foundSomething = false;
@@ -1212,23 +1279,18 @@
           });
         }
         
-        if (isCritical && Math.random() < 0.2) {
+        if (Math.random() < electronicsChance) {
           inventory['Электроника']++;
-          log('Критическая добыча: Электроника 💾✨');
+          criticalMining = true;
+          log('Найдена электроника 💾✨');
           foundSomething = true;
-        }
-        
-        // Убрано сообщение "Ресурсы не найдены"
-        
-        if (upgrades.autoSell && inventory['Мусор'] > 0) {
-          const price = calculateTrashPrice() * 0.5;
-          const earned = Math.floor(inventory['Мусор'] * price);
-          tng += earned;
-          trashSold += inventory['Мусор'];
           
-          log(`Авто-продажа: ${inventory['Мусор']} мусора +${earned}₸`);
-          inventory['Мусор'] = 0;
-          updateCurrencyDisplay();
+          // Обновляем квесты на добычу электроники
+          quests.forEach(quest => {
+            if (quest.type === 'mine' && quest.resource === 'Электроника') {
+              quest.progress++;
+            }
+          });
         }
         
         saveGame();
@@ -1256,24 +1318,24 @@
         }
       }
       
-      function upgradeAutoSell() {
-        if (!upgrades.autoSell && inventory['Чипы'] >= 20) {
-          inventory['Чипы'] -= 20;
-          upgrades.autoSell = true;
+      function activateDefense() {
+        if (!upgrades.defense && inventory['Электроника'] >= 3) {
+          inventory['Электроника'] -= 3;
+          upgrades.defense = true;
           
-          log('Разблокирована авто-продажа мусора!');
+          log('Активированы туррели защиты!');
           saveGame();
           render();
         }
       }
       
-      function buyInsurance() {
-        if (isDay && tng >= 10) {
-          tng -= 10;
-          insuranceDays += 3;
+      function upgradeDefense() {
+        if (upgrades.defenseLevel < 5 && inventory['Чипы'] >= (upgrades.defenseLevel + 1) * 10) {
+          const cost = (upgrades.defenseLevel + 1) * 10;
+          inventory['Чипы'] -= cost;
+          upgrades.defenseLevel++;
           
-          log('Куплена страховка на 3 ночи (-10₸)');
-          updateCurrencyDisplay();
+          log(`Улучшена защита до уровня ${upgrades.defenseLevel}!`);
           saveGame();
           render();
         }
@@ -1311,25 +1373,23 @@
               }
             }
             
-            if (!coalEnabled && !isDay && insuranceDays === 0 && Math.random() < 0.2) {
-              const items = Object.keys(inventory).filter(k => k !== 'ИИ' && inventory[k] > 0);
-              if (items.length > 0) {
-                const stolenItem = items[Math.floor(Math.random() * items.length)];
-                inventory[stolenItem]--;
-                log(`🌙 Воры украли 1 ${stolenItem}! Купи страховку днём.`);
+            // Атака повстанцев
+            if (!isDay) {
+              const defensePower = upgrades.defense ? 30 + (upgrades.defenseLevel * 15) : 0;
+              if (Math.random() * 100 > defensePower) {
+                handleRebelAttack();
+              } else if (upgrades.defense) {
+                log('🌙 Система защиты отразила атаку повстанцев');
+              }
+              
+              // Увеличиваем активность повстанцев
+              if (Math.random() < 0.3) {
+                rebelActivity++;
               }
             }
           } else {
-            if (insuranceDays > 0) {
-              insuranceDays--;
-              if (insuranceDays === 0) {
-                log('☀️ Страховка закончилась');
-              }
-            }
-            
-            if (insuranceDays === 0 && tng >= 10 && Math.random() < 0.3) {
-              log('Страховщик: "Купи страховку за 10₸ (3 ночи)"');
-            }
+            // Снижаем активность повстанцев днем
+            rebelActivity = Math.max(0, rebelActivity - 1);
           }
           
           log(isDay ? '☀️ Наступил день' : '🌙 Наступила ночь');
@@ -1350,24 +1410,20 @@
           if (aiActive) {
             const coalChance = 0.003 + (upgrades.mining * 0.001);
             const trashChance = 0.007 + (upgrades.mining * 0.001);
+            const chipChance = 0.001;
+            const electronicsChance = 0.0005;
             
             if (Math.random() < coalChance) {
               inventory['Уголь']++;
-              // Убрано логгирование пассивного дохода
             }
             if (Math.random() < trashChance) {
               inventory['Мусор']++;
-              // Убрано логгирование пассивного дохода
             }
-            
-            if (upgrades.autoSell && inventory['Мусор'] > 0) {
-              const price = calculateTrashPrice() * 0.5;
-              const earned = Math.floor(inventory['Мусор'] * price);
-              tng += earned;
-              trashSold += inventory['Мусор'];
-              // Убрано логгирование авто-продажи
-              inventory['Мусор'] = 0;
-              updateCurrencyDisplay();
+            if (Math.random() < chipChance) {
+              inventory['Чипы']++;
+            }
+            if (Math.random() < electronicsChance) {
+              inventory['Электроника']++;
             }
             
             saveGame();
@@ -1383,8 +1439,8 @@
         toggleTradeBtn.addEventListener('click', toggleTradeMode);
         toggleRecycleBtn.addEventListener('click', toggleRecycleMode);
         upgradeMiningBtn.addEventListener('click', upgradeMining);
-        upgradeAutoSellBtn.addEventListener('click', upgradeAutoSell);
-        buyInsuranceBtn.addEventListener('click', buyInsurance);
+        upgradeDefenseBtn.addEventListener('click', activateDefense);
+        upgradeDefenseLevelBtn.addEventListener('click', upgradeDefense);
         clearLogBtn.addEventListener('click', clearLog);
         autoScrollBtn.addEventListener('click', toggleAutoScroll);
       }
@@ -1419,9 +1475,9 @@
         render();
         setInterval(gameLoop, 1000);
         
-        log('Система CoreBox 2.6 инициализирована');
+        log('Система CoreBox 2.8 инициализирована');
         log('Добро пожаловать в систему добычи ресурсов!');
-        log('Активируйте ТЭЦ для повышения эффективности');
+        log('Остерегайтесь повстанцев-анархистов по ночам!');
       }
 
       initGame();
