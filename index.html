@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CoreBox 2.8 - Улучшенный интерфейс</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="cyber-grid"></div>
+
+  <div class="header">
+    <h1>CoreBox 2.8</h1>
+    
+    <div class="stats-container">
+      <div class="stat-card">
+        <div>Баланс</div>
+        <div id="currencyDisplay" class="stat-value">0₸</div>
+      </div>
+      <div class="stat-card">
+        <div>Время</div>
+        <div id="timeDisplay" class="stat-value">День ☀️</div>
+      </div>
+      <div class="stat-card">
+        <div>Защита</div>
+        <div id="defenseDisplay" class="stat-value">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="panel">
+      <div class="panel-title">
+        <span>Состояние системы</span>
+        <span class="collapse-icon">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="status-row">
+          <div class="status-item">
+            <div>ТЭЦ</div>
+            <div id="coalStatus" class="status-value">Выкл</div>
+          </div>
+          <div class="ai-status-item">
+            <div>Искусственный Интеллект</div>
+            <div id="aiStatusText" class="ai-status-value">Активен</div>
+          </div>
+          <div class="status-item">
+            <div>Повстанцы</div>
+            <div id="rebelStatus" class="status-value">Низкий</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mining-action">
+      <button id="mineBtn" class="btn pulse">Добыть ресурсы <span id="miningBonus">+0%</span></button>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-title">
+        <span>Системный журнал</span>
+        <span class="collapse-icon">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="log-controls">
+          <button id="clearLogBtn" class="log-btn">Очистить</button>
+          <button id="autoScrollBtn" class="log-btn">Автоскролл</button>
+        </div>
+        <div id="logBox"></div>
+      </div>
+    </div>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="inventory">Инвентарь</div>
+      <div class="tab" data-tab="upgrades">Апгрейды</div>
+      <div class="tab" data-tab="quests">Задания</div>
+      <div class="tab" data-tab="achievements">Достижения</div>
+    </div>
+    
+    <div class="tab-content active" id="inventory-tab">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Инвентарь</span>
+          <span class="collapse-icon">▼</span>
+        </div>
+        <div class="panel-content">
+          <div class="inventory-grid" id="inventory"></div>
+          <div class="action-buttons">
+            <button id="toggleTrade" class="btn btn-secondary">Торговля</button>
+            <button id="toggleRecycle" class="btn btn-secondary">Переработка</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="upgrades-tab">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Системные апгрейды</span>
+          <span class="collapse-icon">▼</span>
+        </div>
+        <div class="panel-content">
+          <div class="upgrade-container">
+            <div class="upgrade-card">
+              <div class="upgrade-header">
+                <div class="upgrade-title">Эффективность добычи</div>
+                <div class="upgrade-level">Ур. <span id="miningLevel">0</span>/10</div>
+              </div>
+              <div class="progress-container">
+                <div class="progress-fill" id="miningProgress" style="width: 0%"></div>
+              </div>
+              
+              <div class="upgrade-requirements">
+                <div class="requirement">
+                  <div class="requirement-name">
+                    <div class="requirement-icon">🎛️</div>
+                    <span>Чипы:</span>
+                  </div>
+                  <div class="requirement-value" id="miningChipsReq">0/5</div>
+                </div>
+              </div>
+              
+              <div class="upgrade-cost">
+                <button id="upgradeMiningBtn" class="upgrade-btn">Улучшить</button>
+              </div>
+            </div>
+            
+            <div class="upgrade-card">
+              <div class="upgrade-header">
+                <div class="upgrade-title">Туррели защиты</div>
+                <div class="upgrade-level" id="defenseStatus">Неактивно</div>
+              </div>
+              <div class="progress-container">
+                <div class="progress-fill" style="width: 0%"></div>
+              </div>
+              
+              <div class="upgrade-requirements">
+                <div class="requirement">
+                  <div class="requirement-name">
+                    <div class="requirement-icon">💾</div>
+                    <span>Электроника:</span>
+                  </div>
+                  <div class="requirement-value" id="defenseElectronicsReq">0/3</div>
+                </div>
+              </div>
+              
+              <div class="upgrade-cost">
+                <button id="upgradeDefenseBtn" class="upgrade-btn">Активировать</button>
+              </div>
+            </div>
+            
+            <div class="upgrade-card">
+              <div class="upgrade-header">
+                <div class="upgrade-title">Укрепление защиты</div>
+                <div class="upgrade-level" id="defenseLevel">Ур. 0/5</div>
+              </div>
+              <div class="progress-container">
+                <div class="progress-fill" style="width: 0%"></div>
+              </div>
+              
+              <div class="upgrade-requirements">
+                <div class="requirement">
+                  <div class="requirement-name">
+                    <div class="requirement-icon">🎛️</div>
+                    <span>Чипы:</span>
+                  </div>
+                  <div class="requirement-value" id="defenseChipsReq">0/10</div>
+                </div>
+              </div>
+              
+              <div class="upgrade-cost">
+                <button id="upgradeDefenseLevelBtn" class="upgrade-btn">Улучшить</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="quests-tab">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Задания</span>
+          <span class="collapse-icon">▼</span>
+        </div>
+        <div class="panel-content">
+          <div class="quest-container" id="questsContainer"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="achievements-tab">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Достижения</span>
+          <span class="collapse-icon">▼</span>
+        </div>
+        <div class="panel-content">
+          <div class="achievements-container" id="achievementsContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/save.js"></script>
+  <script src="js/inventory.js"></script>
+  <script src="js/upgrades.js"></script>
+  <script src="js/quests.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
