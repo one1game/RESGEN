@@ -1,0 +1,71 @@
+// Система сохранения
+function saveGame() {
+  const saveData = {
+    inventory,
+    tng,
+    coalEnabled,
+    gameTime,
+    isDay,
+    passiveCounter,
+    trashSold,
+    upgrades,
+    autoScrollEnabled,
+    rebelActivity,
+    lastUpdateTime: Date.now(),
+    nightsSurvived,
+    successfulDefenses,
+    coalProduced,
+    totalMined,
+    aiDisabledUntil,
+    nightsWithCoal,
+    currentQuestIndex,
+    storyQuests,
+    collapsedState
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+}
+
+function loadGame() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      Object.keys(inventory).forEach(key => {
+        if (data.inventory[key] !== undefined) inventory[key] = data.inventory[key];
+      });
+      tng = data.tng ?? 0;
+      coalEnabled = data.coalEnabled ?? false;
+      gameTime = data.gameTime ?? CYCLE_DURATION / 2;
+      isDay = data.isDay ?? true;
+      passiveCounter = data.passiveCounter ?? 0;
+      trashSold = data.trashSold ?? 0;
+      upgrades.mining = data.upgrades?.mining ?? 0;
+      upgrades.defense = data.upgrades?.defense ?? false;
+      upgrades.defenseLevel = data.upgrades?.defenseLevel ?? 0;
+      autoScrollEnabled = data.autoScrollEnabled ?? true;
+      rebelActivity = data.rebelActivity ?? 0;
+      lastUpdateTime = data.lastUpdateTime ?? Date.now();
+      nightsSurvived = data.nightsSurvived ?? 0;
+      successfulDefenses = data.successfulDefenses ?? 0;
+      coalProduced = data.coalProduced ?? 0;
+      totalMined = data.totalMined ?? 0;
+      aiDisabledUntil = data.aiDisabledUntil ?? 0;
+      nightsWithCoal = data.nightsWithCoal ?? 0;
+      currentQuestIndex = data.currentQuestIndex ?? 0;
+      
+      if (data.storyQuests) {
+        data.storyQuests.forEach((savedQuest, index) => {
+          if (storyQuests[index]) {
+            storyQuests[index].completed = savedQuest.completed ?? false;
+          }
+        });
+      }
+      
+      if (data.collapsedState) {
+        Object.assign(collapsedState, data.collapsedState);
+      }
+    } catch (e) {
+      console.error('Ошибка загрузки сохранения', e);
+    }
+  }
+}
