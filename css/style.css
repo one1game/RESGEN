@@ -709,3 +709,24 @@ h1 {
     font-size: 9px;
   }
 }
+
+.quest-flavor {
+  font-style: italic;
+  color: #88ccff;
+  font-size: 11px;
+  margin-top: 5px;
+  padding: 5px;
+  background: rgba(0, 30, 60, 0.5);
+  border-radius: 4px;
+}
+
+.quest-effect {
+  color: gold;
+  font-weight: bold;
+  font-size: 11px;
+  margin-top: 5px;
+  padding: 5px;
+  background: rgba(255, 204, 0, 0.1);
+  border-radius: 4px;
+  border: 1px solid gold;
+}

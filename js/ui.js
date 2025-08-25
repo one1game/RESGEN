@@ -91,28 +91,32 @@ function render() {
   updateDefenseDisplay();
   updateTimeDisplay();
   
-  // Обновляем кнопки апгрейдов
-  upgradeMiningBtn.disabled = upgrades.mining >= 10 || inventory['Чипы'] < 5;
+  // Обновляем кнопки апгрейдов (с учетом новых стоимостей из mechanics.js)
+  const requiredChipsMining = 5 + upgrades.mining * 2;
+  const requiredChipsDefense = (upgrades.defenseLevel + 1) * 12;
+  const requiredPlasmaDefense = 1 + Math.floor(upgrades.defenseLevel / 2);
+  
+  upgradeMiningBtn.disabled = upgrades.mining >= 10 || inventory['Чипы'] < requiredChipsMining;
   upgradeDefenseBtn.disabled = upgrades.defense || inventory['Плазма'] < 3;
   upgradeDefenseLevelBtn.disabled = upgrades.defenseLevel >= 5 || 
-    inventory['Чипы'] < (upgrades.defenseLevel + 1) * 10 || 
-    inventory['Плазма'] < 1;
+    inventory['Чипы'] < requiredChipsDefense || 
+    inventory['Плазма'] < requiredPlasmaDefense;
   
   // Обновляем требования
-  miningChipsReq.textContent = `${inventory['Чипы']}/5`;
-  miningChipsReq.className = inventory['Чипы'] >= 5 ? 
+  miningChipsReq.textContent = `${inventory['Чипы']}/${requiredChipsMining}`;
+  miningChipsReq.className = inventory['Чипы'] >= requiredChipsMining ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
   
   defensePlasmaReq.textContent = `${inventory['Плазма']}/3`;
   defensePlasmaReq.className = inventory['Плазма'] >= 3 ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
   
-  defenseChipsReq.textContent = `${inventory['Чипы']}/${(upgrades.defenseLevel + 1) * 10}`;
-  defenseChipsReq.className = inventory['Чипы'] >= (upgrades.defenseLevel + 1) * 10 ? 
+  defenseChipsReq.textContent = `${inventory['Чипы']}/${requiredChipsDefense}`;
+  defenseChipsReq.className = inventory['Чипы'] >= requiredChipsDefense ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
   
-  defensePlasmaLevelReq.textContent = `${inventory['Плазма']}/1`;
-  defensePlasmaLevelReq.className = inventory['Плазма'] >= 1 ? 
+  defensePlasmaLevelReq.textContent = `${inventory['Плазма']}/${requiredPlasmaDefense}`;
+  defensePlasmaLevelReq.className = inventory['Плазма'] >= requiredPlasmaDefense ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
   
   // Обновляем кнопку автоскролла
@@ -121,7 +125,7 @@ function render() {
   // Очищаем инвентарь
   inventoryDiv.innerHTML = '';
 
-  // Отрисовка инвентарь
+  // Отрисовка инвентаря
   Object.entries(inventory).forEach(([name, count]) => {
     if (name === 'ИИ') return;
     
@@ -249,11 +253,22 @@ function renderQuests() {
       progressText = `Защит: ${successfulDefenses}/${quest.target}`;
       progressPercent = Math.min(100, (successfulDefenses / quest.target) * 100);
       break;
+      
+    case 'upgrade_all':
+      progressText = `Добыча: ${upgrades.mining}/10, Защита: ${upgrades.defenseLevel}/5`;
+      progressPercent = Math.min(100, ((upgrades.mining + upgrades.defenseLevel) / 15) * 100);
+      break;
+      
+    case 'final_activation':
+      progressText = `Плазма: ${inventory['Плазма'] || 0}/${quest.target}`;
+      progressPercent = Math.min(100, ((inventory['Плазма'] || 0) / quest.target) * 100);
+      break;
   }
   
   const questCard = document.createElement('div');
   questCard.className = 'quest-card';
-  questCard.innerHTML = `
+  
+  let questHTML = `
     <div class="quest-header">
       <div class="quest-title">${quest.title}</div>
       <div class="quest-reward">${quest.reward}₸</div>
@@ -269,6 +284,25 @@ function renderQuests() {
     </div>
   `;
   
+  // Добавляем флавор-текст если есть
+  if (quest.flavorText) {
+    questHTML += `
+      <div class="quest-flavor">
+        ${quest.flavorText}
+      </div>
+    `;
+  }
+  
+  // Добавляем спецэффект если есть
+  if (quest.specialEffect) {
+    questHTML += `
+      <div class="quest-effect">
+        ⚡ ${quest.specialEffect}
+      </div>
+    `;
+  }
+  
+  questCard.innerHTML = questHTML;
   questsContainer.appendChild(questCard);
 }
 
