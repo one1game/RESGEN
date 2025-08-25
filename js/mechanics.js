@@ -2,7 +2,7 @@
 function calculateTrashPrice() {
   const basePrice = 1;
   const priceDrop = Math.floor(trashSold / 5) * 0.05;
-  return Math.max(basePrice - priceDrop, 0.3);
+  return Math.round(Math.max(basePrice - priceDrop, 0.3));
 }
 
 function handleRebelAttack() {

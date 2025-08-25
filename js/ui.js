@@ -48,7 +48,7 @@ function updateTimeDisplay() {
 }
 
 function updateCurrencyDisplay() {
-  currencyDisplay.textContent = `${tng}₸`;
+  currencyDisplay.textContent = `${Math.round(tng)}₸`;
 }
 
 function updateDefenseDisplay() {
@@ -121,7 +121,7 @@ function render() {
   // Очищаем инвентарь
   inventoryDiv.innerHTML = '';
 
-  // Отрисовка инвентаря
+  // Отрисовка инвентарь
   Object.entries(inventory).forEach(([name, count]) => {
     if (name === 'ИИ') return;
     
@@ -314,7 +314,7 @@ function renderTrade() {
     
     let price;
     if (itemName === 'Мусор') {
-      price = calculateTrashPrice().toFixed(2);
+      price = calculateTrashPrice();
     } else {
       price = tradeItems[itemName]?.sellPrice || 1;
     }
@@ -328,7 +328,7 @@ function renderTrade() {
     sellItemElement.addEventListener('click', () => {
       if (inventory[itemName] > 0) {
         inventory[itemName]--;
-        tng += parseFloat(price);
+        tng += price;
         if (itemName === 'Мусор') trashSold++;
         
         log(`Продан 1 ${itemName} за ${price}₸`);
