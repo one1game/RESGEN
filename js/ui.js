@@ -57,18 +57,15 @@ function updateDefenseDisplay() {
 }
 
 function render() {
-  // Обновляем бонус добычи
   miningBonusSpan.textContent = `+${upgrades.mining}%`;
   miningLevel.textContent = upgrades.mining;
   miningProgress.style.width = `${upgrades.mining * 10}%`;
   
-  // Обновляем статусы
   coalStatus.textContent = coalEnabled ? 'Активно' : 'Выкл';
   coalStatus.style.color = coalEnabled ? '#00cc66' : '#ff3333';
   defenseStatus.textContent = upgrades.defense ? 'Активно' : 'Выкл';
   defenseLevel.textContent = `Ур. ${upgrades.defenseLevel}/5`;
   
-  // Обновляем статус повстанцев
   let rebelText = 'Низкий';
   let rebelColor = '#00cc66';
   if (rebelActivity > 2) {
@@ -81,17 +78,14 @@ function render() {
   rebelStatus.textContent = rebelText;
   rebelStatus.style.color = rebelColor;
   
-  // Обновляем статус ИИ
   const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
   aiStatusText.textContent = aiActive ? 'Активен' : 'Неактивен';
   aiStatusText.style.color = aiActive ? '#00cc66' : '#ff3333';
   
-  // Обновляем валюту и защиту
   updateCurrencyDisplay();
   updateDefenseDisplay();
   updateTimeDisplay();
   
-  // Обновляем кнопки апгрейдов (с учетом новых стоимостей из mechanics.js)
   const requiredChipsMining = 5 + upgrades.mining * 2;
   const requiredChipsDefense = (upgrades.defenseLevel + 1) * 12;
   const requiredPlasmaDefense = 1 + Math.floor(upgrades.defenseLevel / 2);
@@ -102,7 +96,6 @@ function render() {
     inventory['Чипы'] < requiredChipsDefense || 
     inventory['Плазма'] < requiredPlasmaDefense;
   
-  // Обновляем требования
   miningChipsReq.textContent = `${inventory['Чипы']}/${requiredChipsMining}`;
   miningChipsReq.className = inventory['Чипы'] >= requiredChipsMining ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
@@ -119,19 +112,28 @@ function render() {
   defensePlasmaLevelReq.className = inventory['Плазма'] >= requiredPlasmaDefense ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
   
-  // Обновляем кнопку автоскролла
   autoScrollBtn.textContent = autoScrollEnabled ? 'Автоскролл ✓' : 'Автоскролл';
   
-  // Очищаем инвентарь
   inventoryDiv.innerHTML = '';
 
-  // Отрисовка инвентаря
+  // Отрисовка инвентаря с учетом разблокированных ресурсов
   Object.entries(inventory).forEach(([name, count]) => {
     if (name === 'ИИ') return;
+    
+    // Проверяем, должен ли ресурс отображаться
+    const shouldShow = (
+      (name === 'Уголь' && coalUnlocked) ||
+      (name === 'Мусор' && trashUnlocked) ||
+      (name === 'Чипы' && chipsUnlocked) ||
+      (name === 'Плазма' && plasmaUnlocked)
+    );
+    
+    if (!shouldShow) return;
     
     const slot = document.createElement('div');
     slot.className = 'slot';
     if (name === 'Плазма') slot.classList.add('plasma');
+    if (count === 0) slot.classList.add('empty-resource');
     
     const nameDiv = document.createElement('div');
     nameDiv.className = 'item-name';
@@ -139,18 +141,16 @@ function render() {
     
     const countDiv = document.createElement('div');
     countDiv.className = 'item-count';
-    countDiv.textContent = `x${count}`;
+    countDiv.textContent = count === 0 ? '[Пусто]' : `x${count}`;
     
     slot.appendChild(nameDiv);
     slot.appendChild(countDiv);
 
-    // Анимация для критической добычи
     if (criticalMining && (name === 'Уголь' || name === 'Плазма')) {
       slot.classList.add('critical');
       criticalMining = false;
     }
     
-    // Бонусы добычи
     if (name === 'Уголь' || name === 'Мусор') {
       const bonusDiv = document.createElement('div');
       bonusDiv.className = 'mining-bonus';
@@ -160,7 +160,6 @@ function render() {
       slot.appendChild(bonusDiv);
     }
 
-    // Уголь
     if (name === 'Уголь') {
       if (coalEnabled) {
         slot.style.borderColor = 'var(--primary)';
@@ -169,7 +168,6 @@ function render() {
       
       slot.onclick = () => handleCoalInteraction();
     }
-    // Плазма для защиты
     else if (name === 'Плазма' && count > 0) {
       slot.classList.add('defense');
     }
@@ -177,7 +175,6 @@ function render() {
     inventoryDiv.appendChild(slot);
   });
 
-  // Заполнение пустых слотов
   while (inventoryDiv.children.length < maxSlots) {
     const slot = document.createElement('div');
     slot.className = 'slot empty';
@@ -185,13 +182,8 @@ function render() {
     inventoryDiv.appendChild(slot);
   }
   
-  // Отрисовка заданий
   renderQuests();
-  
-  // Отрисовка торговли
   renderTrade();
-  
-  // Применяем состояние свернутости
   applyCollapsedState();
 }
 
@@ -284,7 +276,6 @@ function renderQuests() {
     </div>
   `;
   
-  // Добавляем флавор-текст если есть
   if (quest.flavorText) {
     questHTML += `
       <div class="quest-flavor">
@@ -293,7 +284,6 @@ function renderQuests() {
     `;
   }
   
-  // Добавляем спецэффект если есть
   if (quest.specialEffect) {
     questHTML += `
       <div class="quest-effect">
@@ -310,8 +300,16 @@ function renderTrade() {
   buyItemsContainer.innerHTML = '';
   sellItemsContainer.innerHTML = '';
   
-  // Отрисовка товаров для покупки
   Object.entries(tradeItems).forEach(([itemName, item]) => {
+    // Показываем товары только если они разблокированы
+    const isUnlocked = (
+      (itemName === 'Уголь' && coalUnlocked) ||
+      (itemName === 'Чипы' && chipsUnlocked) ||
+      (itemName === 'Плазма' && plasmaUnlocked)
+    );
+    
+    if (!isUnlocked) return;
+    
     const buyItemElement = document.createElement('div');
     buyItemElement.className = 'trade-item';
     buyItemElement.innerHTML = `
@@ -339,9 +337,18 @@ function renderTrade() {
     buyItemsContainer.appendChild(buyItemElement);
   });
   
-  // Отрисовка товаров для продажи
   Object.entries(inventory).forEach(([itemName, count]) => {
     if (itemName === 'ИИ' || count <= 0) return;
+    
+    // Показываем для продажи только разблокированные ресурсы
+    const isUnlocked = (
+      (itemName === 'Уголь' && coalUnlocked) ||
+      (itemName === 'Мусор' && trashUnlocked) ||
+      (itemName === 'Чипы' && chipsUnlocked) ||
+      (itemName === 'Плазма' && plasmaUnlocked)
+    );
+    
+    if (!isUnlocked) return;
     
     const sellItemElement = document.createElement('div');
     sellItemElement.className = 'trade-item';

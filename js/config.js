@@ -1,7 +1,7 @@
 // Конфигурация игры
 const STORAGE_KEY = 'coreboxSave2.9';
 const maxSlots = 18;
-const CYCLE_DURATION = 45; // 45 секунд на полный цикл (день+ночь)
+const CYCLE_DURATION = 60;
 
 // Торговые предметы
 const tradeItems = {
@@ -10,14 +10,14 @@ const tradeItems = {
   'Плазма': { buyPrice: 25, sellPrice: 15 }
 };
 
-// ЭПИЧНЫЕ сюжетные задания
+// Сюжетные задания
 const storyQuests = [
   {
     id: 'awakening',
     title: 'Пробуждение ИИ',
-    description: 'Добудьте 10 ресурсов для первичной инициализации системы',
+    description: 'Добудьте 15 ресурсов для первичной инициализации',
     type: 'mine_any',
-    target: 10,
+    target: 15,
     reward: 40,
     completed: false,
     flavorText: 'Система загружается... Обнаружены повреждения. Требуется ресурсы для восстановления.'
@@ -25,13 +25,24 @@ const storyQuests = [
   {
     id: 'power_restoration',
     title: 'Восстановление энергосети',
-    description: 'Активируйте ТЭЦ и поддерживайте энергию 5 ночей подряд',
+    description: 'Активируйте ТЭЦ и поддерживайте энергию 3 ночи',
     type: 'survive_night',
-    target: 5,
+    target: 3,
     reward: 80,
     completed: false,
-    flavorText: 'Энергетическая система восстановлена. ИИ может работать в ночное время, но требуется постоянное питание.',
-    specialEffect: 'После завершения +10% к шансу добычи угля'
+    flavorText: 'Энергетическая система восстановлена. ИИ может работать в ночное время.',
+    specialEffect: '+10% к шансу добычи угля'
+  },
+  {
+    id: 'chips_discovery',
+    title: 'Технологические чипы',
+    description: 'Найдите и исследуйте технологические компоненты',
+    type: 'mine_any',
+    target: 25,
+    reward: 100,
+    completed: false,
+    flavorText: 'Сканеры обнаружили древние технологические артефакты...',
+    specialEffect: 'Разблокирована добыча чипов'
   },
   {
     id: 'plasma_breakthrough',
@@ -43,18 +54,18 @@ const storyQuests = [
     reward: 150,
     completed: false,
     flavorText: 'Обнаружена аномальная энергия! Плазма содержит неизвестные свойства...',
-    specialEffect: 'Разблокирована возможность улучшать турели плазмой'
+    specialEffect: 'Разблокирована добыча плазмы'
   },
   {
     id: 'defense_activation',
     title: 'Активация боевого протокола',
-    description: 'Постройте защитные турели и отразите 3 атаки повстанцев',
+    description: 'Постройте защитные турели и отразите 5 атак',
     type: 'defend_attacks',
-    target: 3,
+    target: 5,
     reward: 120,
     completed: false,
     flavorText: 'Боевые системы активированы. Туррели готовы к отражению атак.',
-    specialEffect: 'Повстанцы теперь атакуют реже но с большей силой'
+    specialEffect: 'Повстанцы атакуют реже но с большей силой'
   },
   {
     id: 'ai_evolution',
@@ -70,10 +81,10 @@ const storyQuests = [
   {
     id: 'final_preparations',
     title: 'Финальные приготовления',
-    description: 'Накопите 15 плазмы для активации ядерного синтеза',
+    description: 'Накопите 10 плазмы для активации ядерного синтеза',
     type: 'mine_resource',
     resource: 'Плазма',
-    target: 15,
+    target: 10,
     reward: 400,
     completed: false,
     flavorText: 'Ядро готово к запуску. Это изменит всё...',

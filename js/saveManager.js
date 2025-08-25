@@ -19,6 +19,10 @@ function saveGame() {
     aiDisabledUntil,
     nightsWithCoal,
     currentQuestIndex,
+    coalUnlocked,
+    trashUnlocked,
+    chipsUnlocked,
+    plasmaUnlocked,
     storyQuests,
     collapsedState
   };
@@ -52,6 +56,11 @@ function loadGame() {
       aiDisabledUntil = data.aiDisabledUntil ?? 0;
       nightsWithCoal = data.nightsWithCoal ?? 0;
       currentQuestIndex = data.currentQuestIndex ?? 0;
+      
+      coalUnlocked = data.coalUnlocked ?? false;
+      trashUnlocked = data.trashUnlocked ?? false;
+      chipsUnlocked = data.chipsUnlocked ?? false;
+      plasmaUnlocked = data.plasmaUnlocked ?? false;
       
       if (data.storyQuests) {
         data.storyQuests.forEach((savedQuest, index) => {
