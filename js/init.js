@@ -129,3 +129,10 @@ function initGame() {
 
 // Запуск игры при загрузке DOM
 document.addEventListener('DOMContentLoaded', initGame);
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadGame();
+  sanitizeInventory(); // Добавьте этот вызов
+  render();
+  startGameLoop();
+});

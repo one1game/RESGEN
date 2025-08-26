@@ -1,7 +1,10 @@
 // Состояние игры
 const inventory = { 
-  'ИИ': 1 
-  // Остальные ресурсы появятся после их разблокировки
+  'ИИ': 1,
+  'Уголь': 0,
+  'Мусор': 0,
+  'Чипы': 0,
+  'Плазма': 0
 };
 
 const upgrades = {
@@ -43,3 +46,22 @@ const collapsedState = {
   tradePanel: false,
   questsPanel: false
 };
+
+// Функция для санитизации инвентаря
+function sanitizeInventory() {
+  const defaultInventory = {
+    'Уголь': 0,
+    'Мусор': 0,
+    'Чипы': 0,
+    'Плазма': 0,
+    'ИИ': 1
+  };
+  
+  // Добавляем отсутствующие ресурсы и преобразуем в числа
+  Object.keys(defaultInventory).forEach(key => {
+    if (inventory[key] === undefined) {
+      inventory[key] = defaultInventory[key];
+    }
+    inventory[key] = Number(inventory[key]) || defaultInventory[key];
+  });
+}

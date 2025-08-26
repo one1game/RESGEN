@@ -90,26 +90,30 @@ function render() {
   const requiredChipsDefense = (upgrades.defenseLevel + 1) * 12;
   const requiredPlasmaDefense = 1 + Math.floor(upgrades.defenseLevel / 2);
   
-  upgradeMiningBtn.disabled = upgrades.mining >= 10 || inventory['Чипы'] < requiredChipsMining;
-  upgradeDefenseBtn.disabled = upgrades.defense || inventory['Плазма'] < 3;
+  // Используем безопасное получение значений
+  const chipsCount = Number(inventory['Чипы']) || 0;
+  const plasmaCount = Number(inventory['Плазма']) || 0;
+  
+  upgradeMiningBtn.disabled = upgrades.mining >= 10 || chipsCount < requiredChipsMining;
+  upgradeDefenseBtn.disabled = upgrades.defense || plasmaCount < 3;
   upgradeDefenseLevelBtn.disabled = upgrades.defenseLevel >= 5 || 
-    inventory['Чипы'] < requiredChipsDefense || 
-    inventory['Плазма'] < requiredPlasmaDefense;
+    chipsCount < requiredChipsDefense || 
+    plasmaCount < requiredPlasmaDefense;
   
-  miningChipsReq.textContent = `${inventory['Чипы']}/${requiredChipsMining}`;
-  miningChipsReq.className = inventory['Чипы'] >= requiredChipsMining ? 
+  miningChipsReq.textContent = `${chipsCount}/${requiredChipsMining}`;
+  miningChipsReq.className = chipsCount >= requiredChipsMining ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
   
-  defensePlasmaReq.textContent = `${inventory['Плазма']}/3`;
-  defensePlasmaReq.className = inventory['Плазма'] >= 3 ? 
+  defensePlasmaReq.textContent = `${plasmaCount}/3`;
+  defensePlasmaReq.className = plasmaCount >= 3 ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
   
-  defenseChipsReq.textContent = `${inventory['Чипы']}/${requiredChipsDefense}`;
-  defenseChipsReq.className = inventory['Чипы'] >= requiredChipsDefense ? 
+  defenseChipsReq.textContent = `${chipsCount}/${requiredChipsDefense}`;
+  defenseChipsReq.className = chipsCount >= requiredChipsDefense ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
   
-  defensePlasmaLevelReq.textContent = `${inventory['Плазма']}/${requiredPlasmaDefense}`;
-  defensePlasmaLevelReq.className = inventory['Плазма'] >= requiredPlasmaDefense ? 
+  defensePlasmaLevelReq.textContent = `${plasmaCount}/${requiredPlasmaDefense}`;
+  defensePlasmaLevelReq.className = plasmaCount >= requiredPlasmaDefense ? 
     'requirement-value requirement-met' : 'requirement-value requirement-not-met';
   
   autoScrollBtn.textContent = autoScrollEnabled ? 'Автоскролл ✓' : 'Автоскролл';
@@ -119,6 +123,9 @@ function render() {
   // Отрисовка инвентаря с учетом разблокированных ресурсов
   Object.entries(inventory).forEach(([name, count]) => {
     if (name === 'ИИ') return;
+    
+    // Безопасное преобразование в число
+    const numericCount = Number(count) || 0;
     
     // Проверяем, должен ли ресурс отображаться
     const shouldShow = (
@@ -133,7 +140,7 @@ function render() {
     const slot = document.createElement('div');
     slot.className = 'slot';
     if (name === 'Плазма') slot.classList.add('plasma');
-    if (count === 0) slot.classList.add('empty-resource');
+    if (numericCount === 0) slot.classList.add('empty-resource');
     
     const nameDiv = document.createElement('div');
     nameDiv.className = 'item-name';
@@ -141,7 +148,7 @@ function render() {
     
     const countDiv = document.createElement('div');
     countDiv.className = 'item-count';
-    countDiv.textContent = count === 0 ? '[Пусто]' : `x${count}`;
+    countDiv.textContent = numericCount === 0 ? '[Пусто]' : `x${numericCount}`;
     
     slot.appendChild(nameDiv);
     slot.appendChild(countDiv);
@@ -168,7 +175,7 @@ function render() {
       
       slot.onclick = () => handleCoalInteraction();
     }
-    else if (name === 'Плазма' && count > 0) {
+    else if (name === 'Плазма' && numericCount > 0) {
       slot.classList.add('defense');
     }
 
@@ -231,10 +238,11 @@ function renderQuests() {
       progressPercent = Math.min(100, (upgrades.mining / quest.target) * 100);
       break;
       
-    case 'mine_resource':
-      progressText = `${quest.resource}: ${inventory[quest.resource] || 0}/${quest.target}`;
-      progressPercent = Math.min(100, ((inventory[quest.resource] || 0) / quest.target) * 100);
-      break;
+      case 'mine_resource':
+        const resourceCount = Number(inventory[quest.resource]) || 0;
+        progressText = `${quest.resource}: ${resourceCount}/${quest.target}`;
+        progressPercent = Math.min(100, (resourceCount / quest.target) * 100);
+        break;
       
     case 'activate_defense':
       progressText = upgrades.defense ? 'Защита активна' : 'Защита неактивна';
@@ -251,10 +259,11 @@ function renderQuests() {
       progressPercent = Math.min(100, ((upgrades.mining + upgrades.defenseLevel) / 15) * 100);
       break;
       
-    case 'final_activation':
-      progressText = `Плазма: ${inventory['Плазма'] || 0}/${quest.target}`;
-      progressPercent = Math.min(100, ((inventory['Плазма'] || 0) / quest.target) * 100);
-      break;
+      case 'final_activation':
+        const plasmaCount = Number(inventory['Плазма']) || 0;
+        progressText = `Плазма: ${plasmaCount}/${quest.target}`;
+        progressPercent = Math.min(100, (plasmaCount / quest.target) * 100);
+        break;
   }
   
   const questCard = document.createElement('div');

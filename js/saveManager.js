@@ -34,9 +34,18 @@ function loadGame() {
   if (saved) {
     try {
       const data = JSON.parse(saved);
-      Object.keys(inventory).forEach(key => {
-        if (data.inventory[key] !== undefined) inventory[key] = data.inventory[key];
-      });
+      
+      // Загружаем инвентарь
+      if (data.inventory) {
+        Object.keys(data.inventory).forEach(key => {
+          inventory[key] = data.inventory[key];
+        });
+      }
+      
+      // Санитизируем инвентарь после загрузки
+      sanitizeInventory();
+      
+      // Загружаем остальные переменные
       tng = data.tng ?? 0;
       coalEnabled = data.coalEnabled ?? false;
       gameTime = data.gameTime ?? CYCLE_DURATION / 2;
@@ -73,8 +82,18 @@ function loadGame() {
       if (data.collapsedState) {
         Object.assign(collapsedState, data.collapsedState);
       }
+      
+      log('Игра загружена');
     } catch (e) {
       console.error('Ошибка загрузки сохранения', e);
+      log('Ошибка загрузки сохранения');
     }
+  }
+}
+
+function resetGame() {
+  if (confirm('Начать новую игру? Все прогресс будет потерян.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
   }
 }
