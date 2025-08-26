@@ -66,10 +66,11 @@ function loadGame() {
       nightsWithCoal = data.nightsWithCoal ?? 0;
       currentQuestIndex = data.currentQuestIndex ?? 0;
       
-      coalUnlocked = data.coalUnlocked ?? false;
-      trashUnlocked = data.trashUnlocked ?? false;
-      chipsUnlocked = data.chipsUnlocked ?? false;
-      plasmaUnlocked = data.plasmaUnlocked ?? false;
+      // ВАЖНО: Загружаем флаги разблокировки из сохранения
+      coalUnlocked = data.coalUnlocked ?? true;
+      trashUnlocked = data.trashUnlocked ?? true;
+      chipsUnlocked = data.chipsUnlocked ?? true;
+      plasmaUnlocked = data.plasmaUnlocked ?? true;
       
       if (data.storyQuests) {
         data.storyQuests.forEach((savedQuest, index) => {
@@ -88,6 +89,9 @@ function loadGame() {
       console.error('Ошибка загрузки сохранения', e);
       log('Ошибка загрузки сохранения');
     }
+  } else {
+    // Если сохранения нет, все равно вызываем санитизацию
+    sanitizeInventory();
   }
 }
 

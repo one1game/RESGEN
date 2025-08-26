@@ -130,9 +130,11 @@ function initGame() {
 // Запуск игры при загрузке DOM
 document.addEventListener('DOMContentLoaded', initGame);
 
+
 document.addEventListener('DOMContentLoaded', function() {
   loadGame();
   sanitizeInventory(); // Добавьте этот вызов
+  autoUnlockResources(); // И этот вызов
   render();
   startGameLoop();
 });

@@ -31,11 +31,11 @@ let aiDisabledUntil = 0;
 let nightsWithCoal = 0;
 let currentQuestIndex = 0;
 
-// Флаги разблокировки ресурсов
-let coalUnlocked = false;
-let trashUnlocked = false; 
-let chipsUnlocked = false;
-let plasmaUnlocked = false;
+// Флаги разблокировки ресурсов - ИЗМЕНИТЕ НАЧАЛЬНЫЕ ЗНАЧЕНИЯ
+let coalUnlocked = true;  // Теперь true по умолчанию
+let trashUnlocked = true; // Теперь true по умолчанию
+let chipsUnlocked = true; // Теперь true по умолчанию
+let plasmaUnlocked = true; // Теперь true по умолчанию
 
 // Состояние свернутых панелей
 const collapsedState = {
@@ -46,6 +46,14 @@ const collapsedState = {
   tradePanel: false,
   questsPanel: false
 };
+
+// Функция для автоматической разблокировки ресурсов при их наличии
+function autoUnlockResources() {
+  if ((inventory['Уголь'] || 0) > 0) coalUnlocked = true;
+  if ((inventory['Мусор'] || 0) > 0) trashUnlocked = true;
+  if ((inventory['Чипы'] || 0) > 0) chipsUnlocked = true;
+  if ((inventory['Плазма'] || 0) > 0) plasmaUnlocked = true;
+}
 
 // Функция для санитизации инвентаря
 function sanitizeInventory() {
@@ -64,4 +72,7 @@ function sanitizeInventory() {
     }
     inventory[key] = Number(inventory[key]) || defaultInventory[key];
   });
+  
+  // Автоматически разблокируем ресурсы, если они есть
+  autoUnlockResources();
 }
