@@ -272,3 +272,41 @@ function checkUpgradeAllQuest() {
 function checkFinalActivationQuest() {
   return inventory['Плазма'] >= 15 && upgrades.defenseLevel >= 5;
 }
+
+// Инициализация плавающей кнопки
+function initFloatingButton() {
+  const floatingBtn = document.getElementById('floatingMineBtn');
+  const mineBtn = document.getElementById('mineBtn'); // Ваша оригинальная кнопка
+  const miningBonus = document.getElementById('miningBonus');
+  const miningBonusFloat = document.getElementById('miningBonusFloat');
+  
+  if (!floatingBtn || !mineBtn) return;
+  
+  // Синхронизация бонуса
+  function updateBonus() {
+      miningBonusFloat.textContent = miningBonus.textContent;
+  }
+  
+  // Обработчик нажатия
+  floatingBtn.addEventListener('click', function() {
+      // Активируем визуальную обратную связь
+      this.classList.add('active');
+      
+      // Запускаем оригинальную функцию добычи
+      mineBtn.click();
+      
+      // Обновляем бонус
+      updateBonus();
+      
+      // Убираем класс анимации после завершения
+      setTimeout(() => {
+          this.classList.remove('active');
+      }, 500);
+  });
+  
+  // Инициализация при загрузке
+  updateBonus();
+}
+
+// Вызов инициализации после загрузки DOM
+document.addEventListener('DOMContentLoaded', initFloatingButton);
