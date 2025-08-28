@@ -121,77 +121,90 @@ function render() {
   // ОЧИСТКА ИНВЕНТАРЯ
   inventoryDiv.innerHTML = '';
   
-  // СОЗДАЕМ МАССИВ РЕСУРСОВ С НЕНУЛЕВЫМ КОЛИЧЕСТВОМ
-  const resourcesWithItems = [];
-  
-  // Проверяем каждый ресурс и добавляем только если есть количество > 0
-  if (coalUnlocked && (inventory['Уголь'] || 0) > 0) {
-    resourcesWithItems.push({ name: 'Уголь', count: inventory['Уголь'] });
-  }
-  if (trashUnlocked && (inventory['Мусор'] || 0) > 0) {
-    resourcesWithItems.push({ name: 'Мусор', count: inventory['Мусор'] });
-  }
-  if (chipsUnlocked && (inventory['Чипы'] || 0) > 0) {
-    resourcesWithItems.push({ name: 'Чипы', count: inventory['Чипы'] });
-  }
-  if (plasmaUnlocked && (inventory['Плазма'] || 0) > 0) {
-    resourcesWithItems.push({ name: 'Плазма', count: inventory['Плазма'] });
-  }
-  
-  // ОТОБРАЖАЕМ СНАЧАЛА РЕСУРСЫ С НЕНУЛЕВЫМ КОЛИЧЕСТВОМ
-  resourcesWithItems.forEach((resource, index) => {
-    if (index >= maxSlots) return;
-    
-    const slot = document.createElement('div');
-    slot.className = 'slot';
-    slot.dataset.resource = resource.name;
-    
-    if (resource.name === 'Плазма') slot.classList.add('plasma');
-    
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'item-name';
-    nameDiv.textContent = resource.name;
-    
-    const countDiv = document.createElement('div');
-    countDiv.className = 'item-count';
-    countDiv.textContent = `x${resource.count}`;
-    
-    slot.appendChild(nameDiv);
-    slot.appendChild(countDiv);
+  // ФИКСИРОВАННЫЙ ПОРЯДОК ОТОБРАЖЕНИЯ РЕСУРСОВ
+  const resourceOrder = ['Уголь', 'Мусор', 'Чипы', 'Плазма'];
+  let filledSlots = 0;
 
-    // Добавляем бонусы для угля и мусора
-    if (resource.name === 'Уголь' || resource.name === 'Мусор') {
-      const bonusDiv = document.createElement('div');
-      bonusDiv.className = 'mining-bonus';
-      const baseChance = resource.name === 'Уголь' ? 3 : 1.5;
-      const totalBonus = upgrades.mining + (coalEnabled ? (resource.name === 'Уголь' ? 2 : 1) : 0);
-      bonusDiv.textContent = `+${Math.round(baseChance + totalBonus)}%`;
-      slot.appendChild(bonusDiv);
+  // ОТОБРАЖАЕМ РЕСУРСЫ В ФИКСИРОВАННОМ ПОРЯДКЕ
+  resourceOrder.forEach(resourceName => {
+    if (filledSlots >= maxSlots) return;
+    
+    // Проверяем, разблокирован ли ресурс и есть ли количество > 0
+    let isUnlocked = false;
+    let resourceCount = 0;
+    
+    switch(resourceName) {
+      case 'Уголь':
+        isUnlocked = coalUnlocked;
+        resourceCount = Number(inventory['Уголь']) || 0;
+        break;
+      case 'Мусор':
+        isUnlocked = trashUnlocked;
+        resourceCount = Number(inventory['Мусор']) || 0;
+        break;
+      case 'Чипы':
+        isUnlocked = chipsUnlocked;
+        resourceCount = Number(inventory['Чипы']) || 0;
+        break;
+      case 'Плазма':
+        isUnlocked = plasmaUnlocked;
+        resourceCount = Number(inventory['Плазма']) || 0;
+        break;
     }
-
-    // Обработчики кликов
-    if (resource.name === 'Уголь') {
-      if (coalEnabled) {
-        slot.style.borderColor = 'var(--primary)';
-        slot.style.boxShadow = '0 0 8px var(--primary)';
-      }
+    
+    // Если ресурс разблокирован И имеет количество > 0
+    if (isUnlocked && resourceCount > 0) {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.dataset.resource = resourceName;
       
-      slot.onclick = () => handleCoalInteraction();
-    }
+      if (resourceName === 'Плазма') slot.classList.add('plasma');
+      
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'item-name';
+      nameDiv.textContent = resourceName;
+      
+      const countDiv = document.createElement('div');
+      countDiv.className = 'item-count';
+      countDiv.textContent = `x${resourceCount}`;
+      
+      slot.appendChild(nameDiv);
+      slot.appendChild(countDiv);
 
-    // Анимация для критической добычи
-    if (criticalMining && (resource.name === 'Уголь' || resource.name === 'Плазма')) {
-      slot.classList.add('critical');
-    }
+      // Добавляем бонусы для угля и мусора
+      if (resourceName === 'Уголь' || resourceName === 'Мусор') {
+        const bonusDiv = document.createElement('div');
+        bonusDiv.className = 'mining-bonus';
+        const baseChance = resourceName === 'Уголь' ? 3 : 1.5;
+        const totalBonus = upgrades.mining + (coalEnabled ? (resourceName === 'Уголь' ? 2 : 1) : 0);
+        bonusDiv.textContent = `+${Math.round(baseChance + totalBonus)}%`;
+        slot.appendChild(bonusDiv);
+      }
 
-    inventoryDiv.appendChild(slot);
+      // Обработчики кликов
+      if (resourceName === 'Уголь') {
+        if (coalEnabled) {
+          slot.style.borderColor = 'var(--primary)';
+          slot.style.boxShadow = '0 0 8px var(--primary)';
+        }
+        
+        slot.onclick = () => handleCoalInteraction();
+      }
+
+      // Анимация для критической добычи
+      if (criticalMining && (resourceName === 'Уголь' || resourceName === 'Плазма')) {
+        slot.classList.add('critical');
+      }
+
+      inventoryDiv.appendChild(slot);
+      filledSlots++;
+    }
   });
   
   // Сбрасываем флаг критической добычи после отрисовки
   criticalMining = false;
   
   // ЗАПОЛНЯЕМ ОСТАВШИЕСЯ СЛОТЫ ПУСТЫМИ ЯЧЕЙКАМИ
-  const filledSlots = resourcesWithItems.length;
   for (let i = filledSlots; i < maxSlots; i++) {
     const slot = document.createElement('div');
     slot.className = 'slot empty';

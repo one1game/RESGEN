@@ -171,18 +171,23 @@ function mineResources() {
   
   let coalChance = 0.015 + (coalEnabled ? 0.015 : 0) + (upgrades.mining * 0.008);
   let trashChance = 0.01 + (coalEnabled ? 0.008 : 0) + (upgrades.mining * 0.005);
-  let chipChance = chipsUnlocked ? (0.004 + (upgrades.mining * 0.001)) : 0;
   
-  // ИСПРАВЛЕНИЕ ДОБЫЧИ ПЛАЗМЫ
+  // Чипы доступны только после квеста chips_discovery
+  let chipChance = 0;
+  const chipsQuest = storyQuests.find(q => q.id === 'chips_discovery');
+  if (chipsQuest && chipsQuest.completed) {
+    chipChance = 0.004 + (upgrades.mining * 0.001);
+  }
+  
+  // Плазма доступна только после квеста plasma_breakthrough
   let plasmaChance = 0;
-  // Плазма доступна только после соответствующего квеста
-  if (plasmaUnlocked) {
+  const plasmaQuest = storyQuests.find(q => q.id === 'plasma_breakthrough');
+  if (plasmaQuest && plasmaQuest.completed) {
     plasmaChance = 0.002 + (upgrades.mining * 0.0005);
     
-    // Увеличиваем шанс после завершения квеста
-    const plasmaQuest = storyQuests.find(q => q.id === 'plasma_breakthrough');
-    if (plasmaQuest && plasmaQuest.completed) {
-      plasmaChance += 0.001; // Бонус после квеста
+    // Бонус после завершения квеста
+    if (plasmaQuest.completed) {
+      plasmaChance += 0.001;
     }
   }
   
@@ -197,8 +202,13 @@ function mineResources() {
       inventory['Уголь'] = 0;
       log('🪨 Обнаружены угольные месторождения!');
     }
+    
+    const wasEmpty = (inventory['Уголь'] || 0) === 0;
     inventory['Уголь'] += amount;
-    criticalMining = isCritical;
+    
+    if (wasEmpty) {
+      log('✨ Уголь добавлен в инвентарь!');
+    }
     
     log(`🪨 Найден${amount > 1 ? 'о' : ''} ${amount} угля${isCritical ? ' ✨КРИТ!' : ''}`);
     foundSomething = true;
@@ -212,26 +222,56 @@ function mineResources() {
       inventory['Мусор'] = 0;
       log('♻️ Обнаружены залежи перерабатываемых материалов!');
     }
+    
+    const wasEmpty = (inventory['Мусор'] || 0) === 0;
     inventory['Мусор'] += amount;
+    
+    if (wasEmpty) {
+      log('✨ Мусор добавлен в инвентарь!');
+    }
+    
     log(`♻️ Найден${amount > 1 ? 'о' : ''} ${amount} мусора${isCritical ? ' ✨' : ''}`);
     foundSomething = true;
     totalMined += amount;
   }
   
-  if (chipsUnlocked && Math.random() < chipChance) {
+  // Добыча чипов только после квеста
+  if (chipsQuest && chipsQuest.completed && Math.random() < chipChance) {
     const amount = 1 + criticalBonus;
+    if (!chipsUnlocked) {
+      chipsUnlocked = true;
+      inventory['Чипы'] = 0;
+      log('🎛️ Обнаружены технологические чипы!');
+    }
+    
+    const wasEmpty = (inventory['Чипы'] || 0) === 0;
     inventory['Чипы'] += amount;
-    criticalMining = true;
+    
+    if (wasEmpty) {
+      log('✨ Чипы добавлены в инвентарь!');
+    }
+    
     log(`🎛️ Найден${amount > 1 ? 'о' : ''} ${amount} чип${amount > 1 ? 'ов' : ''}${isCritical ? ' ✨' : ''}`);
     foundSomething = true;
     totalMined += amount;
   }
   
-  // ИСПРАВЛЕННАЯ ДОБЫЧА ПЛАЗМЫ
-  if (plasmaUnlocked && Math.random() < plasmaChance) {
+  // Добыча плазмы только после квеста
+  if (plasmaQuest && plasmaQuest.completed && Math.random() < plasmaChance) {
     const amount = 1 + criticalBonus;
+    if (!plasmaUnlocked) {
+      plasmaUnlocked = true;
+      inventory['Плазма'] = 0;
+      log('⚡ Обнаружена плазма!');
+    }
+    
+    const wasEmpty = (inventory['Плазма'] || 0) === 0;
     inventory['Плазма'] += amount;
-    criticalMining = true;
+    
+    if (wasEmpty) {
+      log('✨ Плазма добавлена в инвентарь!');
+    }
+    
     log(`⚡ Найден${amount > 1 ? 'о' : ''} ${amount} плазм${amount > 1 ? 'ы' : 'а'}${isCritical ? ' ✨' : ''}`);
     foundSomething = true;
     totalMined += amount;

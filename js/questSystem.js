@@ -32,6 +32,7 @@ function completeCurrentQuest() {
       chipsUnlocked = true;
       inventory['Чипы'] = 0;
       log('🎛️ Технологические чипы теперь доступны для добычи!');
+      log('💫 Теперь есть шанс находить чипы при добыче ресурсов');
     }
     
     if (quest.id === 'plasma_breakthrough') {
@@ -39,8 +40,6 @@ function completeCurrentQuest() {
       inventory['Плазма'] = 0;
       log('⚡ Плазма теперь доступна для добычи!');
       log('💫 После изучения плазмы шанс ее добычи увеличился!');
-      
-      // Увеличиваем базовый шанс добычи плазмы после квеста
       log('🔬 Исследование плазмы завершено - эффективность добычи повышена!');
     }
     
@@ -85,47 +84,122 @@ function checkQuestsProgress() {
   switch(quest.type) {
     case 'mine_any':
       isCompleted = totalMined >= quest.target;
+      if (isCompleted) {
+        log(`📊 Прогресс: добыто ${totalMined}/${quest.target} ресурсов`);
+      }
       break;
       
     case 'activate_coal':
       isCompleted = coalEnabled;
+      if (isCompleted) {
+        log('⚡ ТЭЦ успешно активирована!');
+      }
       break;
       
     case 'survive_night':
       isCompleted = nightsWithCoal >= quest.target;
+      if (isCompleted) {
+        log(`🌙 Пережито ${nightsWithCoal}/${quest.target} ночей с энергией`);
+      } else {
+        log(`🌙 Прогресс: ${nightsWithCoal}/${quest.target} ночей`);
+      }
       break;
       
     case 'upgrade_mining':
       isCompleted = upgrades.mining >= quest.target;
+      if (isCompleted) {
+        log(`⚙️ Добыча улучшена до уровня ${upgrades.mining}/${quest.target}`);
+      } else {
+        log(`⚙️ Прогресс: уровень ${upgrades.mining}/${quest.target}`);
+      }
       break;
       
     case 'mine_resource':
       // Безопасная проверка для ресурсов
       const resourceCount = Number(inventory[quest.resource]) || 0;
       isCompleted = resourceCount >= quest.target;
+      if (isCompleted) {
+        log(`✅ Набрано достаточно ${quest.resource}: ${resourceCount}/${quest.target}`);
+      } else {
+        log(`📦 Прогресс ${quest.resource}: ${resourceCount}/${quest.target}`);
+      }
       break;
       
     case 'activate_defense':
       isCompleted = upgrades.defense;
+      if (isCompleted) {
+        log('🛡️ Система защиты активирована!');
+      }
       break;
       
     case 'defend_attacks':
       isCompleted = successfulDefenses >= quest.target;
+      if (isCompleted) {
+        log(`✅ Отражено ${successfulDefenses}/${quest.target} атак`);
+      } else {
+        log(`🛡️ Прогресс защиты: ${successfulDefenses}/${quest.target}`);
+      }
       break;
       
     case 'upgrade_all':
       isCompleted = checkUpgradeAllQuest();
+      if (isCompleted) {
+        log('🚀 Все системы максимально улучшены!');
+      } else {
+        const miningProgress = upgrades.mining >= 10 ? '✅' : `⏳ ${upgrades.mining}/10`;
+        const defenseProgress = upgrades.defenseLevel >= 5 ? '✅' : `⏳ ${upgrades.defenseLevel}/5`;
+        log(`📊 Прогресс улучшений: Добыча ${miningProgress}, Защита ${defenseProgress}`);
+      }
       break;
       
     case 'final_activation':
-      // Безопасная проверка для плазмы
       const plasmaCount = Number(inventory['Плазма']) || 0;
-      isCompleted = plasmaCount >= quest.target && upgrades.defenseLevel >= 5;
+      const defenseReady = upgrades.defenseLevel >= 5;
+      isCompleted = plasmaCount >= quest.target && defenseReady;
+      
+      if (isCompleted) {
+        log('✅ Готово к финальной активации!');
+      } else {
+        let progressMessage = `📊 Прогресс: Плазма ${plasmaCount}/${quest.target}`;
+        if (!defenseReady) {
+          progressMessage += `, Защита ${upgrades.defenseLevel}/5`;
+        }
+        log(progressMessage);
+      }
       break;
   }
   
   if (isCompleted) {
     completeCurrentQuest();
+  }
+}
+
+// Проверка улучшения всех систем
+function checkUpgradeAllQuest() {
+  return upgrades.mining >= 10 && upgrades.defenseLevel >= 5;
+}
+
+// Проверка финальной активации
+function checkFinalActivationQuest() {
+  const plasmaCount = Number(inventory['Плазма']) || 0;
+  return plasmaCount >= 10 && upgrades.defenseLevel >= 5;
+}
+
+// Автоматическая разблокировка ресурсов при их наличии (на случай загрузки сохранения)
+function autoUnlockResources() {
+  if ((inventory['Уголь'] || 0) > 0) coalUnlocked = true;
+  if ((inventory['Мусор'] || 0) > 0) trashUnlocked = true;
+  
+  // Чипы и плазма разблокируются только через квесты
+  const chipsQuest = storyQuests.find(q => q.id === 'chips_discovery');
+  const plasmaQuest = storyQuests.find(q => q.id === 'plasma_breakthrough');
+  
+  if (chipsQuest && chipsQuest.completed && (inventory['Чипы'] || 0) > 0) {
+    chipsUnlocked = true;
+  }
+  
+  if (plasmaQuest && plasmaQuest.completed && (inventory['Плазма'] || 0) > 0) {
+    plasmaUnlocked = true;
   }
 }
 
@@ -145,6 +219,17 @@ function completeCurrentQuestDebug() {
     quest.completed = true;
     tng += quest.reward;
     log(`[DEBUG] Задание "${quest.title}" принудительно завершено!`);
+    
+    // Принудительно разблокируем ресурсы если это соответствующий квест
+    if (quest.id === 'chips_discovery') {
+      chipsUnlocked = true;
+      inventory['Чипы'] = 0;
+    }
+    if (quest.id === 'plasma_breakthrough') {
+      plasmaUnlocked = true;
+      inventory['Плазма'] = 0;
+    }
+    
     currentQuestIndex++;
     saveGame();
     render();
