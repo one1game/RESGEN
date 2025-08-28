@@ -1161,3 +1161,65 @@ h1::after {
       font-size: 14px;
   }
 }
+
+/* Исправление для бонусов добычи в инвентаре */
+.mining-bonus {
+  font-size: 9px;
+  padding: 1px 3px;
+  border-radius: 8px;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--accent);
+  color: white;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  z-index: 2;
+}
+
+/* Адаптация для мобильных устройств */
+@media (max-width: 600px) {
+  .mining-bonus {
+    font-size: 8px;
+    padding: 1px 2px;
+    min-width: 18px;
+    top: -3px;
+    right: -3px;
+  }
+  
+  .slot {
+    position: relative;
+    overflow: visible;
+  }
+  
+  .item-name {
+    font-size: 9px;
+    line-height: 1.1;
+    margin-bottom: 2px;
+  }
+  
+  .item-count {
+    font-size: 12px;
+  }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 350px) {
+  .mining-bonus {
+    font-size: 7px;
+    min-width: 16px;
+    top: -2px;
+    right: -2px;
+  }
+  
+  .inventory-grid {
+    gap: 5px;
+  }
+  
+  .slot {
+    width: 48px;
+    height: 48px;
+  }
+}
