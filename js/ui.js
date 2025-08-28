@@ -118,56 +118,59 @@ function render() {
   
   autoScrollBtn.textContent = autoScrollEnabled ? 'Автоскролл ✓' : 'Автоскролл';
   
+  // ОЧИСТКА ИНВЕНТАРЯ
   inventoryDiv.innerHTML = '';
-
-  // Отрисовка инвентаря с учетом разблокированных ресурсов
-  Object.entries(inventory).forEach(([name, count]) => {
-    if (name === 'ИИ') return;
-    
-    // Безопасное преобразование в число
-    const numericCount = Number(count) || 0;
-    
-    // Проверяем, должен ли ресурс отображаться
-    const shouldShow = (
-      (name === 'Уголь' && coalUnlocked) ||
-      (name === 'Мусор' && trashUnlocked) ||
-      (name === 'Чипы' && chipsUnlocked) ||
-      (name === 'Плазма' && plasmaUnlocked)
-    );
-    
-    if (!shouldShow) return;
+  
+  // СОЗДАЕМ МАССИВ РЕСУРСОВ С НЕНУЛЕВЫМ КОЛИЧЕСТВОМ
+  const resourcesWithItems = [];
+  
+  // Проверяем каждый ресурс и добавляем только если есть количество > 0
+  if (coalUnlocked && (inventory['Уголь'] || 0) > 0) {
+    resourcesWithItems.push({ name: 'Уголь', count: inventory['Уголь'] });
+  }
+  if (trashUnlocked && (inventory['Мусор'] || 0) > 0) {
+    resourcesWithItems.push({ name: 'Мусор', count: inventory['Мусор'] });
+  }
+  if (chipsUnlocked && (inventory['Чипы'] || 0) > 0) {
+    resourcesWithItems.push({ name: 'Чипы', count: inventory['Чипы'] });
+  }
+  if (plasmaUnlocked && (inventory['Плазма'] || 0) > 0) {
+    resourcesWithItems.push({ name: 'Плазма', count: inventory['Плазма'] });
+  }
+  
+  // ОТОБРАЖАЕМ СНАЧАЛА РЕСУРСЫ С НЕНУЛЕВЫМ КОЛИЧЕСТВОМ
+  resourcesWithItems.forEach((resource, index) => {
+    if (index >= maxSlots) return;
     
     const slot = document.createElement('div');
     slot.className = 'slot';
-    if (name === 'Плазма') slot.classList.add('plasma');
-    if (numericCount === 0) slot.classList.add('empty-resource');
+    slot.dataset.resource = resource.name;
+    
+    if (resource.name === 'Плазма') slot.classList.add('plasma');
     
     const nameDiv = document.createElement('div');
     nameDiv.className = 'item-name';
-    nameDiv.textContent = name;
+    nameDiv.textContent = resource.name;
     
     const countDiv = document.createElement('div');
     countDiv.className = 'item-count';
-    countDiv.textContent = numericCount === 0 ? '[Пусто]' : `x${numericCount}`;
+    countDiv.textContent = `x${resource.count}`;
     
     slot.appendChild(nameDiv);
     slot.appendChild(countDiv);
 
-    if (criticalMining && (name === 'Уголь' || name === 'Плазма')) {
-      slot.classList.add('critical');
-      criticalMining = false;
-    }
-    
-    if (name === 'Уголь' || name === 'Мусор') {
+    // Добавляем бонусы для угля и мусора
+    if (resource.name === 'Уголь' || resource.name === 'Мусор') {
       const bonusDiv = document.createElement('div');
       bonusDiv.className = 'mining-bonus';
-      const baseChance = name === 'Уголь' ? 3 : 1.5;
-      const totalBonus = upgrades.mining + (coalEnabled ? (name === 'Уголь' ? 2 : 1) : 0);
-      bonusDiv.textContent = `+${baseChance + totalBonus}%`;
+      const baseChance = resource.name === 'Уголь' ? 3 : 1.5;
+      const totalBonus = upgrades.mining + (coalEnabled ? (resource.name === 'Уголь' ? 2 : 1) : 0);
+      bonusDiv.textContent = `+${Math.round(baseChance + totalBonus)}%`;
       slot.appendChild(bonusDiv);
     }
 
-    if (name === 'Уголь') {
+    // Обработчики кликов
+    if (resource.name === 'Уголь') {
       if (coalEnabled) {
         slot.style.borderColor = 'var(--primary)';
         slot.style.boxShadow = '0 0 8px var(--primary)';
@@ -175,14 +178,21 @@ function render() {
       
       slot.onclick = () => handleCoalInteraction();
     }
-    else if (name === 'Плазма' && numericCount > 0) {
-      slot.classList.add('defense');
+
+    // Анимация для критической добычи
+    if (criticalMining && (resource.name === 'Уголь' || resource.name === 'Плазма')) {
+      slot.classList.add('critical');
     }
 
     inventoryDiv.appendChild(slot);
   });
-
-  while (inventoryDiv.children.length < maxSlots) {
+  
+  // Сбрасываем флаг критической добычи после отрисовки
+  criticalMining = false;
+  
+  // ЗАПОЛНЯЕМ ОСТАВШИЕСЯ СЛОТЫ ПУСТЫМИ ЯЧЕЙКАМИ
+  const filledSlots = resourcesWithItems.length;
+  for (let i = filledSlots; i < maxSlots; i++) {
     const slot = document.createElement('div');
     slot.className = 'slot empty';
     slot.innerHTML = '<div class="item-name">[Пусто]</div><div class="item-count">+</div>';
