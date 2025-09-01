@@ -316,11 +316,7 @@ h1::after {
   border-left: 3px solid var(--plasma);
 }
 
-@keyframes glow {
-  0% { box-shadow: 0 0 3px #fff; }
-  50% { box-shadow: 0 0 12px gold; }
-  100% { box-shadow: 0 0 3px #fff; }
-}
+
 
 .item-name {
   font-weight: 600;
