@@ -1,3 +1,5 @@
+// ======== mechanics.js ========
+
 // Вспомогательные функции
 function calculateTrashPrice() {
   const basePrice = 2;
@@ -14,13 +16,13 @@ function handleRebelAttack() {
   if (Math.random() < attackChance) {
     const attackTypes = [];
     
-    if (Object.keys(inventory).filter(k => k !== 'ИИ' && inventory[k] > 0).length > 0) {
+    if (Object.keys(inventory).filter(k => k !== 'ИИ' && (inventory[k] || 0) > 0).length > 0) {
       attackTypes.push(0);
     }
     if (upgrades.mining > 0) {
       attackTypes.push(1);
     }
-    if (inventory['Мусор'] > 0 && trashUnlocked) {
+    if ((inventory['Мусор'] || 0) > 0 && trashUnlocked) {
       attackTypes.push(2);
     }
     if (upgrades.defense) {
@@ -36,7 +38,7 @@ function handleRebelAttack() {
     
     switch(attackType) {
       case 0:
-        const resources = Object.keys(inventory).filter(k => k !== 'ИИ' && inventory[k] > 0);
+        const resources = Object.keys(inventory).filter(k => k !== 'ИИ' && (inventory[k] || 0) > 0);
         if (resources.length > 0) {
           const stolenResource = resources[Math.floor(Math.random() * resources.length)];
           const amount = Math.min(inventory[stolenResource], 
@@ -56,9 +58,9 @@ function handleRebelAttack() {
         break;
         
       case 2:
-        if (inventory['Мусор'] > 0 && trashUnlocked) {
+        if ((inventory['Мусор'] || 0) > 0 && trashUnlocked) {
           const destroyPercentage = 0.3 + Math.random() * 0.3;
-          const destroyed = Math.floor(inventory['Мусор'] * destroyPercentage);
+          const destroyed = Math.floor((inventory['Мусор'] || 0) * destroyPercentage);
           inventory['Мусор'] -= destroyed;
           message += ` Уничтожено ${destroyed} мусора (${Math.round(destroyPercentage * 100)}%)`;
         }
@@ -83,8 +85,7 @@ function handleRebelAttack() {
         break;
     }
     
-    log(message);
-    
+    // Переносим это ДО return
     rebelActivity += severeAttack ? 2 : 1;
     
     if (severeAttack && upgrades.defenseLevel > 0 && Math.random() < 0.6) {
@@ -92,6 +93,7 @@ function handleRebelAttack() {
       log("⚠️ Уровень защиты понижен из-за атаки повстанцев");
     }
     
+    log(message);
     saveGame();
   }
 }
@@ -102,12 +104,13 @@ function handleCoalInteraction() {
     coalEnabled = false;
     log('⚡ Угольная ТЭЦ отключена');
   } else {
-    if (inventory['Уголь'] > 0) {
+    if ((inventory['Уголь'] || 0) > 0) {
+      inventory['Уголь']--;
       coalEnabled = true;
-      log('⚡ Угольная ТЭЦ активирована');
+      log('⚡ Угольная ТЭЦ активирована (-1 уголь)');
       
       if (currentQuestIndex < storyQuests.length && 
-          storyQuests[currentQuestIndex].id === 'power_restoration') {
+          storyQuests[currentQuestIndex].type === 'activate_coal') {
         checkQuestsProgress();
       }
     } else {
@@ -184,6 +187,11 @@ function mineResources() {
     log('⏳ Добыча... Ресурсы не найдены');
   }
   
+  // Всегда сбрасываем criticalMining после добычи
+  if (criticalMining) {
+    criticalMining = false;
+  }
+  
   if (foundSomething && currentQuestIndex < storyQuests.length) {
     checkQuestsProgress();
   }
@@ -194,7 +202,7 @@ function mineResources() {
 
 function upgradeMining() {
   const requiredChips = 5 + upgrades.mining * 2;
-  if (upgrades.mining < 10 && inventory['Чипы'] >= requiredChips) {
+  if (upgrades.mining < 10 && (inventory['Чипы'] || 0) >= requiredChips) {
     inventory['Чипы'] -= requiredChips;
     upgrades.mining++;
     
@@ -216,7 +224,7 @@ function upgradeMining() {
 }
 
 function activateDefense() {
-  if (!upgrades.defense && inventory['Плазма'] >= 3) {
+  if (!upgrades.defense && (inventory['Плазма'] || 0) >= 3) {
     inventory['Плазма'] -= 3;
     upgrades.defense = true;
     
@@ -242,8 +250,8 @@ function upgradeDefense() {
   const requiredPlasma = 1 + Math.floor(upgrades.defenseLevel / 2);
   
   if (upgrades.defenseLevel < 5 && 
-      inventory['Чипы'] >= requiredChips && 
-      inventory['Плазма'] >= requiredPlasma) {
+      (inventory['Чипы'] || 0) >= requiredChips && 
+      (inventory['Плазма'] || 0) >= requiredPlasma) {
     
     inventory['Чипы'] -= requiredChips;
     inventory['Плазма'] -= requiredPlasma;
@@ -264,10 +272,10 @@ function upgradeDefense() {
 }
 
 // Новые функции для улучшенной механики
-function checkUpgradeAllQuest(target = 1) {
-  return upgrades.mining >= 10 && upgrades.defenseLevel >= 5 && target === 1;
+function checkUpgradeAllQuest() {
+  return upgrades.mining >= 10 && upgrades.defenseLevel >= 5;
 }
 
-function checkFinalActivationQuest(target = 1) {
-  return inventory['Плазма'] >= 15 && upgrades.defenseLevel >= 5 && target === 1;
+function checkFinalActivationQuest() {
+  return (inventory['Плазма'] || 0) >= 15 && upgrades.defenseLevel >= 5;
 }

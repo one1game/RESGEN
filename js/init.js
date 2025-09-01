@@ -1,3 +1,5 @@
+// ======== init.js ========
+
 // Игровой цикл
 function gameLoop() {
   const now = Date.now();
@@ -17,7 +19,7 @@ function gameLoop() {
       if (coalEnabled) {
         nightsWithCoal++;
         
-        if (inventory['Уголь'] > 0) {
+        if ((inventory['Уголь'] || 0) > 0) {
           inventory['Уголь']--;
           log('🌙 Ночь - сгорел 1 уголь');
         } else {
@@ -63,19 +65,19 @@ function gameLoop() {
       const plasmaChance = 0.0005;
       
       if (Math.random() < coalChance) {
-        inventory['Уголь']++;
+        inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
         totalMined++;
       }
       if (Math.random() < trashChance) {
-        inventory['Мусор']++;
+        inventory['Мусор'] = (inventory['Мусор'] || 0) + 1;
         totalMined++;
       }
       if (Math.random() < chipChance) {
-        inventory['Чипы']++;
+        inventory['Чипы'] = (inventory['Чипы'] || 0) + 1;
         totalMined++;
       }
       if (Math.random() < plasmaChance) {
-        inventory['Плазма']++;
+        inventory['Плазма'] = (inventory['Плазма'] || 0) + 1;
         totalMined++;
       }
       
@@ -87,29 +89,34 @@ function gameLoop() {
   render();
 }
 
-// Инициализация игры
+// Инициализация обработчиков событий
 function initEventListeners() {
-  mineBtn.addEventListener('click', mineResources);
-  upgradeMiningBtn.addEventListener('click', upgradeMining);
-  upgradeDefenseBtn.addEventListener('click', activateDefense);
-  upgradeDefenseLevelBtn.addEventListener('click', upgradeDefense);
-  clearLogBtn.addEventListener('click', clearLog);
-  autoScrollBtn.addEventListener('click', toggleAutoScroll);
-  buyModeBtn.addEventListener('click', () => toggleBuySellMode(true));
-  sellModeBtn.addEventListener('click', () => toggleBuySellMode(false));
+  if (mineBtn) mineBtn.addEventListener('click', mineResources);
+  if (upgradeMiningBtn) upgradeMiningBtn.addEventListener('click', upgradeMining);
+  if (upgradeDefenseBtn) upgradeDefenseBtn.addEventListener('click', activateDefense);
+  if (upgradeDefenseLevelBtn) upgradeDefenseLevelBtn.addEventListener('click', upgradeDefense);
+  if (clearLogBtn) clearLogBtn.addEventListener('click', clearLog);
+  if (autoScrollBtn) autoScrollBtn.addEventListener('click', toggleAutoScroll);
+  if (buyModeBtn) buyModeBtn.addEventListener('click', () => toggleBuySellMode(true));
+  if (sellModeBtn) sellModeBtn.addEventListener('click', () => toggleBuySellMode(false));
   
   document.querySelectorAll('.panel-title').forEach(title => {
     title.addEventListener('click', (e) => {
       if (e.target.classList.contains('collapse-icon')) return;
-      toggleCollapse(title.closest('.panel'));
+      const panel = title.closest('.panel');
+      if (panel) toggleCollapse(panel);
     });
   });
   
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      switchTab(tab.dataset.tab);
+  if (tabs.length > 0) {
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        switchTab(tab.dataset.tab);
+      });
     });
-  });
+  }
+  
+  initFloatingButton();
 }
 
 function initGame() {

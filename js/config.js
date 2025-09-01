@@ -1,3 +1,5 @@
+// ======== config.js ========
+
 // Конфигурация игры
 const STORAGE_KEY = 'coreboxSave2.9';
 const maxSlots = 18;
