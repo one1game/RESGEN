@@ -57,6 +57,13 @@ function updateDefenseDisplay() {
 }
 
 function render() {
+
+  console.log("=== RENDER CALLED ===");
+  console.log("INVENTORY DATA:", inventory);
+  console.log("Coal unlocked:", coalUnlocked, "Count:", inventory['Уголь'] || 0);
+  console.log("Plasma unlocked:", plasmaUnlocked, "Count:", inventory['Плазма'] || 0);
+  console.log("Max slots:", maxSlots);
+  
   // === ОБНОВЛЕНИЕ ОСНОВНЫХ ПОКАЗАТЕЛЕЙ ===
   miningBonusSpan.textContent = `+${upgrades.mining}%`;
   miningLevel.textContent = upgrades.mining;
