@@ -57,7 +57,6 @@ function updateDefenseDisplay() {
 }
 
 function render() {
-
   console.log("=== RENDER CALLED ===");
   console.log("INVENTORY DATA:", inventory);
   console.log("Coal unlocked:", coalUnlocked, "Count:", inventory['Уголь'] || 0);
@@ -166,7 +165,7 @@ function render() {
         break;
     }
 
-    // Создаём слот ТОЛЬКО если ресурс разблокирован И количество > 0
+    // ИСПРАВЛЕНИЕ: Создаём слот ТОЛЬКО если ресурс разблокирован И количество > 0
     if (!isUnlocked || resourceCount <= 0) return;
 
     const slot = document.createElement('div');
@@ -226,6 +225,11 @@ function render() {
     inventoryDiv.appendChild(slot);
     filledSlots++;
   }
+
+  // ДОБАВИТЬ В КОНЕЦ ФУНКЦИИ:
+  renderQuests();
+  renderTrade();
+  applyCollapsedState();
 }
 
 function renderQuests() {
