@@ -133,6 +133,7 @@ function render() {
   const resourceOrder = ['Уголь', 'Мусор', 'Чипы', 'Плазма'];
   let filledSlots = 0;
 
+  // Сначала отображаем только те ресурсы, которые есть у игрока
   resourceOrder.forEach(resourceName => {
     if (filledSlots >= maxSlots) return;
 
@@ -158,7 +159,7 @@ function render() {
         break;
     }
 
-    // Создаём слот ТОЛЬКО если ресурс реально существует (> 0)
+    // Создаём слот ТОЛЬКО если ресурс разблокирован И количество > 0
     if (!isUnlocked || resourceCount <= 0) return;
 
     const slot = document.createElement('div');
@@ -219,7 +220,6 @@ function render() {
     filledSlots++;
   }
 }
-
 
 function renderQuests() {
   questsContainer.innerHTML = '';
