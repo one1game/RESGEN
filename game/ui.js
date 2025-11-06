@@ -158,56 +158,56 @@ function render() {
         break;
     }
 
-    // Показываем только те ресурсы, которые реально есть
-    if (isUnlocked && resourceCount > 0) {
-      const slot = document.createElement('div');
-      slot.className = 'slot';
-      slot.dataset.resource = resourceName;
+    // Создаём слот ТОЛЬКО если ресурс реально существует (> 0)
+    if (!isUnlocked || resourceCount <= 0) return;
 
-      if (resourceName === 'Плазма') slot.classList.add('plasma');
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.dataset.resource = resourceName;
 
-      const nameDiv = document.createElement('div');
-      nameDiv.className = 'item-name';
-      nameDiv.textContent = resourceName;
+    if (resourceName === 'Плазма') slot.classList.add('plasma');
 
-      const countDiv = document.createElement('div');
-      countDiv.className = 'item-count';
-      countDiv.textContent = `x${resourceCount}`;
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'item-name';
+    nameDiv.textContent = resourceName;
 
-      slot.appendChild(nameDiv);
-      slot.appendChild(countDiv);
+    const countDiv = document.createElement('div');
+    countDiv.className = 'item-count';
+    countDiv.textContent = `x${resourceCount}`;
 
-      // Добавляем бонусы для угля и мусора
-      if (resourceName === 'Уголь' || resourceName === 'Мусор') {
-        const bonusDiv = document.createElement('div');
-        bonusDiv.className = 'mining-bonus';
-        const baseChance = resourceName === 'Уголь' ? 3 : 1.5;
-        const totalBonus =
-          upgrades.mining + (coalEnabled ? (resourceName === 'Уголь' ? 2 : 1) : 0);
-        bonusDiv.textContent = `+${Math.round(baseChance + totalBonus)}%`;
-        slot.appendChild(bonusDiv);
-      }
+    slot.appendChild(nameDiv);
+    slot.appendChild(countDiv);
 
-      // Клик по углю — включение/выключение ТЭЦ
-      if (resourceName === 'Уголь') {
-        if (coalEnabled) {
-          slot.style.borderColor = 'var(--primary)';
-          slot.style.boxShadow = '0 0 8px var(--primary)';
-        }
-        slot.onclick = () => handleCoalInteraction();
-      }
-
-      // Эффект критической добычи
-      if (criticalMining && (resourceName === 'Уголь' || resourceName === 'Плазма')) {
-        slot.classList.add('critical');
-      }
-
-      inventoryDiv.appendChild(slot);
-      filledSlots++;
+    // Добавляем бонусы для угля и мусора
+    if (resourceName === 'Уголь' || resourceName === 'Мусор') {
+      const bonusDiv = document.createElement('div');
+      bonusDiv.className = 'mining-bonus';
+      const baseChance = resourceName === 'Уголь' ? 3 : 1.5;
+      const totalBonus =
+        upgrades.mining + (coalEnabled ? (resourceName === 'Уголь' ? 2 : 1) : 0);
+      bonusDiv.textContent = `+${Math.round(baseChance + totalBonus)}%`;
+      slot.appendChild(bonusDiv);
     }
+
+    // Клик по углю — включение/выключение ТЭЦ
+    if (resourceName === 'Уголь') {
+      if (coalEnabled) {
+        slot.style.borderColor = 'var(--primary)';
+        slot.style.boxShadow = '0 0 8px var(--primary)';
+      }
+      slot.onclick = () => handleCoalInteraction();
+    }
+
+    // Эффект критической добычи
+    if (criticalMining && (resourceName === 'Уголь' || resourceName === 'Плазма')) {
+      slot.classList.add('critical');
+    }
+
+    inventoryDiv.appendChild(slot);
+    filledSlots++;
   });
 
-  // === ДОБАВЛЯЕМ ПУСТЫЕ ЯЧЕЙКИ ===
+  // === ДОБАВЛЯЕМ ПУСТЫЕ СЛОТЫ ===
   while (filledSlots < maxSlots) {
     const slot = document.createElement('div');
     slot.className = 'slot empty';
@@ -220,22 +220,6 @@ function render() {
   }
 }
 
-  
-  // Сбрасываем флаг критической добычи после отрисовки
-  criticalMining = false;
-  
-  // ЗАПОЛНЯЕМ ОСТАВШИЕСЯ СЛОТЫ ПУСТЫМИ ЯЧЕЙКАМИ
-  for (let i = filledSlots; i < maxSlots; i++) {
-    const slot = document.createElement('div');
-    slot.className = 'slot empty';
-    slot.innerHTML = '<div class="item-name">[Пусто]</div><div class="item-count">+</div>';
-    inventoryDiv.appendChild(slot);
-  }
-  
-  renderQuests();
-  renderTrade();
-  applyCollapsedState();
-}
 
 function renderQuests() {
   questsContainer.innerHTML = '';
