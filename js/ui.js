@@ -1,5 +1,7 @@
 // ======== ui.js ========
 
+// ======== ui.js ========
+
 // DOM элементы
 const currencyDisplay = document.getElementById('currencyDisplay');
 const timeDisplay = document.getElementById('timeDisplay');
@@ -31,7 +33,6 @@ const sellModeBtn = document.getElementById('sellModeBtn');
 const tabs = document.querySelectorAll('.tab');
 const tabContents = document.querySelectorAll('.tab-content');
 const collapseButtons = document.querySelectorAll('.panel-title');
-const mineBtn = document.getElementById('mineBtn'); // ДОБАВЛЕНО
 
 function log(message) {
   if (!logBox) return;
@@ -59,7 +60,7 @@ function updateCurrencyDisplay() {
 
 function updateDefenseDisplay() {
   if (!defenseDisplay) return;
-  const defensePower = upgrades.defense ? GAME_CONSTANTS.DEFENSE.BASE_POWER + (upgrades.defenseLevel * GAME_CONSTANTS.DEFENSE.PER_LEVEL) : 0; // ИСПРАВЛЕНО
+  const defensePower = upgrades.defense ? 30 + (upgrades.defenseLevel * 15) : 0;
   defenseDisplay.textContent = `${defensePower}%`;
 }
 
@@ -78,7 +79,7 @@ function render() {
   coalStatus.textContent = coalEnabled ? 'Активно' : 'Выкл';
   coalStatus.style.color = coalEnabled ? '#00cc66' : '#ff3333';
   defenseStatus.textContent = upgrades.defense ? 'Активно' : 'Выкл';
-  defenseLevel.textContent = `Ур. ${upgrades.defenseLevel}/${GAME_CONSTANTS.UPGRADES.DEFENSE.LEVELS.MAX}`; // ИСПРАВЛЕНО
+  defenseLevel.textContent = `Ур. ${upgrades.defenseLevel}/5`;
 
   let rebelText = 'Низкий';
   let rebelColor = '#00cc66';
@@ -100,18 +101,17 @@ function render() {
   updateDefenseDisplay();
   updateTimeDisplay();
 
-  // ИСПРАВЛЕННЫЕ РАСЧЕТЫ С ИСПОЛЬЗОВАНИЕМ КОНСТАНТ
-  const requiredChipsMining = GAME_CONSTANTS.UPGRADES.MINING.BASE_CHIPS + upgrades.mining * GAME_CONSTANTS.UPGRADES.MINING.CHIPS_PER_LEVEL;
-  const requiredChipsDefense = (upgrades.defenseLevel + 1) * GAME_CONSTANTS.UPGRADES.DEFENSE.LEVELS.CHIPS_MULTIPLIER;
-  const requiredPlasmaDefense = GAME_CONSTANTS.UPGRADES.DEFENSE.LEVELS.PLASMA_BASE + Math.floor(upgrades.defenseLevel / 2);
+  const requiredChipsMining = 5 + upgrades.mining * 2;
+  const requiredChipsDefense = (upgrades.defenseLevel + 1) * 12;
+  const requiredPlasmaDefense = 1 + Math.floor(upgrades.defenseLevel / 2);
 
   const chipsCount = Number(inventory['Чипы']) || 0;
   const plasmaCount = Number(inventory['Плазма']) || 0;
 
-  upgradeMiningBtn.disabled = upgrades.mining >= GAME_CONSTANTS.UPGRADES.MINING.MAX_LEVEL || chipsCount < requiredChipsMining;
-  upgradeDefenseBtn.disabled = upgrades.defense || plasmaCount < GAME_CONSTANTS.UPGRADES.DEFENSE.PLASMA_COST;
+  upgradeMiningBtn.disabled = upgrades.mining >= 10 || chipsCount < requiredChipsMining;
+  upgradeDefenseBtn.disabled = upgrades.defense || plasmaCount < 3;
   upgradeDefenseLevelBtn.disabled =
-    upgrades.defenseLevel >= GAME_CONSTANTS.UPGRADES.DEFENSE.LEVELS.MAX ||
+    upgrades.defenseLevel >= 5 ||
     chipsCount < requiredChipsDefense ||
     plasmaCount < requiredPlasmaDefense;
 
@@ -121,9 +121,9 @@ function render() {
       ? 'requirement-value requirement-met'
       : 'requirement-value requirement-not-met';
 
-  defensePlasmaReq.textContent = `${plasmaCount}/${GAME_CONSTANTS.UPGRADES.DEFENSE.PLASMA_COST}`;
+  defensePlasmaReq.textContent = `${plasmaCount}/3`;
   defensePlasmaReq.className =
-    plasmaCount >= GAME_CONSTANTS.UPGRADES.DEFENSE.PLASMA_COST
+    plasmaCount >= 3
       ? 'requirement-value requirement-met'
       : 'requirement-value requirement-not-met';
 
@@ -312,8 +312,8 @@ function renderQuests() {
       break;
       
     case 'upgrade_all':
-      progressText = `Добыча: ${upgrades.mining}/${GAME_CONSTANTS.UPGRADES.MINING.MAX_LEVEL}, Защита: ${upgrades.defenseLevel}/${GAME_CONSTANTS.UPGRADES.DEFENSE.LEVELS.MAX}`; // ИСПРАВЛЕНО
-      progressPercent = Math.min(100, ((upgrades.mining + upgrades.defenseLevel) / (GAME_CONSTANTS.UPGRADES.MINING.MAX_LEVEL + GAME_CONSTANTS.UPGRADES.DEFENSE.LEVELS.MAX)) * 100);
+      progressText = `Добыча: ${upgrades.mining}/10, Защита: ${upgrades.defenseLevel}/5`;
+      progressPercent = Math.min(100, ((upgrades.mining + upgrades.defenseLevel) / 15) * 100);
       break;
       
     case 'final_activation':
@@ -546,7 +546,7 @@ function initFloatingButton() {
   
   floatingBtn.addEventListener('click', function() {
     this.classList.add('active');
-    mineResources();
+    mineResources(); // ← ТЕПЕРЬ ВЫЗЫВАЕМ ФУНКЦИЮ НАПРЯМУЮ
     
     setTimeout(() => {
       this.classList.remove('active');

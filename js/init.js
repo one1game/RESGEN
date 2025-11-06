@@ -1,5 +1,7 @@
 // ======== init.js ========
 
+// ======== init.js ========
+
 // Игровой цикл
 function gameLoop() {
   const now = Date.now();
@@ -9,84 +11,87 @@ function gameLoop() {
   gameTime -= secondsPassed;
   
   while (gameTime <= 0) {
-      gameTime += GAME_CONSTANTS.CYCLE_DURATION;
-      const wasNight = !isDay;
-      isDay = !isDay;
+    gameTime += CYCLE_DURATION;
+    const wasNight = !isDay;
+    isDay = !isDay;
+    
+    if (wasNight) {
+      nightsSurvived++;
       
-      if (wasNight) {
-          nightsSurvived++;
-          
-          if (coalEnabled) {
-              nightsWithCoal++;
-              questProgress.nightsWithCoal++;
-              
-              if ((inventory['Уголь'] || 0) > 0) {
-                  inventory['Уголь']--;
-                  log('🌙 Ночь - сгорел 1 уголь');
-              } else {
-                  coalEnabled = false;
-                  log('🌙 Ночь - уголь закончился, ТЭЦ отключена');
-              }
-          }
-          
-          // Атака повстанцев
-          const defensePower = upgrades.defense ? GAME_CONSTANTS.DEFENSE.BASE_POWER + (upgrades.defenseLevel * GAME_CONSTANTS.DEFENSE.PER_LEVEL) : 0;
-          if (Math.random() * 100 > defensePower) {
-              handleRebelAttack();
-          } else if (upgrades.defense) {
-              log('🌙 Система защиты отразила атаку повстанцев');
-              successfulDefenses++;
-              questProgress.successfulDefenses++;
-          }
-          
-          // Увеличиваем активность повстанцев ночью
-          if (Math.random() < 0.6) {
-              rebelActivity++;
-          }
-          
-          // Проверка заданий, связанных с ночью
-          checkQuestsProgress();
-      } else {
-          // День - снижаем активность повстанцев
-          rebelActivity = Math.max(0, rebelActivity - 1);
+      if (coalEnabled) {
+        nightsWithCoal++;
+        questProgress.nightsWithCoal++;
+        
+        if ((inventory['Уголь'] || 0) > 0) {
+          inventory['Уголь']--;
+          log('🌙 Ночь - сгорел 1 уголь');
+        } else {
+          coalEnabled = false;
+          log('🌙 Ночь - уголь закончился, ТЭЦ отключена');
+        }
       }
       
-      log(isDay ? '☀️ Наступил день' : '🌙 Наступила ночь');
-      saveGame();
+      // Атака повстанцев
+      const defensePower = upgrades.defense ? 30 + (upgrades.defenseLevel * 15) : 0;
+      if (Math.random() * 100 > defensePower) {
+        handleRebelAttack();
+      } else if (upgrades.defense) {
+        log('🌙 Система защиты отразила атаку повстанцев');
+        successfulDefenses++;
+        questProgress.successfulDefenses++;
+      }
+      
+      // Увеличиваем активность повстанцев ночью
+      if (Math.random() < 0.6) {
+        rebelActivity++;
+      }
+      
+      // Проверка заданий, связанных с ночью
+      checkQuestsProgress();
+    } else {
+      // День - снижаем активность повстанцев
+      rebelActivity = Math.max(0, rebelActivity - 1);
+    }
+    
+    log(isDay ? '☀️ Наступил день' : '🌙 Наступила ночь');
+    saveGame();
   }
 
   // Пассивный доход
   passiveCounter += secondsPassed;
-  while (passiveCounter >= GAME_CONSTANTS.PASSIVE.INTERVAL) {
-      passiveCounter -= GAME_CONSTANTS.PASSIVE.INTERVAL;
-      const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
-      if (aiActive) {
-          const { CHANCES } = GAME_CONSTANTS.PASSIVE;
-          
-          if (Math.random() < CHANCES.COAL) {
-              inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
-              totalMined++;
-              questProgress.totalMined++;
-          }
-          if (Math.random() < CHANCES.TRASH) {
-              inventory['Мусор'] = (inventory['Мусор'] || 0) + 1;
-              totalMined++;
-              questProgress.totalMined++;
-          }
-          if (Math.random() < CHANCES.CHIPS) {
-              inventory['Чипы'] = (inventory['Чипы'] || 0) + 1;
-              totalMined++;
-              questProgress.totalMined++;
-          }
-          if (Math.random() < CHANCES.PLASMA) {
-              inventory['Плазма'] = (inventory['Плазма'] || 0) + 1;
-              totalMined++;
-              questProgress.totalMined++;
-          }
-          
-          saveGame();
-          checkQuestsProgress();
+  while (passiveCounter >= 10) {
+    passiveCounter -= 10;
+    const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
+    if (aiActive) {
+      const coalChance = 0.003 + (upgrades.mining * 0.001);
+      const trashChance = 0.007 + (upgrades.mining * 0.001);
+      const chipChance = 0.001;
+      const plasmaChance = 0.0005;
+      
+      if (Math.random() < coalChance) {
+        inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
+        totalMined++;
+        questProgress.totalMined++;
       }
+      if (Math.random() < trashChance) {
+        inventory['Мусор'] = (inventory['Мусор'] || 0) + 1;
+        totalMined++;
+        questProgress.totalMined++;
+      }
+      if (Math.random() < chipChance) {
+        inventory['Чипы'] = (inventory['Чипы'] || 0) + 1;
+        totalMined++;
+        questProgress.totalMined++;
+      }
+      if (Math.random() < plasmaChance) {
+        inventory['Плазма'] = (inventory['Плазма'] || 0) + 1;
+        totalMined++;
+        questProgress.totalMined++;
+      }
+      
+      saveGame();
+      checkQuestsProgress();
+    }
   }
 
   render();
@@ -104,19 +109,19 @@ function initEventListeners() {
   if (sellModeBtn) sellModeBtn.addEventListener('click', () => toggleBuySellMode(false));
   
   document.querySelectorAll('.panel-title').forEach(title => {
-      title.addEventListener('click', (e) => {
-          if (e.target.classList.contains('collapse-icon')) return;
-          const panel = title.closest('.panel');
-          if (panel) toggleCollapse(panel);
-      });
+    title.addEventListener('click', (e) => {
+      if (e.target.classList.contains('collapse-icon')) return;
+      const panel = title.closest('.panel');
+      if (panel) toggleCollapse(panel);
+    });
   });
   
   if (tabs.length > 0) {
-      tabs.forEach(tab => {
-          tab.addEventListener('click', () => {
-              switchTab(tab.dataset.tab);
-          });
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        switchTab(tab.dataset.tab);
       });
+    });
   }
   
   initFloatingButton();
