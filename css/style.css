@@ -220,12 +220,14 @@ h1::after {
   padding: 0;
 }
 
+/* === ИСПРАВЛЕННЫЙ ИНВЕНТАРЬ === */
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(6, var(--slot-size));
   gap: 8px;
   margin-bottom: 12px;
   justify-content: center;
+  min-height: calc(var(--slot-size) * 3 + 16px);
 }
 
 .slot {
@@ -254,6 +256,78 @@ h1::after {
   box-shadow: 0 6px 16px rgba(0, 120, 200, 0.4);
 }
 
+.slot.empty {
+  opacity: 0.4;
+  background: rgba(15, 34, 53, 0.2);
+  border: 1px dashed rgba(0, 120, 200, 0.2);
+  cursor: default;
+}
+
+.slot.empty:hover {
+  transform: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.slot.empty .item-name {
+  color: #666;
+  font-size: 10px;
+}
+
+.slot.empty .item-count {
+  color: #888;
+  font-size: 14px;
+}
+
+/* Цвета рамок для разных ресурсов */
+.slot[data-resource="Уголь"] {
+  border-left: 3px solid #666;
+}
+.slot[data-resource="Мусор"] {
+  border-left: 3px solid #888;
+}
+.slot[data-resource="Чипы"] {
+  border-left: 3px solid #00aaff;
+}
+.slot[data-resource="Плазма"] {
+  border-left: 3px solid var(--plasma);
+}
+
+.item-name {
+  font-weight: 600;
+  margin-bottom: 1px;
+  font-size: 10px;
+  padding: 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.1;
+}
+
+.item-count {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--primary);
+  text-shadow: 0 0 5px rgba(0, 170, 128, 0.3);
+}
+
+/* Бонусы добычи */
+.mining-bonus {
+  font-size: 9px;
+  padding: 1px 3px;
+  border-radius: 8px;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--accent);
+  color: white;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  z-index: 2;
+}
+
+/* Анимации */
 .slot.critical {
   animation: critical-pulse 0.8s ease-in-out;
 }
@@ -282,58 +356,19 @@ h1::after {
   }
 }
 
-.slot.empty {
-  opacity: 0.6;
-  background: rgba(15, 34, 53, 0.4);
+@keyframes resource-appear {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-.slot.empty-resource {
-  opacity: 0.4;
-  filter: grayscale(0.8);
-  position: relative;
-}
-
-.slot.empty-resource::before {
-  content: '🔒';
-  position: absolute;
-  font-size: 16px;
-  opacity: 0.7;
-}
-
-.slot[data-resource="Уголь"] {
-  border-left: 3px solid #666;
-}
-
-.slot[data-resource="Мусор"] {
-  border-left: 3px solid #888;
-}
-
-.slot[data-resource="Чипы"] {
-  border-left: 3px solid #00aaff;
-}
-
-.slot[data-resource="Плазма"] {
-  border-left: 3px solid var(--plasma);
-}
-
-
-
-.item-name {
-  font-weight: 600;
-  margin-bottom: 1px;
-  font-size: 10px;
-  padding: 0 3px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  line-height: 1.1;
-}
-
-.item-count {
-  font-size: 14px;
-  font-weight: bold;
-  color: var(--primary);
-  text-shadow: 0 0 5px rgba(0, 170, 128, 0.3);
+.slot:not(.empty) {
+  animation: resource-appear 0.3s ease-out;
 }
 
 .action-buttons {
@@ -515,40 +550,6 @@ h1::after {
 @keyframes progress-shine {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
-}
-
-.upgrade-requirements {
-  margin: 8px 0;
-}
-
-.requirement {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 5px;
-  font-size: 11px;
-}
-
-.requirement-name {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.requirement-icon {
-  font-size: 14px;
-}
-
-.requirement-value {
-  font-weight: bold;
-}
-
-.requirement-met {
-  color: #00cc66;
-}
-
-.requirement-not-met {
-  color: #ff3333;
 }
 
 .upgrade-cost {
@@ -929,18 +930,7 @@ h1::after {
   background: var(--primary);
 }
 
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Стили для инновационной плавающей кнопки */
+/* Стили для плавающей кнопки добычи */
 .floating-mine-btn {
   position: fixed;
   bottom: 25px;
@@ -1010,20 +1000,6 @@ h1::after {
   z-index: 2;
 }
 
-.mining-bonus {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: var(--accent);
-  color: white;
-  font-size: 9px;
-  font-weight: bold;
-  padding: 2px 4px;
-  border-radius: 10px;
-  min-width: 20px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-}
-
 @keyframes pulse-ring {
   0% {
       transform: scale(0.9);
@@ -1067,6 +1043,18 @@ h1::after {
   }
 }
 
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Адаптация для мобильных устройств */
 @media (max-width: 600px) {
   :root {
     --slot-size: 52px;
@@ -1074,6 +1062,7 @@ h1::after {
   
   .inventory-grid {
     grid-template-columns: repeat(3, var(--slot-size));
+    gap: 6px;
   }
   
   .btn {
@@ -1150,19 +1139,61 @@ h1::after {
   .status-item, .ai-status-item {
     flex: none;
   }
+  
+  .mining-bonus {
+    font-size: 8px;
+    padding: 1px 2px;
+    min-width: 18px;
+    top: -3px;
+    right: -3px;
+  }
+  
+  .slot {
+    position: relative;
+    overflow: visible;
+  }
+  
+  .item-name {
+    font-size: 9px;
+    line-height: 1.1;
+    margin-bottom: 2px;
+  }
+  
+  .item-count {
+    font-size: 12px;
+  }
 }
 
+/* Для очень маленьких экранов */
 @media (max-width: 350px) {
+  .mining-bonus {
+    font-size: 7px;
+    min-width: 16px;
+    top: -2px;
+    right: -2px;
+  }
+  
+  .inventory-grid {
+    gap: 5px;
+  }
+  
+  .slot {
+    width: 48px;
+    height: 48px;
+  }
+  
   .floating-mine-btn {
-      width: 65px;
-      height: 65px;
-      bottom: 20px;
+    width: 65px;
+    height: 65px;
+    bottom: 20px;
   }
+  
   .btn-core {
-      width: 32px;
-      height: 32px;
+    width: 32px;
+    height: 32px;
   }
+  
   .btn-icon {
-      font-size: 14px;
+    font-size: 14px;
   }
 }
