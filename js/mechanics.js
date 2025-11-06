@@ -1,5 +1,7 @@
 // ======== mechanics.js ========
 
+// ======== mechanics.js ========
+
 // Вспомогательные функции
 function calculateTrashPrice() {
   const basePrice = 2;
@@ -8,94 +10,88 @@ function calculateTrashPrice() {
 }
 
 function handleRebelAttack() {
-  const defensePower = upgrades.defense ? 30 + (upgrades.defenseLevel * 15) : 0;
-  const threatLevel = Math.min(1, rebelActivity * 0.15);
+  const attackTypes = [];
   
-  const attackChance = threatLevel * (1 - defensePower / 100);
-  
-  if (Math.random() < attackChance) {
-    const attackTypes = [];
-    
-    if (Object.keys(inventory).filter(k => k !== 'ИИ' && (inventory[k] || 0) > 0).length > 0) {
-      attackTypes.push(0);
-    }
-    if (upgrades.mining > 0) {
-      attackTypes.push(1);
-    }
-    if ((inventory['Мусор'] || 0) > 0 && trashUnlocked) {
-      attackTypes.push(2);
-    }
-    if (upgrades.defense) {
-      attackTypes.push(3);
-    }
-    attackTypes.push(4);
-    
-    if (attackTypes.length === 0) return;
-    
-    const attackType = attackTypes[Math.floor(Math.random() * attackTypes.length)];
-    let message = "🌙 Повстанцы атаковали!";
-    let severeAttack = false;
-    
-    switch(attackType) {
-      case 0:
-        const resources = Object.keys(inventory).filter(k => k !== 'ИИ' && (inventory[k] || 0) > 0);
-        if (resources.length > 0) {
-          const stolenResource = resources[Math.floor(Math.random() * resources.length)];
-          const amount = Math.min(inventory[stolenResource], 
-            Math.floor(Math.random() * (4 - upgrades.defenseLevel * 0.5)) + 1);
-          inventory[stolenResource] -= amount;
-          message += ` Украдено ${amount} ${stolenResource}`;
-        }
-        break;
-        
-      case 1:
-        if (upgrades.mining > 0 && Math.random() < 0.4) {
-          const levelsLost = Math.random() < 0.2 ? 2 : 1;
-          upgrades.mining = Math.max(0, upgrades.mining - levelsLost);
-          message += ` Повреждена система добычи! Уровень понижен на ${levelsLost}`;
-          severeAttack = levelsLost > 1;
-        }
-        break;
-        
-      case 2:
-        if ((inventory['Мусор'] || 0) > 0 && trashUnlocked) {
-          const destroyPercentage = 0.3 + Math.random() * 0.3;
-          const destroyed = Math.floor((inventory['Мусор'] || 0) * destroyPercentage);
-          inventory['Мусор'] -= destroyed;
-          message += ` Уничтожено ${destroyed} мусора (${Math.round(destroyPercentage * 100)}%)`;
-        }
-        break;
-        
-      case 3:
-        if (upgrades.defense && Math.random() < 0.25) {
-          upgrades.defense = false;
-          message += " Туррели защиты выведены из строя!";
-          severeAttack = true;
-        }
-        break;
-        
-      case 4:
-        if (Math.random() < 0.08) {
-          const disableTime = 180000 + (120000 * (1 - upgrades.defenseLevel * 0.2));
-          aiDisabledUntil = Date.now() + disableTime;
-          const minutes = Math.ceil(disableTime / 60000);
-          message += ` Взлом ИИ! Система неактивна ${minutes} минут`;
-          severeAttack = true;
-        }
-        break;
-    }
-    
-    // Переносим это ДО return
-    rebelActivity += severeAttack ? 2 : 1;
-    
-    if (severeAttack && upgrades.defenseLevel > 0 && Math.random() < 0.6) {
-      upgrades.defenseLevel--;
-      log("⚠️ Уровень защиты понижен из-за атаки повстанцев");
-    }
-    
-    log(message);
-    saveGame();
+  // Определяем возможные типы атак на основе того, что у игрока есть
+  if (Object.keys(inventory).filter(k => k !== 'ИИ' && (inventory[k] || 0) > 0).length > 0) {
+    attackTypes.push(0); // Кража ресурсов
   }
+  if (upgrades.mining > 0) {
+    attackTypes.push(1); // Повреждение добычи
+  }
+  if ((inventory['Мусор'] || 0) > 0 && trashUnlocked) {
+    attackTypes.push(2); // Уничтожение мусора
+  }
+  if (upgrades.defense) {
+    attackTypes.push(3); // Отключение защиты
+  }
+  attackTypes.push(4); // Взлом ИИ (всегда возможен)
+  
+  if (attackTypes.length === 0) return;
+  
+  const attackType = attackTypes[Math.floor(Math.random() * attackTypes.length)];
+  let message = "🌙 Повстанцы атаковали!";
+  let severeAttack = false;
+  
+  switch(attackType) {
+    case 0:
+      const resources = Object.keys(inventory).filter(k => k !== 'ИИ' && (inventory[k] || 0) > 0);
+      if (resources.length > 0) {
+        const stolenResource = resources[Math.floor(Math.random() * resources.length)];
+        const amount = Math.min(inventory[stolenResource], 
+          Math.floor(Math.random() * (4 - upgrades.defenseLevel * 0.5)) + 1);
+        inventory[stolenResource] -= amount;
+        message += ` Украдено ${amount} ${stolenResource}`;
+      }
+      break;
+      
+    case 1:
+      if (upgrades.mining > 0 && Math.random() < 0.4) {
+        const levelsLost = Math.random() < 0.2 ? 2 : 1;
+        upgrades.mining = Math.max(0, upgrades.mining - levelsLost);
+        message += ` Повреждена система добычи! Уровень понижен на ${levelsLost}`;
+        severeAttack = levelsLost > 1;
+      }
+      break;
+      
+    case 2:
+      if ((inventory['Мусор'] || 0) > 0 && trashUnlocked) {
+        const destroyPercentage = 0.3 + Math.random() * 0.3;
+        const destroyed = Math.floor((inventory['Мусор'] || 0) * destroyPercentage);
+        inventory['Мусор'] -= destroyed;
+        message += ` Уничтожено ${destroyed} мусора (${Math.round(destroyPercentage * 100)}%)`;
+      }
+      break;
+      
+    case 3:
+      if (upgrades.defense && Math.random() < 0.25) {
+        upgrades.defense = false;
+        message += " Туррели защиты выведены из строя!";
+        severeAttack = true;
+      }
+      break;
+      
+    case 4:
+      if (Math.random() < 0.08) {
+        const disableTime = 180000 + (120000 * (1 - upgrades.defenseLevel * 0.2));
+        aiDisabledUntil = Date.now() + disableTime;
+        const minutes = Math.ceil(disableTime / 60000);
+        message += ` Взлом ИИ! Система неактивна ${minutes} минут`;
+        severeAttack = true;
+      }
+      break;
+  }
+  
+  // Увеличиваем активность после атаки
+  rebelActivity += severeAttack ? 2 : 1;
+  
+  if (severeAttack && upgrades.defenseLevel > 0 && Math.random() < 0.6) {
+    upgrades.defenseLevel--;
+    log("⚠️ Уровень защиты понижен из-за атаки повстанцев");
+  }
+  
+  log(message);
+  saveGame();
 }
 
 // Обработчики взаимодействий
