@@ -1,5 +1,7 @@
 // ======== saveManager.js ========
 
+// ======== saveManager.js ========
+
 // Система сохранения
 function saveGame() {
   const saveData = {
@@ -21,6 +23,7 @@ function saveGame() {
     aiDisabledUntil,
     nightsWithCoal,
     currentQuestIndex,
+    questProgress,
     coalUnlocked,
     trashUnlocked,
     chipsUnlocked,
@@ -75,6 +78,12 @@ function loadGame() {
       aiDisabledUntil = data.aiDisabledUntil ?? 0;
       nightsWithCoal = data.nightsWithCoal ?? 0;
       currentQuestIndex = data.currentQuestIndex ?? 0;
+      questProgress = data.questProgress ?? {
+        totalMined: 0,
+        nightsWithCoal: 0, 
+        successfulDefenses: 0,
+        resourcesMined: {}
+      };
       
       // Загружаем флаги разблокировки из сохранения
       coalUnlocked = data.coalUnlocked ?? true;

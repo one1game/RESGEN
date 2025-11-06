@@ -1,5 +1,7 @@
 // ======== questSystem.js ========
 
+// ======== questSystem.js ========
+
 function showStoryMessage(questId) {
   const messages = {
     awakening: "Система оживает! Первые ресурсы добыты. CoreBox начинает восстановление.",
@@ -40,6 +42,14 @@ function completeCurrentQuest() {
       log('⚡ Плазма теперь доступна для добычи!');
     }
     
+    // Сбросить прогресс для следующего задания
+    questProgress = {
+      totalMined: 0,
+      nightsWithCoal: 0, 
+      successfulDefenses: 0,
+      resourcesMined: {}
+    };
+    
     currentQuestIndex++;
     saveGame();
     render();
@@ -56,7 +66,7 @@ function checkQuestsProgress() {
   
   switch(quest.type) {
     case 'mine_any':
-      isCompleted = totalMined >= quest.target;
+      isCompleted = questProgress.totalMined >= quest.target;
       break;
       
     case 'activate_coal':
@@ -64,7 +74,7 @@ function checkQuestsProgress() {
       break;
       
     case 'survive_night':
-      isCompleted = nightsWithCoal >= quest.target;
+      isCompleted = questProgress.nightsWithCoal >= quest.target;
       break;
       
     case 'upgrade_mining':
@@ -72,7 +82,8 @@ function checkQuestsProgress() {
       break;
       
     case 'mine_resource':
-      isCompleted = (inventory[quest.resource] || 0) >= quest.target;
+      const resourceCount = Number(inventory[quest.resource]) || 0;
+      isCompleted = resourceCount >= quest.target;
       break;
       
     case 'activate_defense':
@@ -80,7 +91,7 @@ function checkQuestsProgress() {
       break;
       
     case 'defend_attacks':
-      isCompleted = successfulDefenses >= quest.target;
+      isCompleted = questProgress.successfulDefenses >= quest.target;
       break;
       
     case 'upgrade_all':

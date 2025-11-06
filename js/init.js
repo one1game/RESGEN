@@ -1,5 +1,7 @@
 // ======== init.js ========
 
+// ======== init.js ========
+
 // Игровой цикл
 function gameLoop() {
   const now = Date.now();
@@ -18,6 +20,7 @@ function gameLoop() {
       
       if (coalEnabled) {
         nightsWithCoal++;
+        questProgress.nightsWithCoal++;
         
         if ((inventory['Уголь'] || 0) > 0) {
           inventory['Уголь']--;
@@ -35,6 +38,7 @@ function gameLoop() {
       } else if (upgrades.defense) {
         log('🌙 Система защиты отразила атаку повстанцев');
         successfulDefenses++;
+        questProgress.successfulDefenses++;
       }
       
       // Увеличиваем активность повстанцев ночью
@@ -67,18 +71,22 @@ function gameLoop() {
       if (Math.random() < coalChance) {
         inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
         totalMined++;
+        questProgress.totalMined++;
       }
       if (Math.random() < trashChance) {
         inventory['Мусор'] = (inventory['Мусор'] || 0) + 1;
         totalMined++;
+        questProgress.totalMined++;
       }
       if (Math.random() < chipChance) {
         inventory['Чипы'] = (inventory['Чипы'] || 0) + 1;
         totalMined++;
+        questProgress.totalMined++;
       }
       if (Math.random() < plasmaChance) {
         inventory['Плазма'] = (inventory['Плазма'] || 0) + 1;
         totalMined++;
+        questProgress.totalMined++;
       }
       
       saveGame();

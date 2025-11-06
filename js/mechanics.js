@@ -146,6 +146,7 @@ function mineResources() {
     log(`🪨 Найден${amount > 1 ? 'о' : ''} ${amount} угля${isCritical ? ' ✨КРИТ!' : ''}`);
     foundSomething = true;
     totalMined += amount;
+    questProgress.totalMined += amount;
   }
   
   if (Math.random() < trashChance) {
@@ -159,6 +160,7 @@ function mineResources() {
     log(`♻️ Найден${amount > 1 ? 'о' : ''} ${amount} мусора${isCritical ? ' ✨' : ''}`);
     foundSomething = true;
     totalMined += amount;
+    questProgress.totalMined += amount;
   }
   
   if (chipsUnlocked && Math.random() < chipChance) {
@@ -168,6 +170,7 @@ function mineResources() {
     log(`🎛️ Найден${amount > 1 ? 'о' : ''} ${amount} чип${amount > 1 ? 'ов' : ''}${isCritical ? ' ✨' : ''}`);
     foundSomething = true;
     totalMined += amount;
+    questProgress.totalMined += amount;
   }
   
   if (plasmaUnlocked && Math.random() < plasmaChance) {
@@ -177,12 +180,8 @@ function mineResources() {
     log(`⚡ Найден${amount > 1 ? 'о' : ''} ${amount} плазм${amount > 1 ? 'ы' : 'а'}${isCritical ? ' ✨' : ''}`);
     foundSomething = true;
     totalMined += amount;
+    questProgress.totalMined += amount;
   }
-  
-  // УБРАНО: сообщение "Ресурсы не найдены"
-  // if (!foundSomething && aiActive) {
-  //   log('⏳ Добыча... Ресурсы не найдены');
-  // }
   
   // Всегда сбрасываем criticalMining после добычи
   if (criticalMining) {

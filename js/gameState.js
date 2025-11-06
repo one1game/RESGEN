@@ -1,5 +1,3 @@
-// ======== gameState.js ========
-
 // Состояние игры
 const inventory = { 
   'ИИ': 1,
@@ -32,6 +30,14 @@ let totalMined = 0;
 let aiDisabledUntil = 0;
 let nightsWithCoal = 0;
 let currentQuestIndex = 0;
+
+// Прогресс по текущим заданиям
+let questProgress = {
+  totalMined: 0,
+  nightsWithCoal: 0, 
+  successfulDefenses: 0,
+  resourcesMined: {}
+};
 
 // Флаги разблокировки ресурсов
 let coalUnlocked = true;
