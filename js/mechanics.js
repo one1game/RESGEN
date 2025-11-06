@@ -127,7 +127,7 @@ function mineResources() {
   let coalChance = 0.015 + (coalEnabled ? 0.015 : 0) + (upgrades.mining * 0.008);
   let trashChance = 0.01 + (coalEnabled ? 0.008 : 0) + (upgrades.mining * 0.005);
   let chipChance = chipsUnlocked ? (0.004 + (upgrades.mining * 0.001)) : 0;
-  let plasmaChance = plasmaUnlocked ? (0.002 + (upgrades.mining * 0.0005)) : 0;
+  let plasmaChance = plasmaUnlocked ? (0.10 + (upgrades.mining * 0.002)) : 0;
   
   const isCritical = Math.random() < (0.03 + upgrades.mining * 0.005);
   let foundSomething = false;
