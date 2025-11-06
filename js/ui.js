@@ -238,14 +238,6 @@ function render() {
   renderTrade();
   applyCollapsedState();
 }
-  
-  renderQuests();
-  renderTrade();
-  applyCollapsedState();
-  
-  // Обновляем плавающую кнопку
-  updateFloatingButton();
-}
 
 function updateFloatingButton() {
   const miningBonusFloat = document.getElementById('miningBonusFloat');
