@@ -66,7 +66,7 @@ function gameLoop() {
       const coalChance = 0.003 + (upgrades.mining * 0.001);
       const trashChance = 0.007 + (upgrades.mining * 0.001);
       const chipChance = 0.001;
-      const plasmaChance = 0.002;
+      const plasmaChance = 0.0005;
       
       if (Math.random() < coalChance) {
         inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
@@ -99,7 +99,7 @@ function gameLoop() {
 
 // Инициализация обработчиков событий
 function initEventListeners() {
-  // УБРАНА основная кнопка добычи
+  if (mineBtn) mineBtn.addEventListener('click', mineResources);
   if (upgradeMiningBtn) upgradeMiningBtn.addEventListener('click', upgradeMining);
   if (upgradeDefenseBtn) upgradeDefenseBtn.addEventListener('click', activateDefense);
   if (upgradeDefenseLevelBtn) upgradeDefenseLevelBtn.addEventListener('click', upgradeDefense);
