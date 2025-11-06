@@ -179,9 +179,10 @@ function mineResources() {
     totalMined += amount;
   }
   
-  if (!foundSomething && aiActive) {
-    log('⏳ Добыча... Ресурсы не найдены');
-  }
+  // УБРАНО: сообщение "Ресурсы не найдены"
+  // if (!foundSomething && aiActive) {
+  //   log('⏳ Добыча... Ресурсы не найдены');
+  // }
   
   // Всегда сбрасываем criticalMining после добычи
   if (criticalMining) {
