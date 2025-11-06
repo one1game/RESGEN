@@ -1,5 +1,7 @@
 // ======== ui.js ========
 
+// ======== ui.js ========
+
 // DOM элементы
 const currencyDisplay = document.getElementById('currencyDisplay');
 const timeDisplay = document.getElementById('timeDisplay');
@@ -9,7 +11,6 @@ const inventoryDiv = document.getElementById('inventory');
 const aiStatusText = document.getElementById('aiStatusText');
 const coalStatus = document.getElementById('coalStatus');
 const rebelStatus = document.getElementById('rebelStatus');
-const mineBtn = document.getElementById('mineBtn');
 const miningBonusSpan = document.getElementById('miningBonus');
 const miningLevel = document.getElementById('miningLevel');
 const miningProgress = document.getElementById('miningProgress');
@@ -275,8 +276,8 @@ function renderQuests() {
   
   switch(quest.type) {
     case 'mine_any':
-      progressText = `Добыто: ${totalMined}/${quest.target}`;
-      progressPercent = Math.min(100, (totalMined / quest.target) * 100);
+      progressText = `Добыто: ${questProgress.totalMined}/${quest.target}`;
+      progressPercent = Math.min(100, (questProgress.totalMined / quest.target) * 100);
       break;
       
     case 'activate_coal':
@@ -285,8 +286,8 @@ function renderQuests() {
       break;
       
     case 'survive_night':
-      progressText = `Ночей: ${nightsWithCoal}/${quest.target}`;
-      progressPercent = Math.min(100, (nightsWithCoal / quest.target) * 100);
+      progressText = `Ночей: ${questProgress.nightsWithCoal}/${quest.target}`;
+      progressPercent = Math.min(100, (questProgress.nightsWithCoal / quest.target) * 100);
       break;
       
     case 'upgrade_mining':
@@ -306,8 +307,8 @@ function renderQuests() {
       break;
       
     case 'defend_attacks':
-      progressText = `Защит: ${successfulDefenses}/${quest.target}`;
-      progressPercent = Math.min(100, (successfulDefenses / quest.target) * 100);
+      progressText = `Защит: ${questProgress.successfulDefenses}/${quest.target}`;
+      progressPercent = Math.min(100, (questProgress.successfulDefenses / quest.target) * 100);
       break;
       
     case 'upgrade_all':
@@ -540,13 +541,12 @@ function toggleBuySellMode(isBuyMode) {
 // Инициализация плавающей кнопки
 function initFloatingButton() {
   const floatingBtn = document.getElementById('floatingMineBtn');
-  const mineBtn = document.getElementById('mineBtn');
   
-  if (!floatingBtn || !mineBtn) return;
+  if (!floatingBtn) return;
   
   floatingBtn.addEventListener('click', function() {
     this.classList.add('active');
-    mineBtn.click();
+    mineResources(); // ← ТЕПЕРЬ ВЫЗЫВАЕМ ФУНКЦИЮ НАПРЯМУЮ
     
     setTimeout(() => {
       this.classList.remove('active');
