@@ -1,3 +1,7 @@
+// ======== saveManager.js ========
+
+// ======== saveManager.js ========
+
 // Система сохранения
 function saveGame() {
   const saveData = {
@@ -19,14 +23,23 @@ function saveGame() {
     aiDisabledUntil,
     nightsWithCoal,
     currentQuestIndex,
+    questProgress,
     coalUnlocked,
     trashUnlocked,
     chipsUnlocked,
     plasmaUnlocked,
-    storyQuests,
+    storyQuests: storyQuests.map(quest => ({
+      id: quest.id,
+      completed: quest.completed
+    })),
     collapsedState
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+  
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+  } catch (e) {
+    console.error('Ошибка сохранения игры', e);
+  }
 }
 
 function loadGame() {
@@ -65,8 +78,14 @@ function loadGame() {
       aiDisabledUntil = data.aiDisabledUntil ?? 0;
       nightsWithCoal = data.nightsWithCoal ?? 0;
       currentQuestIndex = data.currentQuestIndex ?? 0;
+      questProgress = data.questProgress ?? {
+        totalMined: 0,
+        nightsWithCoal: 0, 
+        successfulDefenses: 0,
+        resourcesMined: {}
+      };
       
-      // ВАЖНО: Загружаем флаги разблокировки из сохранения
+      // Загружаем флаги разблокировки из сохранения
       coalUnlocked = data.coalUnlocked ?? true;
       trashUnlocked = data.trashUnlocked ?? true;
       chipsUnlocked = data.chipsUnlocked ?? true;

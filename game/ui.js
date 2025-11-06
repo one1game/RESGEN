@@ -1,3 +1,7 @@
+// ======== ui.js ========
+
+// ======== ui.js ========
+
 // DOM элементы
 const currencyDisplay = document.getElementById('currencyDisplay');
 const timeDisplay = document.getElementById('timeDisplay');
@@ -7,7 +11,6 @@ const inventoryDiv = document.getElementById('inventory');
 const aiStatusText = document.getElementById('aiStatusText');
 const coalStatus = document.getElementById('coalStatus');
 const rebelStatus = document.getElementById('rebelStatus');
-const mineBtn = document.getElementById('mineBtn');
 const miningBonusSpan = document.getElementById('miningBonus');
 const miningLevel = document.getElementById('miningLevel');
 const miningProgress = document.getElementById('miningProgress');
@@ -32,6 +35,8 @@ const tabContents = document.querySelectorAll('.tab-content');
 const collapseButtons = document.querySelectorAll('.panel-title');
 
 function log(message) {
+  if (!logBox) return;
+  
   const entry = document.createElement('div');
   entry.className = 'log-entry';
   entry.textContent = `> ${message}`;
@@ -43,15 +48,18 @@ function log(message) {
 }
 
 function updateTimeDisplay() {
+  if (!timeDisplay) return;
   const icon = isDay ? '☀️' : '🌙';
   timeDisplay.textContent = `${isDay ? 'День' : 'Ночь'} ${icon} (${Math.ceil(gameTime)}s)`;
 }
 
 function updateCurrencyDisplay() {
+  if (!currencyDisplay) return;
   currencyDisplay.textContent = `${Math.round(tng)}₸`;
 }
 
 function updateDefenseDisplay() {
+  if (!defenseDisplay) return;
   const defensePower = upgrades.defense ? 30 + (upgrades.defenseLevel * 15) : 0;
   defenseDisplay.textContent = `${defensePower}%`;
 }
@@ -232,7 +240,18 @@ function render() {
   applyCollapsedState();
 }
 
+function updateFloatingButton() {
+  const miningBonusFloat = document.getElementById('miningBonusFloat');
+  const miningBonus = document.getElementById('miningBonus');
+  
+  if (miningBonusFloat && miningBonus) {
+    miningBonusFloat.textContent = miningBonus.textContent;
+  }
+}
+
 function renderQuests() {
+  if (!questsContainer) return;
+  
   questsContainer.innerHTML = '';
   
   if (currentQuestIndex >= storyQuests.length) {
@@ -257,8 +276,8 @@ function renderQuests() {
   
   switch(quest.type) {
     case 'mine_any':
-      progressText = `Добыто: ${totalMined}/${quest.target}`;
-      progressPercent = Math.min(100, (totalMined / quest.target) * 100);
+      progressText = `Добыто: ${questProgress.totalMined}/${quest.target}`;
+      progressPercent = Math.min(100, (questProgress.totalMined / quest.target) * 100);
       break;
       
     case 'activate_coal':
@@ -267,8 +286,8 @@ function renderQuests() {
       break;
       
     case 'survive_night':
-      progressText = `Ночей: ${nightsWithCoal}/${quest.target}`;
-      progressPercent = Math.min(100, (nightsWithCoal / quest.target) * 100);
+      progressText = `Ночей: ${questProgress.nightsWithCoal}/${quest.target}`;
+      progressPercent = Math.min(100, (questProgress.nightsWithCoal / quest.target) * 100);
       break;
       
     case 'upgrade_mining':
@@ -276,11 +295,11 @@ function renderQuests() {
       progressPercent = Math.min(100, (upgrades.mining / quest.target) * 100);
       break;
       
-      case 'mine_resource':
-        const resourceCount = Number(inventory[quest.resource]) || 0;
-        progressText = `${quest.resource}: ${resourceCount}/${quest.target}`;
-        progressPercent = Math.min(100, (resourceCount / quest.target) * 100);
-        break;
+    case 'mine_resource':
+      const resourceCount = Number(inventory[quest.resource]) || 0;
+      progressText = `${quest.resource}: ${resourceCount}/${quest.target}`;
+      progressPercent = Math.min(100, (resourceCount / quest.target) * 100);
+      break;
       
     case 'activate_defense':
       progressText = upgrades.defense ? 'Защита активна' : 'Защита неактивна';
@@ -288,8 +307,8 @@ function renderQuests() {
       break;
       
     case 'defend_attacks':
-      progressText = `Защит: ${successfulDefenses}/${quest.target}`;
-      progressPercent = Math.min(100, (successfulDefenses / quest.target) * 100);
+      progressText = `Защит: ${questProgress.successfulDefenses}/${quest.target}`;
+      progressPercent = Math.min(100, (questProgress.successfulDefenses / quest.target) * 100);
       break;
       
     case 'upgrade_all':
@@ -297,11 +316,11 @@ function renderQuests() {
       progressPercent = Math.min(100, ((upgrades.mining + upgrades.defenseLevel) / 15) * 100);
       break;
       
-      case 'final_activation':
-        const plasmaCount = Number(inventory['Плазма']) || 0;
-        progressText = `Плазма: ${plasmaCount}/${quest.target}`;
-        progressPercent = Math.min(100, (plasmaCount / quest.target) * 100);
-        break;
+    case 'final_activation':
+      const plasmaCount = Number(inventory['Плазма']) || 0;
+      progressText = `Плазма: ${plasmaCount}/${quest.target}`;
+      progressPercent = Math.min(100, (plasmaCount / quest.target) * 100);
+      break;
   }
   
   const questCard = document.createElement('div');
@@ -344,6 +363,8 @@ function renderQuests() {
 }
 
 function renderTrade() {
+  if (!buyItemsContainer || !sellItemsContainer) return;
+  
   buyItemsContainer.innerHTML = '';
   sellItemsContainer.innerHTML = '';
   
@@ -385,7 +406,7 @@ function renderTrade() {
   });
   
   Object.entries(inventory).forEach(([itemName, count]) => {
-    if (itemName === 'ИИ' || count <= 0) return;
+    if (itemName === 'ИИ' || (count || 0) <= 0) return;
     
     // Показываем для продажи только разблокированные ресурсы
     const isUnlocked = (
@@ -414,7 +435,7 @@ function renderTrade() {
     `;
     
     sellItemElement.addEventListener('click', () => {
-      if (inventory[itemName] > 0) {
+      if ((inventory[itemName] || 0) > 0) {
         inventory[itemName]--;
         tng += price;
         if (itemName === 'Мусор') trashSold++;
@@ -434,7 +455,10 @@ function renderTrade() {
 function applyCollapsedState() {
   const panels = document.querySelectorAll('.panel');
   panels.forEach(panel => {
-    const title = panel.querySelector('.panel-title span').textContent;
+    const titleElement = panel.querySelector('.panel-title span:first-child');
+    if (!titleElement) return;
+    
+    const title = titleElement.textContent;
     
     if (title.includes('Состояние') && collapsedState.statusPanel) {
       panel.classList.add('collapsed');
@@ -453,13 +477,14 @@ function applyCollapsedState() {
 }
 
 function clearLog() {
+  if (!logBox) return;
   logBox.innerHTML = '';
   log('Журнал очищен');
 }
 
 function toggleAutoScroll() {
   autoScrollEnabled = !autoScrollEnabled;
-  if (autoScrollEnabled) {
+  if (autoScrollEnabled && logBox) {
     logBox.scrollTop = logBox.scrollHeight;
   }
   saveGame();
@@ -467,7 +492,10 @@ function toggleAutoScroll() {
 }
 
 function toggleCollapse(panel) {
-  const title = panel.querySelector('.panel-title span').textContent;
+  const titleElement = panel.querySelector('.panel-title span:first-child');
+  if (!titleElement) return;
+  
+  const title = titleElement.textContent;
   
   if (title.includes('Состояние')) {
     collapsedState.statusPanel = !collapsedState.statusPanel;
@@ -496,51 +524,34 @@ function switchTab(tabName) {
     tab.classList.remove('active');
   });
   
-  document.getElementById(`${tabName}-tab`).classList.add('active');
-  document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+  const tabContent = document.getElementById(`${tabName}-tab`);
+  const tabElement = document.querySelector(`.tab[data-tab="${tabName}"]`);
+  
+  if (tabContent) tabContent.classList.add('active');
+  if (tabElement) tabElement.classList.add('active');
 }
 
 function toggleBuySellMode(isBuyMode) {
-  buyModeBtn.classList.toggle('active', isBuyMode);
-  sellModeBtn.classList.toggle('active', !isBuyMode);
-  buyItemsContainer.style.display = isBuyMode ? 'grid' : 'none';
-  sellItemsContainer.style.display = isBuyMode ? 'none' : 'grid';
+  if (buyModeBtn) buyModeBtn.classList.toggle('active', isBuyMode);
+  if (sellModeBtn) sellModeBtn.classList.toggle('active', !isBuyMode);
+  if (buyItemsContainer) buyItemsContainer.style.display = isBuyMode ? 'grid' : 'none';
+  if (sellItemsContainer) sellItemsContainer.style.display = isBuyMode ? 'none' : 'grid';
 }
 
 // Инициализация плавающей кнопки
 function initFloatingButton() {
   const floatingBtn = document.getElementById('floatingMineBtn');
-  const mineBtn = document.getElementById('mineBtn'); // Ваша оригинальная кнопка
-  const miningBonus = document.getElementById('miningBonus');
-  const miningBonusFloat = document.getElementById('miningBonusFloat');
   
-  if (!floatingBtn || !mineBtn) return;
+  if (!floatingBtn) return;
   
-  // Синхронизация бонуса
-  function updateBonus() {
-      miningBonusFloat.textContent = miningBonus.textContent;
-  }
-  
-  // Обработчик нажатия
   floatingBtn.addEventListener('click', function() {
-      // Активируем визуальную обратную связь
-      this.classList.add('active');
-      
-      // Запускаем оригинальную функцию добычи
-      mineBtn.click();
-      
-      // Обновляем бонус
-      updateBonus();
-      
-      // Убираем класс анимации после завершения
-      setTimeout(() => {
-          this.classList.remove('active');
-      }, 500);
+    this.classList.add('active');
+    mineResources(); // ← ТЕПЕРЬ ВЫЗЫВАЕМ ФУНКЦИЮ НАПРЯМУЮ
+    
+    setTimeout(() => {
+      this.classList.remove('active');
+    }, 500);
   });
   
-  // Инициализация при загрузке
-  updateBonus();
+  updateFloatingButton();
 }
-
-// Вызов инициализации после загрузки DOM
-document.addEventListener('DOMContentLoaded', initFloatingButton);

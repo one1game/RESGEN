@@ -64,7 +64,7 @@
       </div>
     </div>
     
-    <div class="mining-action">
+    <div class="mining-action" style="display: none;">
       <button id="mineBtn" class="btn pulse">Добыть ресурсы <span id="miningBonus">+0%</span></button>
     </div>
     
@@ -231,15 +231,15 @@
   </div>
 
   <!-- Плавающая кнопка добычи для мобильных устройств -->
-<div id="floatingMineBtn" class="floating-mine-btn">
-  <div class="btn-core-pulse"></div> <!-- Для внутренней пульсации -->
-  <div class="btn-core">
-      <div class="core-glow"></div> <!-- Внутреннее свечение -->
-      <span class="btn-icon">⛏️</span> <!-- Иконка -->
+  <div id="floatingMineBtn" class="floating-mine-btn">
+    <div class="btn-core-pulse"></div>
+    <div class="btn-core">
+        <div class="core-glow"></div>
+        <span class="btn-icon">⛏️</span>
+    </div>
+    <span class="btn-text">Добыть</span>
+    <span id="miningBonusFloat" class="mining-bonus">+0%</span>
   </div>
-  <span class="btn-text">Добыть</span>
-  <span id="miningBonusFloat" class="mining-bonus">+0%</span>
-</div>
 
   <script src="js/config.js"></script>
   <script src="js/gameState.js"></script>
