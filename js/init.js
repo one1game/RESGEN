@@ -38,7 +38,7 @@ function gameLoop() {
       }
       
       // Увеличиваем активность повстанцев ночью
-      if (Math.random() < 0.3) {
+      if (Math.random() < 0.6) {
         rebelActivity++;
       }
       
