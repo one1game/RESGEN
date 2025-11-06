@@ -71,7 +71,7 @@ function handleRebelAttack() {
           
       case 4:
           if (Math.random() < GAME_CONSTANTS.DEFENSE.AI_HACK_CHANCE) {
-              const disableTime = GAME_CONSTANTS.REBEL_ATTACKS.AI_DISABLE.MIN_TIME + (GAME_CONSTANTS.REBEL_ATTACKS.AI_DISABLE.MAX_TIME - GAME_CONSTANTS.REBEL_ATTACKS.AI_DISABLE.MIN_TIME) * (1 - upgrades.defenseLevel * GAME_CONSTANTS.REBEL_ATTACKS.AI_DISABLE.DEFENSE_REDUCTION));
+              const disableTime = GAME_CONSTANTS.REBEL_ATTACKS.AI_DISABLE.MIN_TIME + (GAME_CONSTANTS.REBEL_ATTACKS.AI_DISABLE.MAX_TIME - GAME_CONSTANTS.REBEL_ATTACKS.AI_DISABLE.MIN_TIME) * (1 - upgrades.defenseLevel * GAME_CONSTANTS.REBEL_ATTACKS.AI_DISABLE.DEFENSE_REDUCTION);
               aiDisabledUntil = Date.now() + disableTime;
               const minutes = Math.ceil(disableTime / 60000);
               message += ` Взлом ИИ! Система неактивна ${minutes} минут`;
