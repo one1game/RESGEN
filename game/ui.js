@@ -165,7 +165,7 @@ function render() {
         break;
     }
 
-    // ИСПРАВЛЕНИЕ: Создаём слот ТОЛЬКО если ресурс разблокирован И количество > 0
+    // Создаём слот ТОЛЬКО если ресурс разблокирован И количество > 0
     if (!isUnlocked || resourceCount <= 0) return;
 
     const slot = document.createElement('div');
@@ -226,7 +226,7 @@ function render() {
     filledSlots++;
   }
 
-  // ДОБАВИТЬ В КОНЕЦ ФУНКЦИИ:
+  // ВЫЗОВ ДОПОЛНИТЕЛЬНЫХ ФУНКЦИЙ РЕНДЕРА
   renderQuests();
   renderTrade();
   applyCollapsedState();

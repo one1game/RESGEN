@@ -64,154 +64,180 @@ function updateDefenseDisplay() {
 }
 
 function render() {
-  if (miningBonusSpan) miningBonusSpan.textContent = `+${upgrades.mining}%`;
-  if (miningLevel) miningLevel.textContent = upgrades.mining;
-  if (miningProgress) miningProgress.style.width = `${upgrades.mining * 10}%`;
+  console.log("=== RENDER CALLED ===");
+  console.log("INVENTORY DATA:", inventory);
+  console.log("Coal unlocked:", coalUnlocked, "Count:", inventory['Уголь'] || 0);
+  console.log("Plasma unlocked:", plasmaUnlocked, "Count:", inventory['Плазма'] || 0);
+  console.log("Max slots:", maxSlots);
   
-  if (coalStatus) {
-    coalStatus.textContent = coalEnabled ? 'Активно' : 'Выкл';
-    coalStatus.style.color = coalEnabled ? '#00cc66' : '#ff3333';
+  // === ОБНОВЛЕНИЕ ОСНОВНЫХ ПОКАЗАТЕЛЕЙ ===
+  miningBonusSpan.textContent = `+${upgrades.mining}%`;
+  miningLevel.textContent = upgrades.mining;
+  miningProgress.style.width = `${upgrades.mining * 10}%`;
+
+  coalStatus.textContent = coalEnabled ? 'Активно' : 'Выкл';
+  coalStatus.style.color = coalEnabled ? '#00cc66' : '#ff3333';
+  defenseStatus.textContent = upgrades.defense ? 'Активно' : 'Выкл';
+  defenseLevel.textContent = `Ур. ${upgrades.defenseLevel}/5`;
+
+  let rebelText = 'Низкий';
+  let rebelColor = '#00cc66';
+  if (rebelActivity > 2) {
+    rebelText = 'Высокий';
+    rebelColor = '#ff3333';
+  } else if (rebelActivity > 0) {
+    rebelText = 'Средний';
+    rebelColor = '#ffcc00';
   }
-  
-  if (defenseStatus) defenseStatus.textContent = upgrades.defense ? 'Активно' : 'Выкл';
-  if (defenseLevel) defenseLevel.textContent = `Ур. ${upgrades.defenseLevel}/5`;
-  
-  if (rebelStatus) {
-    let rebelText = 'Низкий';
-    let rebelColor = '#00cc66';
-    if (rebelActivity > 2) {
-      rebelText = 'Высокий';
-      rebelColor = '#ff3333';
-    } else if (rebelActivity > 0) {
-      rebelText = 'Средний';
-      rebelColor = '#ffcc00';
-    }
-    rebelStatus.textContent = rebelText;
-    rebelStatus.style.color = rebelColor;
-  }
-  
-  if (aiStatusText) {
-    const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
-    aiStatusText.textContent = aiActive ? 'Активен' : 'Неактивен';
-    aiStatusText.style.color = aiActive ? '#00cc66' : '#ff3333';
-  }
-  
+  rebelStatus.textContent = rebelText;
+  rebelStatus.style.color = rebelColor;
+
+  const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
+  aiStatusText.textContent = aiActive ? 'Активен' : 'Неактивен';
+  aiStatusText.style.color = aiActive ? '#00cc66' : '#ff3333';
+
   updateCurrencyDisplay();
   updateDefenseDisplay();
   updateTimeDisplay();
-  
+
   const requiredChipsMining = 5 + upgrades.mining * 2;
   const requiredChipsDefense = (upgrades.defenseLevel + 1) * 12;
   const requiredPlasmaDefense = 1 + Math.floor(upgrades.defenseLevel / 2);
-  
-  // Используем безопасное получение значений
+
   const chipsCount = Number(inventory['Чипы']) || 0;
   const plasmaCount = Number(inventory['Плазма']) || 0;
-  
-  if (upgradeMiningBtn) upgradeMiningBtn.disabled = upgrades.mining >= 10 || chipsCount < requiredChipsMining;
-  if (upgradeDefenseBtn) upgradeDefenseBtn.disabled = upgrades.defense || plasmaCount < 3;
-  if (upgradeDefenseLevelBtn) upgradeDefenseLevelBtn.disabled = upgrades.defenseLevel >= 5 || 
-    chipsCount < requiredChipsDefense || 
+
+  upgradeMiningBtn.disabled = upgrades.mining >= 10 || chipsCount < requiredChipsMining;
+  upgradeDefenseBtn.disabled = upgrades.defense || plasmaCount < 3;
+  upgradeDefenseLevelBtn.disabled =
+    upgrades.defenseLevel >= 5 ||
+    chipsCount < requiredChipsDefense ||
     plasmaCount < requiredPlasmaDefense;
-  
-  if (miningChipsReq) {
-    miningChipsReq.textContent = `${chipsCount}/${requiredChipsMining}`;
-    miningChipsReq.className = chipsCount >= requiredChipsMining ? 
-      'requirement-value requirement-met' : 'requirement-value requirement-not-met';
-  }
-  
-  if (defensePlasmaReq) {
-    defensePlasmaReq.textContent = `${plasmaCount}/3`;
-    defensePlasmaReq.className = plasmaCount >= 3 ? 
-      'requirement-value requirement-met' : 'requirement-value requirement-not-met';
-  }
-  
-  if (defenseChipsReq) {
-    defenseChipsReq.textContent = `${chipsCount}/${requiredChipsDefense}`;
-    defenseChipsReq.className = chipsCount >= requiredChipsDefense ? 
-      'requirement-value requirement-met' : 'requirement-value requirement-not-met';
-  }
-  
-  if (defensePlasmaLevelReq) {
-    defensePlasmaLevelReq.textContent = `${plasmaCount}/${requiredPlasmaDefense}`;
-    defensePlasmaLevelReq.className = plasmaCount >= requiredPlasmaDefense ? 
-      'requirement-value requirement-met' : 'requirement-value requirement-not-met';
-  }
-  
-  if (autoScrollBtn) autoScrollBtn.textContent = autoScrollEnabled ? 'Автоскролл ✓' : 'Автоскролл';
-  
-  if (inventoryDiv) {
-    inventoryDiv.innerHTML = '';
 
-    // Отрисовка инвентаря с учетом разблокированных ресурсов
-    Object.entries(inventory).forEach(([name, count]) => {
-      if (name === 'ИИ') return;
-      
-      // Безопасное преобразование в число
-      const numericCount = Number(count) || 0;
-      
-      // Проверяем, должен ли ресурс отображаться
-      const shouldShow = (
-        (name === 'Уголь' && coalUnlocked) ||
-        (name === 'Мусор' && trashUnlocked) ||
-        (name === 'Чипы' && chipsUnlocked) ||
-        (name === 'Плазма' && plasmaUnlocked)
-      );
-      
-      if (!shouldShow) return;
-      
-      const slot = document.createElement('div');
-      slot.className = 'slot';
-      slot.dataset.resource = name;
-      if (name === 'Плазма') slot.classList.add('plasma');
-      if (numericCount === 0) slot.classList.add('empty-resource');
-      
-      const nameDiv = document.createElement('div');
-      nameDiv.className = 'item-name';
-      nameDiv.textContent = name;
-      
-      const countDiv = document.createElement('div');
-      countDiv.className = 'item-count';
-      countDiv.textContent = numericCount === 0 ? '[Пусто]' : `x${numericCount}`;
-      
-      slot.appendChild(nameDiv);
-      slot.appendChild(countDiv);
+  miningChipsReq.textContent = `${chipsCount}/${requiredChipsMining}`;
+  miningChipsReq.className =
+    chipsCount >= requiredChipsMining
+      ? 'requirement-value requirement-met'
+      : 'requirement-value requirement-not-met';
 
-      if (criticalMining && (name === 'Уголь' || name === 'Плазма')) {
-        slot.classList.add('critical');
-      }
-      
-      if (name === 'Уголь' || name === 'Мусор') {
-        const bonusDiv = document.createElement('div');
-        bonusDiv.className = 'mining-bonus';
-        const baseChance = name === 'Уголь' ? 3 : 1.5;
-        const totalBonus = upgrades.mining + (coalEnabled ? (name === 'Уголь' ? 2 : 1) : 0);
-        bonusDiv.textContent = `+${baseChance + totalBonus}%`;
-        slot.appendChild(bonusDiv);
-      }
+  defensePlasmaReq.textContent = `${plasmaCount}/3`;
+  defensePlasmaReq.className =
+    plasmaCount >= 3
+      ? 'requirement-value requirement-met'
+      : 'requirement-value requirement-not-met';
 
-      if (name === 'Уголь') {
-        if (coalEnabled) {
-          slot.style.borderColor = 'var(--primary)';
-          slot.style.boxShadow = '0 0 8px var(--primary)';
-        }
-        
-        slot.onclick = () => handleCoalInteraction();
-      }
-      else if (name === 'Плазма' && numericCount > 0) {
-        slot.classList.add('defense');
-      }
+  defenseChipsReq.textContent = `${chipsCount}/${requiredChipsDefense}`;
+  defenseChipsReq.className =
+    chipsCount >= requiredChipsDefense
+      ? 'requirement-value requirement-met'
+      : 'requirement-value requirement-not-met';
 
-      inventoryDiv.appendChild(slot);
-    });
+  defensePlasmaLevelReq.textContent = `${plasmaCount}/${requiredPlasmaDefense}`;
+  defensePlasmaLevelReq.className =
+    plasmaCount >= requiredPlasmaDefense
+      ? 'requirement-value requirement-met'
+      : 'requirement-value requirement-not-met';
 
-    while (inventoryDiv.children.length < maxSlots) {
-      const slot = document.createElement('div');
-      slot.className = 'slot empty';
-      slot.innerHTML = '<div class="item-name">[Пусто]</div><div class="item-count">+</div>';
-      inventoryDiv.appendChild(slot);
+  autoScrollBtn.textContent = autoScrollEnabled ? 'Автоскролл ✓' : 'Автоскролл';
+
+  // === ОТРИСОВКА ИНВЕНТАРЯ ===
+  inventoryDiv.innerHTML = '';
+
+  const resourceOrder = ['Уголь', 'Мусор', 'Чипы', 'Плазма'];
+  let filledSlots = 0;
+
+  // Сначала отображаем только те ресурсы, которые есть у игрока
+  resourceOrder.forEach(resourceName => {
+    if (filledSlots >= maxSlots) return;
+
+    let isUnlocked = false;
+    let resourceCount = 0;
+
+    switch (resourceName) {
+      case 'Уголь':
+        isUnlocked = coalUnlocked;
+        resourceCount = Number(inventory['Уголь']) || 0;
+        break;
+      case 'Мусор':
+        isUnlocked = trashUnlocked;
+        resourceCount = Number(inventory['Мусор']) || 0;
+        break;
+      case 'Чипы':
+        isUnlocked = chipsUnlocked;
+        resourceCount = Number(inventory['Чипы']) || 0;
+        break;
+      case 'Плазма':
+        isUnlocked = plasmaUnlocked;
+        resourceCount = Number(inventory['Плазма']) || 0;
+        break;
     }
+
+    // Создаём слот ТОЛЬКО если ресурс разблокирован И количество > 0
+    if (!isUnlocked || resourceCount <= 0) return;
+
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.dataset.resource = resourceName;
+
+    if (resourceName === 'Плазма') slot.classList.add('plasma');
+
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'item-name';
+    nameDiv.textContent = resourceName;
+
+    const countDiv = document.createElement('div');
+    countDiv.className = 'item-count';
+    countDiv.textContent = `x${resourceCount}`;
+
+    slot.appendChild(nameDiv);
+    slot.appendChild(countDiv);
+
+    // Добавляем бонусы для угля и мусора
+    if (resourceName === 'Уголь' || resourceName === 'Мусор') {
+      const bonusDiv = document.createElement('div');
+      bonusDiv.className = 'mining-bonus';
+      const baseChance = resourceName === 'Уголь' ? 3 : 1.5;
+      const totalBonus =
+        upgrades.mining + (coalEnabled ? (resourceName === 'Уголь' ? 2 : 1) : 0);
+      bonusDiv.textContent = `+${Math.round(baseChance + totalBonus)}%`;
+      slot.appendChild(bonusDiv);
+    }
+
+    // Клик по углю — включение/выключение ТЭЦ
+    if (resourceName === 'Уголь') {
+      if (coalEnabled) {
+        slot.style.borderColor = 'var(--primary)';
+        slot.style.boxShadow = '0 0 8px var(--primary)';
+      }
+      slot.onclick = () => handleCoalInteraction();
+    }
+
+    // Эффект критической добычи
+    if (criticalMining && (resourceName === 'Уголь' || resourceName === 'Плазма')) {
+      slot.classList.add('critical');
+    }
+
+    inventoryDiv.appendChild(slot);
+    filledSlots++;
+  });
+
+  // === ДОБАВЛЯЕМ ПУСТЫЕ СЛОТЫ ===
+  while (filledSlots < maxSlots) {
+    const slot = document.createElement('div');
+    slot.className = 'slot empty';
+    slot.innerHTML = `
+      <div class="item-name">[Пусто]</div>
+      <div class="item-count">+</div>
+    `;
+    inventoryDiv.appendChild(slot);
+    filledSlots++;
   }
+
+  // ВЫЗОВ ДОПОЛНИТЕЛЬНЫХ ФУНКЦИЙ РЕНДЕРА
+  renderQuests();
+  renderTrade();
+  applyCollapsedState();
+}
   
   renderQuests();
   renderTrade();
