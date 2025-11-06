@@ -1,3 +1,5 @@
+// ======== gameState.js ========
+
 // Состояние игры
 const inventory = { 
   'ИИ': 1,
@@ -13,9 +15,13 @@ const upgrades = {
   defenseLevel: 0
 };
 
+// Торговые предметы
+const tradeItems = GAME_CONSTANTS.TRADE.ITEMS;
+
+// Переменные состояния
 let tng = 0;
 let coalEnabled = false;
-let gameTime = CYCLE_DURATION / 2;
+let gameTime = GAME_CONSTANTS.CYCLE_DURATION / 2;
 let isDay = true;
 let passiveCounter = 0;
 let trashSold = 0;
@@ -30,6 +36,7 @@ let totalMined = 0;
 let aiDisabledUntil = 0;
 let nightsWithCoal = 0;
 let currentQuestIndex = 0;
+const maxSlots = GAME_CONSTANTS.MAX_SLOTS;
 
 // Прогресс по текущим заданиям
 let questProgress = {
@@ -66,19 +73,19 @@ function autoUnlockResources() {
 // Функция для санитизации инвентаря
 function sanitizeInventory() {
   const defaultInventory = {
-    'Уголь': 0,
-    'Мусор': 0,
-    'Чипы': 0,
-    'Плазма': 0,
-    'ИИ': 1
+      'Уголь': 0,
+      'Мусор': 0,
+      'Чипы': 0,
+      'Плазма': 0,
+      'ИИ': 1
   };
   
   // Добавляем отсутствующие ресурсы и преобразуем в числа
   Object.keys(defaultInventory).forEach(key => {
-    if (inventory[key] === undefined) {
-      inventory[key] = defaultInventory[key];
-    }
-    inventory[key] = Number(inventory[key]) || defaultInventory[key];
+      if (inventory[key] === undefined) {
+          inventory[key] = defaultInventory[key];
+      }
+      inventory[key] = Number(inventory[key]) || defaultInventory[key];
   });
   
   // Автоматически разблокируем ресурсы, если они есть
