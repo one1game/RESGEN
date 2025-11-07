@@ -22,10 +22,8 @@
 
 body {
   background: 
-    /* Твое фоновое изображение из папки img */
     linear-gradient(rgba(8, 22, 37, 0.85), rgba(5, 13, 24, 0.9)),
     url('../img/fon.jpg') center/cover fixed,
-    /* Старый градиент как резерв */
     radial-gradient(circle at 20% 20%, #0a1a2f 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, #152642 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, #081625 0%, #050d18 100%);
@@ -57,12 +55,8 @@ body::before {
 }
 
 @keyframes gradient-shift {
-  0% {
-    background-position: 0% 0%;
-  }
-  100% {
-    background-position: 100% 100%;
-  }
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
 }
 
 .cyber-grid {
@@ -81,12 +75,8 @@ body::before {
 }
 
 @keyframes grid-move {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 40px 40px;
-  }
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 40px; }
 }
 
 .header {
@@ -224,7 +214,6 @@ h1::after {
   padding: 0;
 }
 
-/* === ИСПРАВЛЕННЫЙ ИНВЕНТАРЬ === */
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(6, var(--slot-size));
@@ -282,19 +271,10 @@ h1::after {
   font-size: 14px;
 }
 
-/* Цвета рамок для разных ресурсов */
-.slot[data-resource="Уголь"] {
-  border-left: 3px solid #666;
-}
-.slot[data-resource="Мусор"] {
-  border-left: 3px solid #888;
-}
-.slot[data-resource="Чипы"] {
-  border-left: 3px solid #00aaff;
-}
-.slot[data-resource="Плазма"] {
-  border-left: 3px solid var(--plasma);
-}
+.slot[data-resource="Уголь"] { border-left: 3px solid #666; }
+.slot[data-resource="Мусор"] { border-left: 3px solid #888; }
+.slot[data-resource="Чипы"] { border-left: 3px solid #00aaff; }
+.slot[data-resource="Плазма"] { border-left: 3px solid var(--plasma); }
 
 .item-name {
   font-weight: 600;
@@ -314,7 +294,6 @@ h1::after {
   text-shadow: 0 0 5px rgba(0, 170, 128, 0.3);
 }
 
-/* Бонусы добычи */
 .mining-bonus {
   font-size: 9px;
   padding: 1px 3px;
@@ -331,7 +310,6 @@ h1::after {
   z-index: 2;
 }
 
-/* Анимации */
 .slot.critical {
   animation: critical-pulse 0.8s ease-in-out;
 }
@@ -352,23 +330,13 @@ h1::after {
 }
 
 @keyframes plasma-glow {
-  from {
-    box-shadow: 0 0 5px var(--plasma), 0 0 10px var(--plasma);
-  }
-  to {
-    box-shadow: 0 0 15px var(--plasma), 0 0 25px #c77dff;
-  }
+  from { box-shadow: 0 0 5px var(--plasma), 0 0 10px var(--plasma); }
+  to { box-shadow: 0 0 15px var(--plasma), 0 0 25px #c77dff; }
 }
 
 @keyframes resource-appear {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .slot:not(.empty) {
@@ -411,18 +379,14 @@ h1::after {
   transition: left 0.5s;
 }
 
-.btn:hover::before {
-  left: 100%;
-}
+.btn:hover::before { left: 100%; }
 
 .btn:hover {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 6px 20px rgba(0, 170, 153, 0.5);
 }
 
-.btn:active {
-  transform: translateY(1px);
-}
+.btn:active { transform: translateY(1px); }
 
 #logBox {
   background: rgba(6, 15, 28, 0.9);
@@ -439,14 +403,8 @@ h1::after {
   scrollbar-color: var(--secondary) transparent;
 }
 
-#logBox::-webkit-scrollbar {
-  width: 4px;
-}
-
-#logBox::-webkit-scrollbar-thumb {
-  background: var(--secondary);
-  border-radius: 2px;
-}
+#logBox::-webkit-scrollbar { width: 4px; }
+#logBox::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 2px; }
 
 .log-entry {
   margin: 5px 0;
@@ -589,9 +547,7 @@ h1::after {
   transition: left 0.5s;
 }
 
-.upgrade-btn:hover::before {
-  left: 100%;
-}
+.upgrade-btn:hover::before { left: 100%; }
 
 .upgrade-btn:disabled {
   background: #444;
@@ -755,9 +711,7 @@ h1::after {
   border-right: 1px solid rgba(0, 120, 200, 0.4);
 }
 
-.tab:last-child {
-  border-right: none;
-}
+.tab:last-child { border-right: none; }
 
 .tab.active {
   background: rgba(0, 120, 200, 0.4);
@@ -765,13 +719,8 @@ h1::after {
   box-shadow: inset 0 -3px 0 var(--primary);
 }
 
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
-}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 
 .trade-container {
   display: flex;
@@ -803,9 +752,7 @@ h1::after {
   box-shadow: 0 0 10px rgba(0, 136, 204, 0.5);
 }
 
-.trade-mode-btn:hover {
-  transform: translateY(-2px);
-}
+.trade-mode-btn:hover { transform: translateY(-2px); }
 
 .trade-items-grid {
   display: grid;
@@ -934,7 +881,6 @@ h1::after {
   background: var(--primary);
 }
 
-/* Стили для плавающей кнопки добычи */
 .floating-mine-btn {
   position: fixed;
   bottom: 25px;
@@ -1005,14 +951,8 @@ h1::after {
 }
 
 @keyframes pulse-ring {
-  0% {
-      transform: scale(0.9);
-      opacity: 0.8;
-  }
-  80%, 100% {
-      transform: scale(1.1);
-      opacity: 0;
-  }
+  0% { transform: scale(0.9); opacity: 0.8; }
+  80%, 100% { transform: scale(1.1); opacity: 0; }
 }
 
 @keyframes core-pulse {
@@ -1048,173 +988,46 @@ h1::after {
 }
 
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Адаптация для мобильных устройств */
 @media (max-width: 600px) {
-  :root {
-    --slot-size: 52px;
-  }
+  :root { --slot-size: 52px; }
   
-  .inventory-grid {
-    grid-template-columns: repeat(3, var(--slot-size));
-    gap: 6px;
-  }
-  
-  .btn {
-    min-width: 100%;
-    font-size: 10px;
-    padding: 8px 4px;
-  }
-  
-  .action-buttons {
-    grid-template-columns: 1fr;
-  }
-  
-  h1 {
-    font-size: 1.5rem;
-  }
-  
-  .status-row {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .log-controls {
-    position: static;
-    justify-content: center;
-    margin-bottom: 5px;
-  }
-  
-  .upgrade-btn {
-    min-width: 100%;
-    padding: 5px;
-  }
-  
-  .upgrade-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .stat-card {
-    min-width: 80px;
-    padding: 6px 8px;
-  }
-  
-  .tab {
-    font-size: 11px;
-    padding: 8px 5px;
-  }
-  
-  .trade-items-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .radio-player {
-    width: 100px;
-    right: 5px;
-    bottom: 5px;
-    padding: 5px;
-    transform: scale(0.9);
-  }
-  
-  .radio-controls {
-    gap: 4px;
-  }
-  
-  .radio-btn {
-    width: 20px;
-    height: 20px;
-    font-size: 9px;
-  }
-  
-  .panel {
-    padding: 10px;
-    margin: 0 5px;
-  }
-  
-  .status-item, .ai-status-item {
-    flex: none;
-  }
-  
-  .mining-bonus {
-    font-size: 8px;
-    padding: 1px 2px;
-    min-width: 18px;
-    top: -3px;
-    right: -3px;
-  }
-  
-  .slot {
-    position: relative;
-    overflow: visible;
-  }
-  
-  .item-name {
-    font-size: 9px;
-    line-height: 1.1;
-    margin-bottom: 2px;
-  }
-  
-  .item-count {
-    font-size: 12px;
-  }
+  .inventory-grid { grid-template-columns: repeat(3, var(--slot-size)); gap: 6px; }
+  .btn { min-width: 100%; font-size: 10px; padding: 8px 4px; }
+  .action-buttons { grid-template-columns: 1fr; }
+  h1 { font-size: 1.5rem; }
+  .status-row { flex-direction: column; gap: 8px; }
+  .log-controls { position: static; justify-content: center; margin-bottom: 5px; }
+  .upgrade-btn { min-width: 100%; padding: 5px; }
+  .upgrade-container { grid-template-columns: 1fr; }
+  .stat-card { min-width: 80px; padding: 6px 8px; }
+  .tab { font-size: 11px; padding: 8px 5px; }
+  .trade-items-grid { grid-template-columns: repeat(2, 1fr); }
+  .radio-player { width: 100px; right: 5px; bottom: 5px; padding: 5px; transform: scale(0.9); }
+  .radio-controls { gap: 4px; }
+  .radio-btn { width: 20px; height: 20px; font-size: 9px; }
+  .panel { padding: 10px; margin: 0 5px; }
+  .status-item, .ai-status-item { flex: none; }
+  .mining-bonus { font-size: 8px; padding: 1px 2px; min-width: 18px; top: -3px; right: -3px; }
+  .slot { position: relative; overflow: visible; }
+  .item-name { font-size: 9px; line-height: 1.1; margin-bottom: 2px; }
+  .item-count { font-size: 12px; }
 }
 
-/* Для очень маленьких экранов */
 @media (max-width: 350px) {
-  .mining-bonus {
-    font-size: 7px;
-    min-width: 16px;
-    top: -2px;
-    right: -2px;
-  }
-  
-  .inventory-grid {
-    gap: 5px;
-  }
-  
-  .slot {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .floating-mine-btn {
-    width: 65px;
-    height: 65px;
-    bottom: 20px;
-  }
-  
-  .btn-core {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .btn-icon {
-    font-size: 14px;
-  }
+  .mining-bonus { font-size: 7px; min-width: 16px; top: -2px; right: -2px; }
+  .inventory-grid { gap: 5px; }
+  .slot { width: 48px; height: 48px; }
+  .floating-mine-btn { width: 65px; height: 65px; bottom: 20px; }
+  .btn-core { width: 32px; height: 32px; }
+  .btn-icon { font-size: 14px; }
 }
 
-/* Улучшение видимости интерфейса поверх фона */
-.panel {
-  background: rgba(8, 22, 41, 0.95) !important;
-}
-
-.stat-card {
-  background: rgba(0, 20, 40, 0.9) !important;
-}
-
-.cyber-grid {
-  opacity: 0.15;
-}
-
-body::before {
-  opacity: 0.3; /* Уменьши свечение */
-}
+.panel { background: rgba(8, 22, 41, 0.95) !important; }
+.stat-card { background: rgba(0, 20, 40, 0.9) !important; }
+.cyber-grid { opacity: 0.15; }
+body::before { opacity: 0.3; }

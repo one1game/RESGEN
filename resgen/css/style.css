@@ -22,6 +22,10 @@
 
 body {
   background: 
+    /* Твое фоновое изображение из папки img */
+    linear-gradient(rgba(8, 22, 37, 0.85), rgba(5, 13, 24, 0.9)),
+    url('../img/fon.jpg') center/cover fixed,
+    /* Старый градиент как резерв */
     radial-gradient(circle at 20% 20%, #0a1a2f 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, #152642 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, #081625 0%, #050d18 100%);
@@ -1196,4 +1200,21 @@ h1::after {
   .btn-icon {
     font-size: 14px;
   }
+}
+
+/* Улучшение видимости интерфейса поверх фона */
+.panel {
+  background: rgba(8, 22, 41, 0.95) !important;
+}
+
+.stat-card {
+  background: rgba(0, 20, 40, 0.9) !important;
+}
+
+.cyber-grid {
+  opacity: 0.15;
+}
+
+body::before {
+  opacity: 0.3; /* Уменьши свечение */
 }
