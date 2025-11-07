@@ -338,6 +338,10 @@ function renderQuests() {
 }
 
 function renderTrade() {
+  if (typeof console !== 'undefined') {
+    console.log('Торговля - товары:', Object.keys(GameConfig.ECONOMY.TRADE));
+    console.log('Торговля - разблокировки:', {coalUnlocked, chipsUnlocked, plasmaUnlocked});
+}
     if (!buyItemsContainer || !sellItemsContainer) return;
     
     buyItemsContainer.innerHTML = '';
