@@ -341,17 +341,25 @@ function renderTrade() {
   if (typeof console !== 'undefined') {
     console.log('Торговля - товары:', Object.keys(GameConfig.ECONOMY.TRADE));
     console.log('Торговля - разблокировки:', {coalUnlocked, chipsUnlocked, plasmaUnlocked});
-}
-    if (!buyItemsContainer || !sellItemsContainer) return;
-    
-    buyItemsContainer.innerHTML = '';
-    sellItemsContainer.innerHTML = '';
-    
-    Object.entries(GameConfig.ECONOMY.TRADE).forEach(([itemName, item]) => {
+  }
+  
+  if (!buyItemsContainer || !sellItemsContainer) return;
+  
+  buyItemsContainer.innerHTML = '';
+  sellItemsContainer.innerHTML = '';
+  
+  // ИСПРАВЛЕННЫЙ БЛОК ПОКУПКИ
+  Object.entries(GameConfig.ECONOMY.TRADE).forEach(([itemName, item]) => {
+      // Преобразуем английские названия в русские для проверки
+      const russianName = 
+          itemName === 'COAL' ? 'Уголь' :
+          itemName === 'CHIPS' ? 'Чипы' :
+          itemName === 'PLASMA' ? 'Плазма' : itemName;
+      
       const isUnlocked = (
-          (itemName === 'Уголь' && coalUnlocked) ||
-          (itemName === 'Чипы' && chipsUnlocked) ||
-          (itemName === 'Плазма' && plasmaUnlocked)
+          (russianName === 'Уголь' && coalUnlocked) ||
+          (russianName === 'Чипы' && chipsUnlocked) ||
+          (russianName === 'Плазма' && plasmaUnlocked)
       );
       
       if (!isUnlocked) return;
@@ -359,77 +367,78 @@ function renderTrade() {
       const buyItemElement = document.createElement('div');
       buyItemElement.className = 'trade-item';
       buyItemElement.innerHTML = `
-          <div class="trade-item-name">${itemName}</div>
+          <div class="trade-item-name">${russianName}</div>
           <div class="trade-item-price">${item.buy}₸</div>
-          <div class="trade-item-amount">В инвентаре: ${inventory[itemName] || 0}</div>
+          <div class="trade-item-amount">В инвентаре: ${inventory[russianName] || 0}</div>
       `;
       
       buyItemElement.addEventListener('click', () => {
           const price = item.buy;
           if (tng >= price) {
               tng -= price;
-              inventory[itemName] = (inventory[itemName] || 0) + 1;
+              inventory[russianName] = (inventory[russianName] || 0) + 1;
               
-              log(`Куплен 1 ${itemName} за ${price}₸`);
-              voiceAlerts.alertSystem(`Куплен ${itemName}`);
+              log(`Куплен 1 ${russianName} за ${price}₸`);
+              voiceAlerts.alertSystem(`Куплен ${russianName}`);
               updateCurrencyDisplay();
               saveGame();
               render();
               checkQuestsProgress();
           } else {
-              log(`Недостаточно средств для покупки ${itemName}`);
-              voiceAlerts.alertSystem(`Недостаточно средств для покупки ${itemName}`, true);
+              log(`Недостаточно средств для покупки ${russianName}`);
+              voiceAlerts.alertSystem(`Недостаточно средств для покупки ${russianName}`, true);
           }
       });
       
       buyItemsContainer.appendChild(buyItemElement);
   });
     
-    Object.entries(inventory).forEach(([itemName, count]) => {
-        if (itemName === 'ИИ' || (count || 0) <= 0) return;
-        
-        const isUnlocked = (
-            (itemName === 'Уголь' && coalUnlocked) ||
-            (itemName === 'Мусор' && trashUnlocked) ||
-            (itemName === 'Чипы' && chipsUnlocked) ||
-            (itemName === 'Плазма' && plasmaUnlocked)
-        );
-        
-        if (!isUnlocked) return;
-        
-        const sellItemElement = document.createElement('div');
-        sellItemElement.className = 'trade-item';
-        
-        let price;
-        if (itemName === 'Мусор') {
-            price = calculateTrashPrice();
-        } else {
-            price = GameConfig.ECONOMY.TRADE[itemName]?.sell || 1;
-        }
-        
-        sellItemElement.innerHTML = `
-            <div class="trade-item-name">${itemName}</div>
-            <div class="trade-item-price">${price}₸</div>
-            <div class="trade-item-amount">${count} шт.</div>
-        `;
-        
-        sellItemElement.addEventListener('click', () => {
-            if ((inventory[itemName] || 0) > 0) {
-                inventory[itemName]--;
-                tng += price;
-                if (itemName === 'Мусор') trashSold++;
-                
-                log(`Продан 1 ${itemName} за ${price}₸`);
-                voiceAlerts.alertSystem(`Продан ${itemName}`);
-                updateCurrencyDisplay();
-                saveGame();
-                render();
-                checkQuestsProgress();
-            }
-        });
-        
-        sellItemsContainer.appendChild(sellItemElement);
-    });
+  // БЛОК ПРОДАЖИ (без изменений)
+  Object.entries(inventory).forEach(([itemName, count]) => {
+      if (itemName === 'ИИ' || (count || 0) <= 0) return;
+      
+      const isUnlocked = (
+          (itemName === 'Уголь' && coalUnlocked) ||
+          (itemName === 'Мусор' && trashUnlocked) ||
+          (itemName === 'Чипы' && chipsUnlocked) ||
+          (itemName === 'Плазма' && plasmaUnlocked)
+      );
+      
+      if (!isUnlocked) return;
+      
+      const sellItemElement = document.createElement('div');
+      sellItemElement.className = 'trade-item';
+      
+      let price;
+      if (itemName === 'Мусор') {
+          price = calculateTrashPrice();
+      } else {
+          price = GameConfig.ECONOMY.TRADE[itemName]?.sell || 1;
+      }
+      
+      sellItemElement.innerHTML = `
+          <div class="trade-item-name">${itemName}</div>
+          <div class="trade-item-price">${price}₸</div>
+          <div class="trade-item-amount">${count} шт.</div>
+      `;
+      
+      sellItemElement.addEventListener('click', () => {
+          if ((inventory[itemName] || 0) > 0) {
+              inventory[itemName]--;
+              tng += price;
+              if (itemName === 'Мусор') trashSold++;
+              
+              log(`Продан 1 ${itemName} за ${price}₸`);
+              voiceAlerts.alertSystem(`Продан ${itemName}`);
+              updateCurrencyDisplay();
+              saveGame();
+              render();
+              checkQuestsProgress();
+          }
+      });
+      
+      sellItemsContainer.appendChild(sellItemElement);
+  });
 }
 
 function applyCollapsedState() {
