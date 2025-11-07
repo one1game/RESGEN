@@ -11,8 +11,8 @@ const GameConfig = {
       BASE_CHANCES: {
           COAL: 0.015,
           TRASH: 0.01,
-          CHIPS: 0.004,
-          PLASMA: 0.10
+          CHIPS: 0.01,
+          PLASMA: 0.01
       },
       UPGRADE_BONUS: 0.008,
       COAL_BONUS: 0.015,
