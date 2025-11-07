@@ -28,7 +28,12 @@ function saveGame() {
             id: quest.id,
             completed: quest.completed
         })),
-        collapsedState
+        collapsedState,
+        // ДОБАВЛЕНО: новое состояние
+        radioState,
+        voiceSettings,
+        logEntries,
+        activeTab
     };
     
     try {
@@ -80,8 +85,8 @@ function loadGame() {
             
             coalUnlocked = data.coalUnlocked ?? true;
             trashUnlocked = data.trashUnlocked ?? true;
-            chipsUnlocked = data.chipsUnlocked ?? true;
-            plasmaUnlocked = data.plasmaUnlocked ?? true;
+            chipsUnlocked = data.chipsUnlocked ?? false; // было true
+            plasmaUnlocked = data.plasmaUnlocked ?? false; // было true
             
             if (data.storyQuests) {
                 data.storyQuests.forEach((savedQuest, index) => {
@@ -93,6 +98,20 @@ function loadGame() {
             
             if (data.collapsedState) {
                 Object.assign(collapsedState, data.collapsedState);
+            }
+            
+            // ДОБАВЛЕНО: загрузка нового состояния
+            if (data.radioState) {
+                Object.assign(radioState, data.radioState);
+            }
+            if (data.voiceSettings) {
+                Object.assign(voiceSettings, data.voiceSettings);
+            }
+            if (data.logEntries) {
+                logEntries = data.logEntries;
+            }
+            if (data.activeTab) {
+                activeTab = data.activeTab;
             }
             
             log('Игра загружена');

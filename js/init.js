@@ -61,27 +61,28 @@ function gameLoop() {
       passiveCounter -= 10;
       const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
       if (aiActive) {
-          const coalChance = GameConfig.MINING.PASSIVE_CHANCES.COAL + (upgrades.mining * 0.001);
-          const trashChance = GameConfig.MINING.PASSIVE_CHANCES.TRASH + (upgrades.mining * 0.001);
-          const chipChance = GameConfig.MINING.PASSIVE_CHANCES.CHIPS;
-          const plasmaChance = GameConfig.MINING.PASSIVE_CHANCES.PLASMA;
+          // ИСПРАВЛЕНО: пассивная добыча учитывает разблокировку
+          const coalChance = coalUnlocked ? (GameConfig.MINING.PASSIVE_CHANCES.COAL + (upgrades.mining * 0.001)) : 0;
+          const trashChance = trashUnlocked ? (GameConfig.MINING.PASSIVE_CHANCES.TRASH + (upgrades.mining * 0.001)) : 0;
+          const chipChance = chipsUnlocked ? GameConfig.MINING.PASSIVE_CHANCES.CHIPS : 0;
+          const plasmaChance = plasmaUnlocked ? GameConfig.MINING.PASSIVE_CHANCES.PLASMA : 0;
           
-          if (Math.random() < coalChance) {
+          if (coalUnlocked && Math.random() < coalChance) {
               inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
               totalMined++;
               questProgress.totalMined++;
           }
-          if (Math.random() < trashChance) {
+          if (trashUnlocked && Math.random() < trashChance) {
               inventory['Мусор'] = (inventory['Мусор'] || 0) + 1;
               totalMined++;
               questProgress.totalMined++;
           }
-          if (Math.random() < chipChance) {
+          if (chipsUnlocked && Math.random() < chipChance) {
               inventory['Чипы'] = (inventory['Чипы'] || 0) + 1;
               totalMined++;
               questProgress.totalMined++;
           }
-          if (Math.random() < plasmaChance) {
+          if (plasmaUnlocked && Math.random() < plasmaChance) {
               inventory['Плазма'] = (inventory['Плазма'] || 0) + 1;
               totalMined++;
               questProgress.totalMined++;
@@ -128,6 +129,12 @@ function initEventListeners() {
 
 function initGame() {
   loadGame();
+  
+  // ДОБАВЛЕНО: восстановление голосовых настроек
+  voiceAlerts.enabled = voiceSettings.enabled;
+  voiceAlerts.setVolume(voiceSettings.volume);
+  voiceAlerts.setRate(voiceSettings.rate);
+  
   initEventListeners();
   setupRadioPlayer();
   

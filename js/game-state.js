@@ -38,10 +38,11 @@ let questProgress = {
     resourcesMined: {}
 };
 
+// ИСПРАВЛЕНО: только уголь и мусор разблокированы изначально
 let coalUnlocked = true;
 let trashUnlocked = true;
-let chipsUnlocked = true;
-let plasmaUnlocked = true;
+let chipsUnlocked = false;  // было true
+let plasmaUnlocked = false; // было true
 
 const collapsedState = {
     statusPanel: false,
@@ -52,11 +53,36 @@ const collapsedState = {
     questsPanel: false
 };
 
+// ДОБАВЛЕНО: состояние радио и голосовых настроек
+let radioState = {
+    playing: false,
+    volume: 0.5
+};
+
+let voiceSettings = {
+    enabled: true,
+    volume: 0.8,
+    rate: 1.0
+};
+
+// ДОБАВЛЕНО: сохранение журнала
+let logEntries = [];
+
+// ДОБАВЛЕНО: состояние вкладок
+let activeTab = 'inventory';
+
 function autoUnlockResources() {
-    if ((inventory['Уголь'] || 0) > 0) coalUnlocked = true;
-    if ((inventory['Мусор'] || 0) > 0) trashUnlocked = true;
-    if ((inventory['Чипы'] || 0) > 0) chipsUnlocked = true;
-    if ((inventory['Плазма'] || 0) > 0) plasmaUnlocked = true;
+    // Уголь и мусор всегда разблокированы
+    coalUnlocked = true;
+    trashUnlocked = true;
+    
+    // Чипы и плазма разблокируются только через задания
+    if (currentQuestIndex >= 2) { // после задания chips_discovery
+        chipsUnlocked = true;
+    }
+    if (currentQuestIndex >= 3) { // после задания plasma_breakthrough
+        plasmaUnlocked = true;
+    }
 }
 
 function sanitizeInventory() {

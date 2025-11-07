@@ -45,6 +45,31 @@ function log(message) {
     entry.textContent = `> ${message}`;
     logBox.appendChild(entry);
     
+    // ДОБАВЛЕНО: сохранение в журнал
+    logEntries.push(message);
+    if (logEntries.length > 100) {
+        logEntries.shift(); // ограничиваем размер журнала
+    }
+    
+    if (autoScrollEnabled) {
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+    
+    saveGame();
+}
+
+// ДОБАВЛЕНО: восстановление журнала при загрузке
+function restoreLog() {
+    if (!logBox) return;
+    
+    logBox.innerHTML = '';
+    logEntries.forEach(entry => {
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+        logEntry.textContent = `> ${entry}`;
+        logBox.appendChild(logEntry);
+    });
+    
     if (autoScrollEnabled) {
         logBox.scrollTop = logBox.scrollHeight;
     }
@@ -212,6 +237,7 @@ function render() {
     renderTrade();
     applyCollapsedState();
     updateVoiceControls();
+    restoreRadioState(); // ДОБАВЛЕНО: восстановление состояния радио
 }
 
 function updateVoiceControls() {
@@ -223,6 +249,14 @@ function updateVoiceControls() {
     }
     if (rateValue) {
         rateValue.textContent = `${Math.round(voiceAlerts.rate * 100)}%`;
+    }
+    
+    // ДОБАВЛЕНО: установка значений ползунков
+    if (voiceVolume) {
+        voiceVolume.value = voiceAlerts.volume * 100;
+    }
+    if (voiceRate) {
+        voiceRate.value = voiceAlerts.rate * 100;
     }
 }
 
@@ -381,12 +415,39 @@ function renderTrade() {
         buyItemsContainer.appendChild(buyItemElement);
     });
     
+    // ДОБАВЛЕНО: продажа мусора
+    if (trashUnlocked && (inventory['Мусор'] || 0) > 0) {
+        const trashPrice = calculateTrashPrice();
+        const trashItemElement = document.createElement('div');
+        trashItemElement.className = 'trade-item';
+        trashItemElement.innerHTML = `
+            <div class="trade-item-name">Мусор</div>
+            <div class="trade-item-price">${trashPrice}₸</div>
+            <div class="trade-item-amount">${inventory['Мусор']} шт.</div>
+        `;
+        
+        trashItemElement.addEventListener('click', () => {
+            if ((inventory['Мусор'] || 0) > 0) {
+                inventory['Мусор']--;
+                tng += trashPrice;
+                trashSold++;
+                
+                log(`Продан 1 Мусор за ${trashPrice}₸`);
+                voiceAlerts.alertSystem('Продан мусор');
+                updateCurrencyDisplay();
+                saveGame();
+                render();
+            }
+        });
+        
+        sellItemsContainer.appendChild(trashItemElement);
+    }
+    
     Object.entries(inventory).forEach(([itemName, count]) => {
-        if (itemName === 'ИИ' || (count || 0) <= 0) return;
+        if (itemName === 'ИИ' || itemName === 'Мусор' || (count || 0) <= 0) return;
         
         const isUnlocked = (
             (itemName === 'Уголь' && coalUnlocked) ||
-            (itemName === 'Мусор' && trashUnlocked) ||
             (itemName === 'Чипы' && chipsUnlocked) ||
             (itemName === 'Плазма' && plasmaUnlocked)
         );
@@ -396,12 +457,7 @@ function renderTrade() {
         const sellItemElement = document.createElement('div');
         sellItemElement.className = 'trade-item';
         
-        let price;
-        if (itemName === 'Мусор') {
-            price = calculateTrashPrice();
-        } else {
-            price = GameConfig.ECONOMY.TRADE[itemName]?.sell || 1;
-        }
+        let price = GameConfig.ECONOMY.TRADE[itemName]?.sell || 1;
         
         sellItemElement.innerHTML = `
             <div class="trade-item-name">${itemName}</div>
@@ -413,7 +469,6 @@ function renderTrade() {
             if ((inventory[itemName] || 0) > 0) {
                 inventory[itemName]--;
                 tng += price;
-                if (itemName === 'Мусор') trashSold++;
                 
                 log(`Продан 1 ${itemName} за ${price}₸`);
                 voiceAlerts.alertSystem(`Продан ${itemName}`);
@@ -455,7 +510,9 @@ function applyCollapsedState() {
 function clearLog() {
     if (!logBox) return;
     logBox.innerHTML = '';
+    logEntries = [];
     log('Журнал очищен');
+    saveGame();
 }
 
 function toggleAutoScroll() {
@@ -505,6 +562,10 @@ function switchTab(tabName) {
     
     if (tabContent) tabContent.classList.add('active');
     if (tabElement) tabElement.classList.add('active');
+    
+    // ДОБАВЛЕНО: сохранение активной вкладки
+    activeTab = tabName;
+    saveGame();
 }
 
 function toggleBuySellMode(isBuyMode) {
@@ -535,8 +596,10 @@ function initVoiceControls() {
     if (toggleVoiceBtn) {
         toggleVoiceBtn.addEventListener('click', () => {
             voiceAlerts.toggleEnabled();
+            voiceSettings.enabled = voiceAlerts.enabled;
             updateVoiceControls();
             log(voiceAlerts.enabled ? 'Голосовые оповещения включены' : 'Голосовые оповещения выключены');
+            saveGame();
         });
     }
     
@@ -544,7 +607,9 @@ function initVoiceControls() {
         voiceVolume.addEventListener('input', (e) => {
             const volume = e.target.value / 100;
             voiceAlerts.setVolume(volume);
+            voiceSettings.volume = volume;
             updateVoiceControls();
+            saveGame();
         });
     }
     
@@ -552,7 +617,28 @@ function initVoiceControls() {
         voiceRate.addEventListener('input', (e) => {
             const rate = e.target.value / 100;
             voiceAlerts.setRate(rate);
+            voiceSettings.rate = rate;
             updateVoiceControls();
+            saveGame();
         });
+    }
+}
+
+// ДОБАВЛЕНО: восстановление состояния радио
+function restoreRadioState() {
+    if (radioState.playing) {
+        audioPlayer.play();
+    } else {
+        audioPlayer.pause();
+    }
+    
+    if (volumeSlider) {
+        volumeSlider.value = radioState.volume;
+        audioPlayer.volume = radioState.volume;
+    }
+    
+    // Восстановление активной вкладки
+    if (activeTab) {
+        switchTab(activeTab);
     }
 }

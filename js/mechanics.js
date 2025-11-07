@@ -89,7 +89,6 @@ function handleRebelAttack() {
   
   if (severeAttack && upgrades.defenseLevel > 0 && Math.random() < GameConfig.DEFENSE.REFLECT_CHANCE) {
       upgrades.defenseLevel--;
-      log("⚠️ Уровень защиты понижен из-за атаки повстанцев");
   }
   
   log(message);
@@ -129,8 +128,9 @@ function mineResources() {
       return;
   }
   
-  let coalChance = GameConfig.MINING.BASE_CHANCES.COAL + (coalEnabled ? GameConfig.MINING.COAL_BONUS : 0) + (upgrades.mining * GameConfig.MINING.UPGRADE_BONUS);
-  let trashChance = GameConfig.MINING.BASE_CHANCES.TRASH + (coalEnabled ? 0.008 : 0) + (upgrades.mining * 0.005);
+  // ИСПРАВЛЕНО: шансы добычи зависят от разблокировки
+  let coalChance = coalUnlocked ? (GameConfig.MINING.BASE_CHANCES.COAL + (coalEnabled ? GameConfig.MINING.COAL_BONUS : 0) + (upgrades.mining * GameConfig.MINING.UPGRADE_BONUS)) : 0;
+  let trashChance = trashUnlocked ? (GameConfig.MINING.BASE_CHANCES.TRASH + (coalEnabled ? 0.008 : 0) + (upgrades.mining * 0.005)) : 0;
   let chipChance = chipsUnlocked ? (GameConfig.MINING.BASE_CHANCES.CHIPS + (upgrades.mining * 0.001)) : 0;
   let plasmaChance = plasmaUnlocked ? (GameConfig.MINING.BASE_CHANCES.PLASMA + (upgrades.mining * 0.002)) : 0;
   
@@ -138,14 +138,8 @@ function mineResources() {
   let foundSomething = false;
   let criticalBonus = isCritical ? GameConfig.MINING.CRITICAL_MULTIPLIER - 1 : 0;
 
-  if (Math.random() < coalChance) {
+  if (coalUnlocked && Math.random() < coalChance) {
       const amount = 1 + criticalBonus;
-      if (!coalUnlocked) {
-          coalUnlocked = true;
-          inventory['Уголь'] = 0;
-          log('🪨 Обнаружены угольные месторождения!');
-          voiceAlerts.alertSystem('Обнаружены угольные месторождения');
-      }
       inventory['Уголь'] += amount;
       criticalMining = isCritical;
       
@@ -156,14 +150,8 @@ function mineResources() {
       questProgress.totalMined += amount;
   }
   
-  if (Math.random() < trashChance) {
+  if (trashUnlocked && Math.random() < trashChance) {
       const amount = 1 + criticalBonus;
-      if (!trashUnlocked) {
-          trashUnlocked = true;
-          inventory['Мусор'] = 0;
-          log('♻️ Обнаружены залежи перерабатываемых материалов!');
-          voiceAlerts.alertSystem('Обнаружены перерабатываемые материалы');
-      }
       inventory['Мусор'] += amount;
       log(`♻️ Найден${amount > 1 ? 'о' : ''} ${amount} мусора${isCritical ? ' ✨' : ''}`);
       voiceAlerts.alertResourceFound('Мусор', amount, isCritical);
@@ -196,6 +184,10 @@ function mineResources() {
   
   if (criticalMining) {
       criticalMining = false;
+  }
+  
+  if (!foundSomething) {
+      log('❌ Ресурсы не найдены');
   }
   
   if (foundSomething && currentQuestIndex < StoryQuests.length) {

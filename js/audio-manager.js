@@ -10,19 +10,30 @@ function setupRadioPlayer() {
     
     playBtn.addEventListener('click', () => {
         audioPlayer.play();
+        radioState.playing = true;
         log('Радио включено');
         voiceAlerts.alertSystem('Радио включено');
+        saveGame();
     });
     
     pauseBtn.addEventListener('click', () => {
         audioPlayer.pause();
+        radioState.playing = false;
         log('Радио выключено');
         voiceAlerts.alertSystem('Радио выключено');
+        saveGame();
     });
     
     volumeSlider.addEventListener('input', (e) => {
-        audioPlayer.volume = e.target.value;
+        const volume = parseFloat(e.target.value);
+        audioPlayer.volume = volume;
+        radioState.volume = volume;
+        saveGame();
     });
     
-    audioPlayer.volume = volumeSlider.value;
+    // Восстановление сохраненного состояния
+    audioPlayer.volume = radioState.volume;
+    if (volumeSlider) {
+        volumeSlider.value = radioState.volume;
+    }
 }
