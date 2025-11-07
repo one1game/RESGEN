@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CoreBox 2.9</title>
+  <title>CoreBox 3.0</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -22,7 +22,7 @@
   </div>
 
   <div class="header">
-    <h1>CoreBox 2.9</h1>
+    <h1>CoreBox 3.0</h1>
     
     <div class="stats-container">
       <div class="stat-card">
@@ -59,6 +59,25 @@
           <div class="status-item">
             <div>Повстанцы</div>
             <div id="rebelStatus" class="status-value">Низкий</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>Голосовые оповещения</span>
+        <span class="collapse-icon">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="voice-controls">
+          <button id="toggleVoiceBtn" class="btn">Выключить голос</button>
+          <div class="voice-sliders">
+            <label>Громкость: <span id="volumeValue">80%</span></label>
+            <input type="range" id="voiceVolume" min="0" max="100" value="80">
+            
+            <label>Скорость: <span id="rateValue">100%</span></label>
+            <input type="range" id="voiceRate" min="50" max="200" value="100">
           </div>
         </div>
       </div>
@@ -242,12 +261,13 @@
   </div>
 
   <script src="js/config.js"></script>
-  <script src="js/gameState.js"></script>
+  <script src="js/game-state.js"></script>
   <script src="js/mechanics.js"></script>
   <script src="js/ui.js"></script>
-  <script src="js/saveManager.js"></script>
-  <script src="js/questSystem.js"></script>
-  <script src="js/audioManager.js"></script>
+  <script src="js/save-manager.js"></script>
+  <script src="js/quest-system.js"></script>
+  <script src="js/audio-manager.js"></script>
+  <script src="js/voice-alerts.js"></script>
   <script src="js/init.js"></script>
 </body>
 </html>

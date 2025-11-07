@@ -1,4 +1,8 @@
 // ======== init.js ========
+
+// ======== init.js ========
+
+// Игровой цикл
 function gameLoop() {
   const now = Date.now();
   const secondsPassed = Math.floor((now - lastUpdateTime) / 1000);
@@ -7,97 +11,94 @@ function gameLoop() {
   gameTime -= secondsPassed;
   
   while (gameTime <= 0) {
-      gameTime += GameConfig.CYCLE_DURATION;
-      const wasNight = !isDay;
-      isDay = !isDay;
+    gameTime += CYCLE_DURATION;
+    const wasNight = !isDay;
+    isDay = !isDay;
+    
+    if (wasNight) {
+      nightsSurvived++;
       
-      if (wasNight) {
-          nightsSurvived++;
-          
-          if (coalEnabled) {
-              nightsWithCoal++;
-              questProgress.nightsWithCoal++;
-              
-              if ((inventory['Уголь'] || 0) > 0) {
-                  inventory['Уголь']--;
-                  log('🌙 Ночь - сгорел 1 уголь');
-              } else {
-                  coalEnabled = false;
-                  log('🌙 Ночь - уголь закончился, ТЭЦ отключена');
-                  voiceAlerts.alertSystem('Уголь закончился, ТЭЦ отключена', true);
-              }
-          }
-          
-          const defensePower = upgrades.defense ? GameConfig.DEFENSE.BASE_POWER + (upgrades.defenseLevel * GameConfig.DEFENSE.LEVEL_BONUS) : 0;
-          if (Math.random() * 100 > defensePower) {
-              handleRebelAttack();
-          } else if (upgrades.defense) {
-              log('🌙 Система защиты отразила атаку повстанцев');
-              voiceAlerts.alertSystem('Защита отразила атаку повстанцев');
-              successfulDefenses++;
-              questProgress.successfulDefenses++;
-          }
-          
-          if (Math.random() < GameConfig.REBELS.BASE_ATTACK_CHANCE) {
-              rebelActivity++;
-          }
-          
-          checkQuestsProgress();
-      } else {
-          rebelActivity = Math.max(0, rebelActivity - GameConfig.REBELS.ACTIVITY_DECREASE);
+      if (coalEnabled) {
+        nightsWithCoal++;
+        questProgress.nightsWithCoal++;
+        
+        if ((inventory['Уголь'] || 0) > 0) {
+          inventory['Уголь']--;
+          log('🌙 Ночь - сгорел 1 уголь');
+        } else {
+          coalEnabled = false;
+          log('🌙 Ночь - уголь закончился, ТЭЦ отключена');
+        }
       }
       
-      log(isDay ? '☀️ Наступил день' : '🌙 Наступила ночь');
-      if (isDay) {
-          voiceAlerts.alertSystem('Наступил день');
-      } else {
-          voiceAlerts.alertSystem('Наступила ночь');
+      // Атака повстанцев
+      const defensePower = upgrades.defense ? 30 + (upgrades.defenseLevel * 15) : 0;
+      if (Math.random() * 100 > defensePower) {
+        handleRebelAttack();
+      } else if (upgrades.defense) {
+        log('🌙 Система защиты отразила атаку повстанцев');
+        successfulDefenses++;
+        questProgress.successfulDefenses++;
       }
-      saveGame();
+      
+      // Увеличиваем активность повстанцев ночью
+      if (Math.random() < 0.6) {
+        rebelActivity++;
+      }
+      
+      // Проверка заданий, связанных с ночью
+      checkQuestsProgress();
+    } else {
+      // День - снижаем активность повстанцев
+      rebelActivity = Math.max(0, rebelActivity - 1);
+    }
+    
+    log(isDay ? '☀️ Наступил день' : '🌙 Наступила ночь');
+    saveGame();
   }
 
+  // Пассивный доход
   passiveCounter += secondsPassed;
   while (passiveCounter >= 10) {
-      passiveCounter -= 10;
-      const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
-      if (aiActive) {
-          // ИСПРАВЛЕНО: пассивная добыча учитывает разблокировку
-          const coalChance = coalUnlocked ? (GameConfig.MINING.PASSIVE_CHANCES.COAL + (upgrades.mining * 0.001)) : 0;
-          const trashChance = trashUnlocked ? (GameConfig.MINING.PASSIVE_CHANCES.TRASH + (upgrades.mining * 0.001)) : 0;
-          const chipChance = chipsUnlocked ? GameConfig.MINING.PASSIVE_CHANCES.CHIPS : 0;
-          const plasmaChance = plasmaUnlocked ? GameConfig.MINING.PASSIVE_CHANCES.PLASMA : 0;
-          
-          if (coalUnlocked && Math.random() < coalChance) {
-              inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
-              totalMined++;
-              questProgress.totalMined++;
-          }
-          if (trashUnlocked && Math.random() < trashChance) {
-              inventory['Мусор'] = (inventory['Мусор'] || 0) + 1;
-              totalMined++;
-              questProgress.totalMined++;
-          }
-          if (chipsUnlocked && Math.random() < chipChance) {
-              inventory['Чипы'] = (inventory['Чипы'] || 0) + 1;
-              totalMined++;
-              questProgress.totalMined++;
-          }
-          if (plasmaUnlocked && Math.random() < plasmaChance) {
-              inventory['Плазма'] = (inventory['Плазма'] || 0) + 1;
-              totalMined++;
-              questProgress.totalMined++;
-          }
-          
-          saveGame();
-          checkQuestsProgress();
+    passiveCounter -= 10;
+    const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
+    if (aiActive) {
+      const coalChance = 0.003 + (upgrades.mining * 0.001);
+      const trashChance = 0.007 + (upgrades.mining * 0.001);
+      const chipChance = 0.001;
+      const plasmaChance = 0.0005;
+      
+      if (Math.random() < coalChance) {
+        inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;
+        totalMined++;
+        questProgress.totalMined++;
       }
+      if (Math.random() < trashChance) {
+        inventory['Мусор'] = (inventory['Мусор'] || 0) + 1;
+        totalMined++;
+        questProgress.totalMined++;
+      }
+      if (Math.random() < chipChance) {
+        inventory['Чипы'] = (inventory['Чипы'] || 0) + 1;
+        totalMined++;
+        questProgress.totalMined++;
+      }
+      if (Math.random() < plasmaChance) {
+        inventory['Плазма'] = (inventory['Плазма'] || 0) + 1;
+        totalMined++;
+        questProgress.totalMined++;
+      }
+      
+      saveGame();
+      checkQuestsProgress();
+    }
   }
 
   render();
 }
 
+// Инициализация обработчиков событий
 function initEventListeners() {
-  const mineBtn = document.getElementById('mineBtn');
   if (mineBtn) mineBtn.addEventListener('click', mineResources);
   if (upgradeMiningBtn) upgradeMiningBtn.addEventListener('click', upgradeMining);
   if (upgradeDefenseBtn) upgradeDefenseBtn.addEventListener('click', activateDefense);
@@ -108,33 +109,26 @@ function initEventListeners() {
   if (sellModeBtn) sellModeBtn.addEventListener('click', () => toggleBuySellMode(false));
   
   document.querySelectorAll('.panel-title').forEach(title => {
-      title.addEventListener('click', (e) => {
-          if (e.target.classList.contains('collapse-icon')) return;
-          const panel = title.closest('.panel');
-          if (panel) toggleCollapse(panel);
-      });
+    title.addEventListener('click', (e) => {
+      if (e.target.classList.contains('collapse-icon')) return;
+      const panel = title.closest('.panel');
+      if (panel) toggleCollapse(panel);
+    });
   });
   
   if (tabs.length > 0) {
-      tabs.forEach(tab => {
-          tab.addEventListener('click', () => {
-              switchTab(tab.dataset.tab);
-          });
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        switchTab(tab.dataset.tab);
       });
+    });
   }
   
   initFloatingButton();
-  initVoiceControls();
 }
 
 function initGame() {
   loadGame();
-  
-  // ДОБАВЛЕНО: восстановление голосовых настроек
-  voiceAlerts.enabled = voiceSettings.enabled;
-  voiceAlerts.setVolume(voiceSettings.volume);
-  voiceAlerts.setRate(voiceSettings.rate);
-  
   initEventListeners();
   setupRadioPlayer();
   
@@ -143,11 +137,10 @@ function initGame() {
   
   setInterval(gameLoop, 1000);
   
-  log(`Система CoreBox ${GameConfig.VERSION} инициализирована`);
+  log('Система CoreBox 2.9 инициализирована');
   log('Добро пожаловать в систему добычи ресурсов!');
   log('Ваша задача - восстановить работу комплекса и защитить его от повстанцев');
-  
-  voiceAlerts.alertSystem(`Система CoreBox ${GameConfig.VERSION} инициализирована`);
 }
 
+// Запуск игры при загрузке DOM
 document.addEventListener('DOMContentLoaded', initGame);
