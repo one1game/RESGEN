@@ -53,10 +53,21 @@ const collapsedState = {
 };
 
 function autoUnlockResources() {
-  if ((inventory['Уголь'] || 0) > 0) coalUnlocked = true;
-  if ((inventory['Мусор'] || 0) > 0) trashUnlocked = true;
-  if ((inventory['Чипы'] || 0) > 0) chipsUnlocked = true;
-  if ((inventory['Плазма'] || 0) > 0) plasmaUnlocked = true;
+  // Уголь всегда разблокирован
+  coalUnlocked = true;
+  
+  // Мусор всегда разблокирован, но его нельзя покупать (только продавать)
+  trashUnlocked = true;
+  
+  // Чипы разблокируются только после задания chips_discovery (3-е задание)
+  if (currentQuestIndex >= 2) { // после chips_discovery
+      chipsUnlocked = true;
+  }
+  
+  // Плазма разблокируется только после задания plasma_breakthrough (4-е задание)  
+  if (currentQuestIndex >= 3) { // после plasma_breakthrough
+      plasmaUnlocked = true;
+  }
 }
 
 function sanitizeInventory() {
