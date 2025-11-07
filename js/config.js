@@ -10,20 +10,18 @@ const GameConfig = {
   MINING: {
       BASE_CHANCES: {
           COAL: 0.015,
-          TRASH: 0.01,
-          CHIPS: 0.01,
-          PLASMA: 0.01
+          TRASH: 0.01,  
+          CHIPS: 0.002,
+          PLASMA: 0.001
       },
-      UPGRADE_BONUS: 0.008,
-      COAL_BONUS: 0.015,
-      CRITICAL_CHANCE: 0.03,
-      CRITICAL_UPGRADE_BONUS: 0.005,
-      CRITICAL_MULTIPLIER: 2,
+      UPGRADE_BONUS: 0.005,
+      COAL_BONUS: 0.01,
+      CRITICAL_CHANCE: 0.02,
       PASSIVE_CHANCES: {
-          COAL: 0.003,
-          TRASH: 0.007,
-          CHIPS: 0.001,
-          PLASMA: 0.0005
+          COAL: 0.002,
+          TRASH: 0.005,
+          CHIPS: 0.0003,
+          PLASMA: 0.0001
       }
   },
   
@@ -39,22 +37,26 @@ const GameConfig = {
       DISABLE_CHANCE: 0.25
   },
   
-  // === НАСТРОЙКИ ПОВСТАНЦЕВ ===
+  // === НАСТРОЙКИ ПОВСТАНЦЕВ - ОПАСНЫЕ! ===
   REBELS: {
-      BASE_ATTACK_CHANCE: 0.6,
-      ACTIVITY_INCREASE: 1,
-      ACTIVITY_DECREASE: 1,
-      SEVERE_ATTACK_BONUS: 2,
+      BASE_ATTACK_CHANCE: 0.9,           // 90% шанс атаки ночью
+      ACTIVITY_INCREASE: 2,              // +2 к активности после атаки
+      ACTIVITY_DECREASE: 0.5,            // -0.5 к активности днем
+      SEVERE_ATTACK_BONUS: 3,            // +3 за сильную атаку
+      
+      // Шансы разных типов атак
       ATTACK_CHANCES: {
-          STEAL_RESOURCES: 0.4,
-          DAMAGE_MINING: 0.4,
-          DESTROY_TRASH: 1.0,
-          DISABLE_DEFENSE: 0.25,
-          HACK_AI: 0.08
+          STEAL_RESOURCES: 0.5,          // 50% кража ресурсов
+          DAMAGE_MINING: 0.6,            // 60% повреждение добычи  
+          DESTROY_TRASH: 1.0,            // 100% если есть мусор
+          DISABLE_DEFENSE: 0.4,          // 40% отключение защиты
+          HACK_AI: 0.15                  // 15% взлом ИИ
       },
-      STEAL_AMOUNT: { min: 1, max: 4 },
-      DESTROY_PERCENT: { min: 0.3, max: 0.6 },
-      AI_DISABLE_TIME: { base: 180000, bonus: 120000 }
+      
+      // Параметры атак
+      STEAL_AMOUNT: { min: 3, max: 8 },  // Кража 3-8 ресурсов
+      DESTROY_PERCENT: { min: 0.5, max: 0.8 }, // Уничтожение 50-80% мусора
+      AI_DISABLE_TIME: { base: 300000, bonus: 180000 } // 5-8 минут
   },
   
   // === НАСТРОЙКИ ЭКОНОМИКИ ===
@@ -112,7 +114,7 @@ const GameConfig = {
           }
       }
   }
-};
+};  // ← ЗАКРЫВАЮЩАЯ ФИГУРНАЯ СКОБКА ДЛЯ GameConfig
 
 // СЮЖЕТНЫЕ ЗАДАНИЯ
 const StoryQuests = [
@@ -171,4 +173,4 @@ const StoryQuests = [
       flavorText: 'Боевые системы активированы. Туррели готовы к отражению атак.',
       specialEffect: 'Повстанцы атакуют реже но с большей силой'
   }
-];
+];  // ← КОНЕЦ МАССИВА КВЕСТОВ
