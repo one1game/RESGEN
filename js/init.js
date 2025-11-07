@@ -24,36 +24,38 @@ function gameLoop() {
               } else {
                   coalEnabled = false;
                   log('🌙 Ночь - уголь закончился, ТЭЦ отключена');
+                  voiceAlerts.alertSystem('Уголь закончился, ТЭЦ отключена', true);
               }
           }
           
-          // Атака повстанцев
           const defensePower = upgrades.defense ? GameConfig.DEFENSE.BASE_POWER + (upgrades.defenseLevel * GameConfig.DEFENSE.LEVEL_BONUS) : 0;
           if (Math.random() * 100 > defensePower) {
               handleRebelAttack();
           } else if (upgrades.defense) {
               log('🌙 Система защиты отразила атаку повстанцев');
+              voiceAlerts.alertSystem('Защита отразила атаку повстанцев');
               successfulDefenses++;
               questProgress.successfulDefenses++;
           }
           
-          // Увеличиваем активность повстанцев ночью
           if (Math.random() < GameConfig.REBELS.BASE_ATTACK_CHANCE) {
               rebelActivity++;
           }
           
-          // Проверка заданий, связанных с ночью
           checkQuestsProgress();
       } else {
-          // День - снижаем активность повстанцев
           rebelActivity = Math.max(0, rebelActivity - GameConfig.REBELS.ACTIVITY_DECREASE);
       }
       
       log(isDay ? '☀️ Наступил день' : '🌙 Наступила ночь');
+      if (isDay) {
+          voiceAlerts.alertSystem('Наступил день');
+      } else {
+          voiceAlerts.alertSystem('Наступила ночь');
+      }
       saveGame();
   }
 
-  // Пассивный доход
   passiveCounter += secondsPassed;
   while (passiveCounter >= 10) {
       passiveCounter -= 10;
@@ -121,6 +123,7 @@ function initEventListeners() {
   }
   
   initFloatingButton();
+  initVoiceControls();
 }
 
 function initGame() {
@@ -136,7 +139,8 @@ function initGame() {
   log(`Система CoreBox ${GameConfig.VERSION} инициализирована`);
   log('Добро пожаловать в систему добычи ресурсов!');
   log('Ваша задача - восстановить работу комплекса и защитить его от повстанцев');
+  
+  voiceAlerts.alertSystem(`Система CoreBox ${GameConfig.VERSION} инициализирована`);
 }
 
-// Запуск игры при загрузке DOM
 document.addEventListener('DOMContentLoaded', initGame);

@@ -37,6 +37,10 @@ function handleRebelAttack() {
                   Math.floor(Math.random() * (GameConfig.REBELS.STEAL_AMOUNT.max - upgrades.defenseLevel * 0.5)) + GameConfig.REBELS.STEAL_AMOUNT.min);
               inventory[stolenResource] -= amount;
               message += ` Украдено ${amount} ${stolenResource}`;
+              voiceAlerts.alertRebelAttack('steal', { 
+                  resource: stolenResource, 
+                  amount: amount 
+              });
           }
           break;
           
@@ -45,6 +49,7 @@ function handleRebelAttack() {
               const levelsLost = Math.random() < 0.2 ? 2 : 1;
               upgrades.mining = Math.max(0, upgrades.mining - levelsLost);
               message += ` Повреждена система добычи! Уровень понижен на ${levelsLost}`;
+              voiceAlerts.alertRebelAttack('damage');
               severeAttack = levelsLost > 1;
           }
           break;
@@ -55,6 +60,7 @@ function handleRebelAttack() {
               const destroyed = Math.floor((inventory['Мусор'] || 0) * destroyPercentage);
               inventory['Мусор'] -= destroyed;
               message += ` Уничтожено ${destroyed} мусора (${Math.round(destroyPercentage * 100)}%)`;
+              voiceAlerts.alertRebelAttack('destroy', { amount: destroyed });
           }
           break;
           
@@ -62,6 +68,7 @@ function handleRebelAttack() {
           if (upgrades.defense && Math.random() < GameConfig.REBELS.ATTACK_CHANCES.DISABLE_DEFENSE) {
               upgrades.defense = false;
               message += " Туррели защиты выведены из строя!";
+              voiceAlerts.alertRebelAttack('disable');
               severeAttack = true;
           }
           break;
@@ -72,6 +79,7 @@ function handleRebelAttack() {
               aiDisabledUntil = Date.now() + disableTime;
               const minutes = Math.ceil(disableTime / 60000);
               message += ` Взлом ИИ! Система неактивна ${minutes} минут`;
+              voiceAlerts.alertRebelAttack('hack', { minutes: minutes });
               severeAttack = true;
           }
           break;
@@ -92,11 +100,13 @@ function handleCoalInteraction() {
   if (coalEnabled) {
       coalEnabled = false;
       log('⚡ Угольная ТЭЦ отключена');
+      voiceAlerts.alertSystem('Угольная ТЭЦ отключена');
   } else {
       if ((inventory['Уголь'] || 0) > 0) {
           inventory['Уголь']--;
           coalEnabled = true;
           log('⚡ Угольная ТЭЦ активирована (-1 уголь)');
+          voiceAlerts.alertSystem('Угольная ТЭЦ активирована');
           
           if (currentQuestIndex < StoryQuests.length && 
               StoryQuests[currentQuestIndex].type === 'activate_coal') {
@@ -104,6 +114,7 @@ function handleCoalInteraction() {
           }
       } else {
           log('❌ Нет угля для активации ТЭЦ!');
+          voiceAlerts.alertSystem('Нет угля для активации ТЭЦ', true);
       }
   }
   saveGame();
@@ -114,6 +125,7 @@ function mineResources() {
   const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
   if (!aiActive) {
       log('❌ ИИ неактивен! Нужна энергия для добычи');
+      voiceAlerts.alertSystem('ИИ неактивен! Нужна энергия', true);
       return;
   }
   
@@ -132,11 +144,13 @@ function mineResources() {
           coalUnlocked = true;
           inventory['Уголь'] = 0;
           log('🪨 Обнаружены угольные месторождения!');
+          voiceAlerts.alertSystem('Обнаружены угольные месторождения');
       }
       inventory['Уголь'] += amount;
       criticalMining = isCritical;
       
       log(`🪨 Найден${amount > 1 ? 'о' : ''} ${amount} угля${isCritical ? ' ✨КРИТ!' : ''}`);
+      voiceAlerts.alertResourceFound('Уголь', amount, isCritical);
       foundSomething = true;
       totalMined += amount;
       questProgress.totalMined += amount;
@@ -148,9 +162,11 @@ function mineResources() {
           trashUnlocked = true;
           inventory['Мусор'] = 0;
           log('♻️ Обнаружены залежи перерабатываемых материалов!');
+          voiceAlerts.alertSystem('Обнаружены перерабатываемые материалы');
       }
       inventory['Мусор'] += amount;
       log(`♻️ Найден${amount > 1 ? 'о' : ''} ${amount} мусора${isCritical ? ' ✨' : ''}`);
+      voiceAlerts.alertResourceFound('Мусор', amount, isCritical);
       foundSomething = true;
       totalMined += amount;
       questProgress.totalMined += amount;
@@ -161,6 +177,7 @@ function mineResources() {
       inventory['Чипы'] += amount;
       criticalMining = true;
       log(`🎛️ Найден${amount > 1 ? 'о' : ''} ${amount} чип${amount > 1 ? 'ов' : ''}${isCritical ? ' ✨' : ''}`);
+      voiceAlerts.alertResourceFound('Чипы', amount, isCritical);
       foundSomething = true;
       totalMined += amount;
       questProgress.totalMined += amount;
@@ -171,6 +188,7 @@ function mineResources() {
       inventory['Плазма'] += amount;
       criticalMining = true;
       log(`⚡ Найден${amount > 1 ? 'о' : ''} ${amount} плазм${amount > 1 ? 'ы' : 'а'}${isCritical ? ' ✨' : ''}`);
+      voiceAlerts.alertResourceFound('Плазма', amount, isCritical);
       foundSomething = true;
       totalMined += amount;
       questProgress.totalMined += amount;
@@ -196,6 +214,7 @@ function upgradeMining() {
       
       log(`🚀 Улучшена добыча до уровня ${upgrades.mining}! (-${requiredChips} чипов)`);
       log(`💫 Теперь +${upgrades.mining}% к шансам добычи`);
+      voiceAlerts.alertSystem(`Улучшена добыча до уровня ${upgrades.mining}`);
       
       if (currentQuestIndex < StoryQuests.length && 
           StoryQuests[currentQuestIndex].type === 'upgrade_mining') {
@@ -206,8 +225,10 @@ function upgradeMining() {
       render();
   } else if (upgrades.mining >= GameConfig.UPGRADES.MINING.MAX_LEVEL) {
       log('✅ Добыча уже максимально улучшена!');
+      voiceAlerts.alertSystem('Добыча уже максимально улучшена');
   } else {
       log(`❌ Недостаточно чипов (нужно ${requiredChips})`);
+      voiceAlerts.alertSystem(`Недостаточно чипов: нужно ${requiredChips}`, true);
   }
 }
 
@@ -218,6 +239,7 @@ function activateDefense() {
       
       log('🛡️ Система защиты активирована! (-3 плазмы)');
       log('✅ Теперь туррели будут отражать атаки повстанцев');
+      voiceAlerts.alertSystem('Система защиты активирована');
       
       if (currentQuestIndex < StoryQuests.length && 
           StoryQuests[currentQuestIndex].type === 'activate_defense') {
@@ -228,8 +250,10 @@ function activateDefense() {
       render();
   } else if (upgrades.defense) {
       log('✅ Защита уже активирована');
+      voiceAlerts.alertSystem('Защита уже активирована');
   } else {
       log('❌ Недостаточно плазмы (нужно 3)');
+      voiceAlerts.alertSystem('Недостаточно плазмы для активации защиты', true);
   }
 }
 
@@ -249,12 +273,15 @@ function upgradeDefense() {
       log(`🛡️ Улучшена защита до уровня ${upgrades.defenseLevel}!`);
       log(`📊 Мощность защиты: ${defensePower}%`);
       log(`💸 Стоимость: -${requiredChips} чипов, -${requiredPlasma} плазмы`);
+      voiceAlerts.alertSystem(`Улучшена защита до уровня ${upgrades.defenseLevel}`);
       
       saveGame();
       render();
   } else if (upgrades.defenseLevel >= GameConfig.DEFENSE.MAX_LEVEL) {
       log('✅ Защита уже максимального уровня!');
+      voiceAlerts.alertSystem('Защита уже максимального уровня');
   } else {
       log(`❌ Недостаточно ресурсов (чипы: ${requiredChips}, плазма: ${requiredPlasma})`);
+      voiceAlerts.alertSystem(`Недостаточно ресурсов для улучшения защиты`, true);
   }
 }
