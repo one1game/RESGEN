@@ -344,8 +344,11 @@ function renderTrade() {
     sellItemsContainer.innerHTML = '';
     
     Object.entries(GameConfig.ECONOMY.TRADE).forEach(([itemName, item]) => {
-      // ДЛЯ ТЕСТИРОВАНИЯ: показываем ВСЕ товары независимо от разблокировки
-      const isUnlocked = true; // принудительно включаем все товары
+      const isUnlocked = (
+          (itemName === 'Уголь' && coalUnlocked) ||
+          (itemName === 'Чипы' && chipsUnlocked) ||
+          (itemName === 'Плазма' && plasmaUnlocked)
+      );
       
       if (!isUnlocked) return;
       
