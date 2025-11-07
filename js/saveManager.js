@@ -78,10 +78,11 @@ function loadGame() {
               resourcesMined: {}
           };
           
+          // ИСПРАВЛЕНО: правильные значения по умолчанию
           coalUnlocked = data.coalUnlocked ?? true;
           trashUnlocked = data.trashUnlocked ?? true;
-          chipsUnlocked = data.chipsUnlocked ?? true;
-          plasmaUnlocked = data.plasmaUnlocked ?? true;
+          chipsUnlocked = data.chipsUnlocked ?? false;  // ← false по умолчанию!
+          plasmaUnlocked = data.plasmaUnlocked ?? false; // ← false по умолчанию!
           
           if (data.storyQuests) {
               data.storyQuests.forEach((savedQuest, index) => {
@@ -101,7 +102,9 @@ function loadGame() {
           log('Ошибка загрузки сохранения');
       }
   } else {
+      // ИСПРАВЛЕНО: для новой игры вызываем инициализацию разблокировок
       sanitizeInventory();
+      initNewGameUnlocks();
   }
 }
 

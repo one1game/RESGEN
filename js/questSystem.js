@@ -27,6 +27,7 @@ function completeCurrentQuest() {
       log(`✅ Задание "${quest.title}" выполнено! +${quest.reward}₸`);
       showStoryMessage(quest.id);
       
+      // ИСПРАВЛЕНО: разблокировка ТОЛЬКО при выполнении конкретных заданий
       if (quest.id === 'chips_discovery') {
           chipsUnlocked = true;
           inventory['Чипы'] = 0;

@@ -38,11 +38,11 @@ let questProgress = {
   resourcesMined: {}
 };
 
-// ИСПРАВЛЕНО: чипы и плазма заблокированы изначально
-let coalUnlocked = true;
-let trashUnlocked = true;
-let chipsUnlocked = false;
-let plasmaUnlocked = false;
+// ИСПРАВЛЕНО: только объявление без инициализации
+let coalUnlocked;
+let trashUnlocked;
+let chipsUnlocked;
+let plasmaUnlocked;
 
 const collapsedState = {
   statusPanel: false,
@@ -53,26 +53,12 @@ const collapsedState = {
   questsPanel: false
 };
 
-function autoUnlockResources() {
-  // Уголь всегда разблокирован
+// ИСПРАВЛЕННАЯ функция - вызывается ТОЛЬКО для новых игр
+function initNewGameUnlocks() {
   coalUnlocked = true;
-  
-  // Мусор всегда разблокирован (для продажи)
   trashUnlocked = true;
-  
-  // Чипы разблокируются только после задания chips_discovery (3-е задание)
-  if (currentQuestIndex >= 2) {
-      chipsUnlocked = true;
-  } else {
-      chipsUnlocked = false; // явно блокируем до задания
-  }
-  
-  // Плазма разблокируется только после задания plasma_breakthrough (4-е задание)  
-  if (currentQuestIndex >= 3) {
-      plasmaUnlocked = true;
-  } else {
-      plasmaUnlocked = false; // явно блокируем до задания
-  }
+  chipsUnlocked = false;
+  plasmaUnlocked = false;
 }
 
 function sanitizeInventory() {
@@ -91,5 +77,5 @@ function sanitizeInventory() {
       inventory[key] = Number(inventory[key]) || defaultInventory[key];
   });
   
-  autoUnlockResources();
+  // УДАЛЕН вызов autoUnlockResources() - теперь разблокировки управляются через загрузку и задания
 }
