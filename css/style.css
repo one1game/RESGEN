@@ -214,6 +214,32 @@ h1::after {
   padding: 0;
 }
 
+/* Стили для голосовых оповещений */
+.voice-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.voice-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.voice-sliders label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.voice-sliders input[type="range"] {
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* Инвентарь */
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(6, var(--slot-size));

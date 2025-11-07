@@ -17,6 +17,8 @@ const GameConfig = {
       UPGRADE_BONUS: 0.005,
       COAL_BONUS: 0.01,
       CRITICAL_CHANCE: 0.02,
+      CRITICAL_UPGRADE_BONUS: 0.005,
+      CRITICAL_MULTIPLIER: 2,
       PASSIVE_CHANCES: {
           COAL: 0.002,
           TRASH: 0.005,
@@ -39,24 +41,20 @@ const GameConfig = {
   
   // === НАСТРОЙКИ ПОВСТАНЦЕВ - ОПАСНЫЕ! ===
   REBELS: {
-      BASE_ATTACK_CHANCE: 0.9,           // 90% шанс атаки ночью
-      ACTIVITY_INCREASE: 2,              // +2 к активности после атаки
-      ACTIVITY_DECREASE: 0.5,            // -0.5 к активности днем
-      SEVERE_ATTACK_BONUS: 3,            // +3 за сильную атаку
-      
-      // Шансы разных типов атак
+      BASE_ATTACK_CHANCE: 0.9,
+      ACTIVITY_INCREASE: 2,
+      ACTIVITY_DECREASE: 0.5,
+      SEVERE_ATTACK_BONUS: 3,
       ATTACK_CHANCES: {
-          STEAL_RESOURCES: 0.5,          // 50% кража ресурсов
-          DAMAGE_MINING: 0.6,            // 60% повреждение добычи  
-          DESTROY_TRASH: 1.0,            // 100% если есть мусор
-          DISABLE_DEFENSE: 0.4,          // 40% отключение защиты
-          HACK_AI: 0.15                  // 15% взлом ИИ
+          STEAL_RESOURCES: 0.5,
+          DAMAGE_MINING: 0.6,
+          DESTROY_TRASH: 1.0,
+          DISABLE_DEFENSE: 0.4,
+          HACK_AI: 0.15
       },
-      
-      // Параметры атак
-      STEAL_AMOUNT: { min: 3, max: 8 },  // Кража 3-8 ресурсов
-      DESTROY_PERCENT: { min: 0.5, max: 0.8 }, // Уничтожение 50-80% мусора
-      AI_DISABLE_TIME: { base: 300000, bonus: 180000 } // 5-8 минут
+      STEAL_AMOUNT: { min: 3, max: 8 },
+      DESTROY_PERCENT: { min: 0.5, max: 0.8 },
+      AI_DISABLE_TIME: { base: 300000, bonus: 180000 }
   },
   
   // === НАСТРОЙКИ ЭКОНОМИКИ ===
@@ -114,7 +112,7 @@ const GameConfig = {
           }
       }
   }
-};  // ← ЗАКРЫВАЮЩАЯ ФИГУРНАЯ СКОБКА ДЛЯ GameConfig
+};
 
 // СЮЖЕТНЫЕ ЗАДАНИЯ
 const StoryQuests = [
@@ -173,4 +171,4 @@ const StoryQuests = [
       flavorText: 'Боевые системы активированы. Туррели готовы к отражению атак.',
       specialEffect: 'Повстанцы атакуют реже но с большей силой'
   }
-];  // ← КОНЕЦ МАССИВА КВЕСТОВ
+];

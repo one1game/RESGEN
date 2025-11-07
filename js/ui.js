@@ -30,6 +30,13 @@ const tabs = document.querySelectorAll('.tab');
 const tabContents = document.querySelectorAll('.tab-content');
 const collapseButtons = document.querySelectorAll('.panel-title');
 
+// Голосовые контролы
+const toggleVoiceBtn = document.getElementById('toggleVoiceBtn');
+const voiceVolume = document.getElementById('voiceVolume');
+const voiceRate = document.getElementById('voiceRate');
+const volumeValue = document.getElementById('volumeValue');
+const rateValue = document.getElementById('rateValue');
+
 function log(message) {
     if (!logBox) return;
     
@@ -61,7 +68,6 @@ function updateDefenseDisplay() {
 }
 
 function render() {
-    // === ОБНОВЛЕНИЕ ОСНОВНЫХ ПОКАЗАТЕЛЕЙ ===
     miningBonusSpan.textContent = `+${upgrades.mining}%`;
     miningLevel.textContent = upgrades.mining;
     miningProgress.style.width = `${upgrades.mining * 10}%`;
@@ -116,7 +122,7 @@ function render() {
 
     autoScrollBtn.textContent = autoScrollEnabled ? 'Автоскролл ✓' : 'Автоскролл';
 
-    // === ОТРИСОВКА ИНВЕНТАРЯ ===
+    // Отрисовка инвентаря
     inventoryDiv.innerHTML = '';
 
     const resourceOrder = GameConfig.RESOURCES.ORDER;
@@ -205,6 +211,19 @@ function render() {
     renderQuests();
     renderTrade();
     applyCollapsedState();
+    updateVoiceControls();
+}
+
+function updateVoiceControls() {
+    if (toggleVoiceBtn) {
+        toggleVoiceBtn.textContent = voiceAlerts.enabled ? 'Выключить голос' : 'Включить голос';
+    }
+    if (volumeValue) {
+        volumeValue.textContent = `${Math.round(voiceAlerts.volume * 100)}%`;
+    }
+    if (rateValue) {
+        rateValue.textContent = `${Math.round(voiceAlerts.rate * 100)}%`;
+    }
 }
 
 function updateFloatingButton() {
@@ -348,12 +367,14 @@ function renderTrade() {
                 inventory[itemName] = (inventory[itemName] || 0) + 1;
                 
                 log(`Куплен 1 ${itemName} за ${price}₸`);
+                voiceAlerts.alertSystem(`Куплен ${itemName}`);
                 updateCurrencyDisplay();
                 saveGame();
                 render();
                 checkQuestsProgress();
             } else {
                 log(`Недостаточно средств для покупки ${itemName}`);
+                voiceAlerts.alertSystem(`Недостаточно средств для покупки ${itemName}`, true);
             }
         });
         
@@ -395,6 +416,7 @@ function renderTrade() {
                 if (itemName === 'Мусор') trashSold++;
                 
                 log(`Продан 1 ${itemName} за ${price}₸`);
+                voiceAlerts.alertSystem(`Продан ${itemName}`);
                 updateCurrencyDisplay();
                 saveGame();
                 render();
@@ -507,4 +529,30 @@ function initFloatingButton() {
     });
     
     updateFloatingButton();
+}
+
+function initVoiceControls() {
+    if (toggleVoiceBtn) {
+        toggleVoiceBtn.addEventListener('click', () => {
+            voiceAlerts.toggleEnabled();
+            updateVoiceControls();
+            log(voiceAlerts.enabled ? 'Голосовые оповещения включены' : 'Голосовые оповещения выключены');
+        });
+    }
+    
+    if (voiceVolume) {
+        voiceVolume.addEventListener('input', (e) => {
+            const volume = e.target.value / 100;
+            voiceAlerts.setVolume(volume);
+            updateVoiceControls();
+        });
+    }
+    
+    if (voiceRate) {
+        voiceRate.addEventListener('input', (e) => {
+            const rate = e.target.value / 100;
+            voiceAlerts.setRate(rate);
+            updateVoiceControls();
+        });
+    }
 }

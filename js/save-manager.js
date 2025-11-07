@@ -44,17 +44,14 @@ function loadGame() {
         try {
             const data = JSON.parse(saved);
             
-            // Загружаем инвентарь
             if (data.inventory) {
                 Object.keys(data.inventory).forEach(key => {
                     inventory[key] = data.inventory[key];
                 });
             }
             
-            // Санитизируем инвентарь после загрузки
             sanitizeInventory();
             
-            // Загружаем остальные переменные
             tng = data.tng ?? 0;
             coalEnabled = data.coalEnabled ?? false;
             gameTime = data.gameTime ?? GameConfig.CYCLE_DURATION / 2;
@@ -81,7 +78,6 @@ function loadGame() {
                 resourcesMined: {}
             };
             
-            // Загружаем флаги разблокировки из сохранения
             coalUnlocked = data.coalUnlocked ?? true;
             trashUnlocked = data.trashUnlocked ?? true;
             chipsUnlocked = data.chipsUnlocked ?? true;
@@ -105,7 +101,6 @@ function loadGame() {
             log('Ошибка загрузки сохранения');
         }
     } else {
-        // Если сохранения нет, все равно вызываем санитизацию
         sanitizeInventory();
     }
 }

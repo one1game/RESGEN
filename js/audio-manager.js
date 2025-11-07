@@ -11,11 +11,13 @@ function setupRadioPlayer() {
     playBtn.addEventListener('click', () => {
         audioPlayer.play();
         log('Радио включено');
+        voiceAlerts.alertSystem('Радио включено');
     });
     
     pauseBtn.addEventListener('click', () => {
         audioPlayer.pause();
         log('Радио выключено');
+        voiceAlerts.alertSystem('Радио выключено');
     });
     
     volumeSlider.addEventListener('input', (e) => {
