@@ -56,16 +56,16 @@ function autoUnlockResources() {
   // Уголь всегда разблокирован
   coalUnlocked = true;
   
-  // Мусор всегда разблокирован, но его нельзя покупать (только продавать)
+  // Мусор всегда разблокирован (для продажи)
   trashUnlocked = true;
   
-  // Чипы разблокируются только после задания chips_discovery (3-е задание)
-  if (currentQuestIndex >= 2) { // после chips_discovery
+  // Чипы разблокируются только после задания chips_discovery
+  if (currentQuestIndex >= 2) {
       chipsUnlocked = true;
   }
   
-  // Плазма разблокируется только после задания plasma_breakthrough (4-е задание)  
-  if (currentQuestIndex >= 3) { // после plasma_breakthrough
+  // Плазма разблокируется только после задания plasma_breakthrough  
+  if (currentQuestIndex >= 3) {
       plasmaUnlocked = true;
   }
 }
