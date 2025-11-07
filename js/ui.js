@@ -344,42 +344,39 @@ function renderTrade() {
     sellItemsContainer.innerHTML = '';
     
     Object.entries(GameConfig.ECONOMY.TRADE).forEach(([itemName, item]) => {
-        const isUnlocked = (
-            (itemName === 'Уголь' && coalUnlocked) ||
-            (itemName === 'Чипы' && chipsUnlocked) ||
-            (itemName === 'Плазма' && plasmaUnlocked)
-        );
-        
-        if (!isUnlocked) return;
-        
-        const buyItemElement = document.createElement('div');
-        buyItemElement.className = 'trade-item';
-        buyItemElement.innerHTML = `
-            <div class="trade-item-name">${itemName}</div>
-            <div class="trade-item-price">${item.buy}₸</div>
-            <div class="trade-item-amount">В инвентаре: ${inventory[itemName] || 0}</div>
-        `;
-        
-        buyItemElement.addEventListener('click', () => {
-            const price = item.buy;
-            if (tng >= price) {
-                tng -= price;
-                inventory[itemName] = (inventory[itemName] || 0) + 1;
-                
-                log(`Куплен 1 ${itemName} за ${price}₸`);
-                voiceAlerts.alertSystem(`Куплен ${itemName}`);
-                updateCurrencyDisplay();
-                saveGame();
-                render();
-                checkQuestsProgress();
-            } else {
-                log(`Недостаточно средств для покупки ${itemName}`);
-                voiceAlerts.alertSystem(`Недостаточно средств для покупки ${itemName}`, true);
-            }
-        });
-        
-        buyItemsContainer.appendChild(buyItemElement);
-    });
+      // ДЛЯ ТЕСТИРОВАНИЯ: показываем ВСЕ товары независимо от разблокировки
+      const isUnlocked = true; // принудительно включаем все товары
+      
+      if (!isUnlocked) return;
+      
+      const buyItemElement = document.createElement('div');
+      buyItemElement.className = 'trade-item';
+      buyItemElement.innerHTML = `
+          <div class="trade-item-name">${itemName}</div>
+          <div class="trade-item-price">${item.buy}₸</div>
+          <div class="trade-item-amount">В инвентаре: ${inventory[itemName] || 0}</div>
+      `;
+      
+      buyItemElement.addEventListener('click', () => {
+          const price = item.buy;
+          if (tng >= price) {
+              tng -= price;
+              inventory[itemName] = (inventory[itemName] || 0) + 1;
+              
+              log(`Куплен 1 ${itemName} за ${price}₸`);
+              voiceAlerts.alertSystem(`Куплен ${itemName}`);
+              updateCurrencyDisplay();
+              saveGame();
+              render();
+              checkQuestsProgress();
+          } else {
+              log(`Недостаточно средств для покупки ${itemName}`);
+              voiceAlerts.alertSystem(`Недостаточно средств для покупки ${itemName}`, true);
+          }
+      });
+      
+      buyItemsContainer.appendChild(buyItemElement);
+  });
     
     Object.entries(inventory).forEach(([itemName, count]) => {
         if (itemName === 'ИИ' || (count || 0) <= 0) return;
