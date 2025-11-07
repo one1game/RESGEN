@@ -61,10 +61,11 @@ function gameLoop() {
       passiveCounter -= 10;
       const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
       if (aiActive) {
-          const coalChance = GameConfig.MINING.PASSIVE_CHANCES.COAL + (upgrades.mining * 0.001);
-          const trashChance = GameConfig.MINING.PASSIVE_CHANCES.TRASH + (upgrades.mining * 0.001);
-          const chipChance = GameConfig.MINING.PASSIVE_CHANCES.CHIPS;
-          const plasmaChance = GameConfig.MINING.PASSIVE_CHANCES.PLASMA;
+          // ИСПРАВЛЕНО: применяем бонусы к пассивной добыче
+          const coalChance = GameConfig.MINING.PASSIVE_CHANCES.COAL + passiveMiningBonus.coal + (upgrades.mining * 0.001);
+          const trashChance = GameConfig.MINING.PASSIVE_CHANCES.TRASH + passiveMiningBonus.trash + (upgrades.mining * 0.001);
+          const chipChance = GameConfig.MINING.PASSIVE_CHANCES.CHIPS + passiveMiningBonus.chips;
+          const plasmaChance = GameConfig.MINING.PASSIVE_CHANCES.PLASMA + passiveMiningBonus.plasma;
           
           if (Math.random() < coalChance) {
               inventory['Уголь'] = (inventory['Уголь'] || 0) + 1;

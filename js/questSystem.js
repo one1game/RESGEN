@@ -2,7 +2,7 @@
 function showStoryMessage(questId) {
   const messages = {
       awakening: "Система оживает! Первые ресурсы добыты. CoreBox начинает восстановление.",
-      power_restoration: "ТЭЦ активирована! Теперь ИИ будет работать и ночью. Но помните - каждую ночь требуется уголь.",
+      power_restoration: "Энергосеть усилена! Пассивная добыча теперь эффективнее.",
       chips_discovery: "Технологические чипы обнаружены! Теперь можно улучшать системы добычи.",
       plasma_breakthrough: "Плазма обнаружена! Это ключ к восстановлению ядра CoreBox.",
       defense_activation: "Защитные турели активированы. Теперь у повстанцев будет меньше шансов.",
@@ -27,6 +27,14 @@ function completeCurrentQuest() {
       log(`✅ Задание "${quest.title}" выполнено! +${quest.reward}₸`);
       showStoryMessage(quest.id);
       
+      // РЕАЛЬНЫЙ БОНУС за восстановление энергосети (СОХРАНЯЕТСЯ)
+      if (quest.id === 'power_restoration') {
+          passiveMiningBonus.coal += 0.002;    // +0.2% к углю
+          passiveMiningBonus.trash += 0.003;   // +0.3% к мусору
+          log('⚡ Пассивная добыча улучшена! Уголь +0.2%, Мусор +0.3%');
+          voiceAlerts.alertSystem('Пассивная добыча улучшена');
+      }
+      
       questProgress = {
           totalMined: 0,
           nightsWithCoal: 0,
@@ -35,10 +43,7 @@ function completeCurrentQuest() {
       };
       
       currentQuestIndex++;
-      
-      // ИСПРАВЛЕНО: обновляем разблокировки при переходе к новому заданию
       updateResourceUnlocks();
-      
       saveGame();
       render();
   }

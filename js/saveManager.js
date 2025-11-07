@@ -24,6 +24,7 @@ function saveGame() {
       trashUnlocked,
       chipsUnlocked,
       plasmaUnlocked,
+      passiveMiningBonus,  // ← СОХРАНЯЕМ БОНУСЫ
       storyQuests: StoryQuests.map(quest => ({
           id: quest.id,
           completed: quest.completed
@@ -76,6 +77,14 @@ function loadGame() {
               nightsWithCoal: 0,
               successfulDefenses: 0,
               resourcesMined: {}
+          };
+          
+          // ЗАГРУЖАЕМ БОНУСЫ
+          passiveMiningBonus = data.passiveMiningBonus ?? {
+              coal: 0,
+              trash: 0,
+              chips: 0,
+              plasma: 0
           };
           
           // ИСПРАВЛЕНО: ВЫЗЫВАЕМ авторазблокировку ПОСЛЕ загрузки currentQuestIndex

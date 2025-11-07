@@ -44,6 +44,14 @@ let trashUnlocked;
 let chipsUnlocked;
 let plasmaUnlocked;
 
+// НОВАЯ ПЕРЕМЕННАЯ - бонусы пассивной добычи
+let passiveMiningBonus = {
+    coal: 0,
+    trash: 0,
+    chips: 0,
+    plasma: 0
+};
+
 const collapsedState = {
   statusPanel: false,
   logPanel: false,
