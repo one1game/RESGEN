@@ -27,21 +27,6 @@ function completeCurrentQuest() {
       log(`✅ Задание "${quest.title}" выполнено! +${quest.reward}₸`);
       showStoryMessage(quest.id);
       
-      // ИСПРАВЛЕНО: разблокировка ТОЛЬКО при выполнении конкретных заданий
-      if (quest.id === 'chips_discovery') {
-          chipsUnlocked = true;
-          inventory['Чипы'] = 0;
-          log('🎛️ Технологические чипы теперь доступны для добычи!');
-          voiceAlerts.alertSystem('Технологические чипы разблокированы');
-      }
-      
-      if (quest.id === 'plasma_breakthrough') {
-          plasmaUnlocked = true;
-          inventory['Плазма'] = 0;
-          log('⚡ Плазма теперь доступна для добычи!');
-          voiceAlerts.alertSystem('Плазма разблокирована');
-      }
-      
       questProgress = {
           totalMined: 0,
           nightsWithCoal: 0,
@@ -50,6 +35,10 @@ function completeCurrentQuest() {
       };
       
       currentQuestIndex++;
+      
+      // ИСПРАВЛЕНО: обновляем разблокировки при переходе к новому заданию
+      updateResourceUnlocks();
+      
       saveGame();
       render();
   }

@@ -76,12 +76,13 @@ function gameLoop() {
               totalMined++;
               questProgress.totalMined++;
           }
-          if (Math.random() < chipChance) {
+          // ИСПРАВЛЕНО: чипы и плазма только если разблокированы
+          if (chipsUnlocked && Math.random() < chipChance) {
               inventory['Чипы'] = (inventory['Чипы'] || 0) + 1;
               totalMined++;
               questProgress.totalMined++;
           }
-          if (Math.random() < plasmaChance) {
+          if (plasmaUnlocked && Math.random() < plasmaChance) {
               inventory['Плазма'] = (inventory['Плазма'] || 0) + 1;
               totalMined++;
               questProgress.totalMined++;

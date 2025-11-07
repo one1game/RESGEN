@@ -53,12 +53,17 @@ const collapsedState = {
   questsPanel: false
 };
 
-// ИСПРАВЛЕННАЯ функция - вызывается ТОЛЬКО для новых игр
-function initNewGameUnlocks() {
+// НОВАЯ ФУНКЦИЯ - грамотная разблокировка ресурсов
+function updateResourceUnlocks() {
+  // Уголь и мусор всегда разблокированы
   coalUnlocked = true;
   trashUnlocked = true;
-  chipsUnlocked = false;
-  plasmaUnlocked = false;
+  
+  // Чипы разблокируются когда ТЕКУЩЕЕ задание - chips_discovery (индекс 2)
+  chipsUnlocked = (currentQuestIndex >= 2);
+  
+  // Плазма разблокируется когда ТЕКУЩЕЕ задание - plasma_breakthrough (индекс 3)
+  plasmaUnlocked = (currentQuestIndex >= 3);
 }
 
 function sanitizeInventory() {
@@ -77,5 +82,6 @@ function sanitizeInventory() {
       inventory[key] = Number(inventory[key]) || defaultInventory[key];
   });
   
-  // УДАЛЕН вызов autoUnlockResources() - теперь разблокировки управляются через загрузку и задания
+  // ВЫЗЫВАЕМ авторазблокировку
+  updateResourceUnlocks();
 }
