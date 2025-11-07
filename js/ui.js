@@ -338,17 +338,12 @@ function renderQuests() {
 }
 
 function renderTrade() {
-  if (typeof console !== 'undefined') {
-    console.log('Торговля - товары:', Object.keys(GameConfig.ECONOMY.TRADE));
-    console.log('Торговля - разблокировки:', {coalUnlocked, chipsUnlocked, plasmaUnlocked});
-  }
-  
   if (!buyItemsContainer || !sellItemsContainer) return;
   
   buyItemsContainer.innerHTML = '';
   sellItemsContainer.innerHTML = '';
   
-  // ИСПРАВЛЕННЫЙ БЛОК ПОКУПКИ
+  // БЛОК ПОКУПКИ
   Object.entries(GameConfig.ECONOMY.TRADE).forEach(([itemName, item]) => {
       // Преобразуем английские названия в русские для проверки
       const russianName = 
@@ -393,7 +388,7 @@ function renderTrade() {
       buyItemsContainer.appendChild(buyItemElement);
   });
     
-  // БЛОК ПРОДАЖИ (без изменений)
+  // БЛОК ПРОДАЖИ
   Object.entries(inventory).forEach(([itemName, count]) => {
       if (itemName === 'ИИ' || (count || 0) <= 0) return;
       
