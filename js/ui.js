@@ -753,12 +753,7 @@ function toggleBuySellMode(isBuyMode) {
     }
 }
 
-function toggleBuySellMode(isBuyMode) {
-    if (buyModeBtn) buyModeBtn.classList.toggle('active', isBuyMode);
-    if (sellModeBtn) sellModeBtn.classList.toggle('active', !isBuyMode);
-    if (buyItemsContainer) buyItemsContainer.style.display = isBuyMode ? 'grid' : 'none';
-    if (sellItemsContainer) sellItemsContainer.style.display = isBuyMode ? 'none' : 'grid';
-}
+
 
 function initFloatingButton() {
     const floatingBtn = document.getElementById('floatingMineBtn');
