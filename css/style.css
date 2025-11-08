@@ -1057,3 +1057,69 @@ h1::after {
 .stat-card { background: rgba(0, 20, 40, 0.9) !important; }
 .cyber-grid { opacity: 0.15; }
 body::before { opacity: 0.3; }
+
+/* Стили для авторизации */
+.auth-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0a1929 0%, #152642 100%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-overlay {
+  background: rgba(8, 22, 41, 0.95);
+  border: 1px solid rgba(0, 120, 200, 0.4);
+  border-radius: 15px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.auth-modal h1 {
+  text-align: center;
+  margin-bottom: 10px;
+  background: linear-gradient(to right, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: var(--secondary);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+#authForm input {
+  background: rgba(0, 20, 40, 0.7);
+  border: 1px solid rgba(0, 120, 200, 0.4);
+  color: var(--light);
+  border-radius: 6px;
+  padding: 10px;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+#authForm input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 10px rgba(0, 170, 128, 0.3);
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.auth-buttons .btn {
+  flex: 1;
+}

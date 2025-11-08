@@ -33,19 +33,6 @@ class CloudSaveManager {
             this.isOnline = !error;
             console.log('🌐 Cloud saves:', this.isOnline ? 'ONLINE' : 'OFFLINE');
             
-            // Слушаем изменения статуса авторизации
-            this.supabase.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_IN' && session) {
-                    this.user = session.user;
-                    this.isAuthenticated = true;
-                    console.log('✅ Авторизация подтверждена');
-                } else if (event === 'SIGNED_OUT') {
-                    this.user = null;
-                    this.isAuthenticated = false;
-                    console.log('✅ Выход подтвержден');
-                }
-            });
-            
         } catch (error) {
             console.error('❌ Cloud saves: OFFLINE');
             this.isOnline = false;
