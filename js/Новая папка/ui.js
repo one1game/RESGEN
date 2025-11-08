@@ -212,6 +212,8 @@ function render() {
     renderTrade();
     applyCollapsedState();
     updateVoiceControls();
+
+    
 }
 
 function updateVoiceControls() {
@@ -390,50 +392,58 @@ function renderTrade() {
     
   // БЛОК ПРОДАЖИ
   Object.entries(inventory).forEach(([itemName, count]) => {
-      if (itemName === 'ИИ' || (count || 0) <= 0) return;
-      
-      const isUnlocked = (
-          (itemName === 'Уголь' && coalUnlocked) ||
-          (itemName === 'Мусор' && trashUnlocked) ||
-          (itemName === 'Чипы' && chipsUnlocked) ||
-          (itemName === 'Плазма' && plasmaUnlocked)
-      );
-      
-      if (!isUnlocked) return;
-      
-      const sellItemElement = document.createElement('div');
-      sellItemElement.className = 'trade-item';
-      
-      let price;
-      if (itemName === 'Мусор') {
-          price = calculateTrashPrice();
-      } else {
-          price = GameConfig.ECONOMY.TRADE[itemName]?.sell || 1;
-      }
-      
-      sellItemElement.innerHTML = `
-          <div class="trade-item-name">${itemName}</div>
-          <div class="trade-item-price">${price}₸</div>
-          <div class="trade-item-amount">${count} шт.</div>
-      `;
-      
-      sellItemElement.addEventListener('click', () => {
-          if ((inventory[itemName] || 0) > 0) {
-              inventory[itemName]--;
-              tng += price;
-              if (itemName === 'Мусор') trashSold++;
-              
-              log(`Продан 1 ${itemName} за ${price}₸`);
-              voiceAlerts.alertSystem(`Продан ${itemName}`);
-              updateCurrencyDisplay();
-              saveGame();
-              render();
-              checkQuestsProgress();
-          }
-      });
-      
-      sellItemsContainer.appendChild(sellItemElement);
-  });
+    if (itemName === 'ИИ' || (count || 0) <= 0) return;
+
+    const isUnlocked = (
+        (itemName === 'Уголь' && coalUnlocked) ||
+        (itemName === 'Мусор' && trashUnlocked) ||
+        (itemName === 'Чипы' && chipsUnlocked) ||
+        (itemName === 'Плазма' && plasmaUnlocked)
+    );
+
+    if (!isUnlocked) return;
+
+    const sellItemElement = document.createElement('div');
+    sellItemElement.className = 'trade-item';
+
+    // Маппинг русских названий на английские ключи конфигурации
+    const RUS_TO_ENG = {
+        'Уголь': 'COAL',
+        'Чипы': 'CHIPS',
+        'Плазма': 'PLASMA'
+    };
+
+    let price;
+    if (itemName === 'Мусор') {
+        price = calculateTrashPrice();
+    } else {
+        const tradeKey = RUS_TO_ENG[itemName];
+        price = tradeKey ? GameConfig.ECONOMY.TRADE[tradeKey].sell : 1;
+    }
+
+    sellItemElement.innerHTML = `
+        <div class="trade-item-name">${itemName}</div>
+        <div class="trade-item-price">${price}₸</div>
+        <div class="trade-item-amount">${count} шт.</div>
+    `;
+
+    sellItemElement.addEventListener('click', () => {
+        if ((inventory[itemName] || 0) > 0) {
+            inventory[itemName]--;
+            tng += price;
+            if (itemName === 'Мусор') trashSold++;
+
+            log(`Продан 1 ${itemName} за ${price}₸`);
+            voiceAlerts.alertSystem(`Продан ${itemName}`);
+            updateCurrencyDisplay();
+            saveGame();
+            render();
+            checkQuestsProgress();
+        }
+    });
+
+    sellItemsContainer.appendChild(sellItemElement);
+});
 }
 
 function applyCollapsedState() {

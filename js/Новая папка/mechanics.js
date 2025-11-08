@@ -1,9 +1,17 @@
 // ======== mechanics.js ========
 function calculateTrashPrice() {
-  const basePrice = GameConfig.ECONOMY.TRASH.BASE_PRICE;
-  const priceDrop = Math.floor(trashSold / 8) * GameConfig.ECONOMY.TRASH.PRICE_DROP;
-  return Math.round(Math.max(basePrice - priceDrop, GameConfig.ECONOMY.TRASH.MIN_PRICE));
-}
+    // Если цена еще не установлена - генерируем случайную
+    if (!GameConfig.ECONOMY.TRASH.CURRENT_PRICE) {
+      updateTrashPrice();
+    }
+    return GameConfig.ECONOMY.TRASH.CURRENT_PRICE;
+  }
+  
+  // Новая функция для обновления цены мусора
+  function updateTrashPrice() {
+    const newPrice = Math.floor(Math.random() * 3) + 1; // 1, 2 или 3
+    GameConfig.ECONOMY.TRASH.CURRENT_PRICE = newPrice;
+  }
 
 function handleRebelAttack() {
   const attackTypes = [];
