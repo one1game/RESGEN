@@ -143,7 +143,7 @@ const StoryQuests = [
     description: 'Найдите и исследуйте технологические компоненты',
     type: 'mine_resource',  // ← ПРАВИЛЬНЫЙ ТИП
     resource: 'Чипы',       // ← ДОБАВИТЬ РЕСУРС
-    target: 250,
+    target: 25,
       reward: 100,
       completed: false,
       flavorText: 'Сканеры обнаружили древние технологические артефакты...',
@@ -155,7 +155,7 @@ const StoryQuests = [
       description: 'Добудьте 5 плазмы и исследуйте аномальные сигналы',
       type: 'mine_resource',
       resource: 'Плазма',
-      target: 5,
+      target: 30,
       reward: 150,
       completed: false,
       flavorText: 'Обнаружена аномальная энергия! Плазма содержит неизвестные свойства...',
