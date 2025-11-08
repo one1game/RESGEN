@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoreBox 3.0</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="cyber-grid"></div>
+
+  <div class="radio-player">
+    <div class="radio-title">SpriteLayer Radio</div>
+    <div class="radio-controls">
+      <button id="playBtn" class="radio-btn">▶</button>
+      <button id="pauseBtn" class="radio-btn">⏸</button>
+    </div>
+    <div class="volume-control">
+      <span>🔈</span>
+      <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
+    </div>
+  </div>
+
+  <div class="header">
+    <h1>CoreBox 3.0</h1>
+    
+    <div class="stats-container">
+      <div class="stat-card">
+        <div>Баланс</div>
+        <div id="currencyDisplay" class="stat-value">0₸</div>
+      </div>
+      <div class="stat-card">
+        <div>Время</div>
+        <div id="timeDisplay" class="stat-value">День ☀️</div>
+      </div>
+      <div class="stat-card">
+        <div>Защита</div>
+        <div id="defenseDisplay" class="stat-value">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="panel">
+      <div class="panel-title">
+        <span>Состояние системы</span>
+        <span class="collapse-icon">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="status-row">
+          <div class="status-item">
+            <div>ТЭЦ</div>
+            <div id="coalStatus" class="status-value">Выкл</div>
+          </div>
+          <div class="ai-status-item">
+            <div>Искусственный Интеллект</div>
+            <div id="aiStatusText" class="ai-status-value">Активен</div>
+          </div>
+          <div class="status-item">
+            <div>Повстанцы</div>
+            <div id="rebelStatus" class="status-value">Низкий</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>Голосовые оповещения</span>
+        <span class="collapse-icon">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="voice-controls">
+          <button id="toggleVoiceBtn" class="btn">Выключить голос</button>
+          <div class="voice-sliders">
+            <label>Громкость: <span id="volumeValue">80%</span></label>
+            <input type="range" id="voiceVolume" min="0" max="100" value="80">
+            
+            <label>Скорость: <span id="rateValue">100%</span></label>
+            <input type="range" id="voiceRate" min="50" max="200" value="100">
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mining-action" style="display: none;">
+      <button id="mineBtn" class="btn pulse">Добыть ресурсы <span id="miningBonus">+0%</span></button>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-title">
+        <span>Системный журнал</span>
+        <span class="collapse-icon">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="log-controls">
+          <button id="clearLogBtn" class="log-btn">Очистить</button>
+          <button id="autoScrollBtn" class="log-btn">Автоскролл</button>
+        </div>
+        <div id="logBox"></div>
+      </div>
+    </div>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="inventory">Инвентарь</div>
+      <div class="tab" data-tab="upgrades">Апгрейды</div>
+      <div class="tab" data-tab="trade">Торговля</div>
+      <div class="tab" data-tab="quests">Задания</div>
+    </div>
+    
+    <div class="tab-content active" id="inventory-tab">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Инвентарь</span>
+          <span class="collapse-icon">▼</span>
+        </div>
+        <div class="panel-content">
+          <div class="inventory-grid" id="inventory"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="upgrades-tab">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Системные апгрейды</span>
+          <span class="collapse-icon">▼</span>
+        </div>
+        <div class="panel-content">
+          <div class="upgrade-container">
+            <div class="upgrade-card">
+              <div class="upgrade-header">
+                <div class="upgrade-title">Эффективность добычи</div>
+                <div class="upgrade-level">Ур. <span id="miningLevel">0</span>/10</div>
+              </div>
+              <div class="progress-container">
+                <div class="progress-fill" id="miningProgress" style="width: 0%"></div>
+              </div>
+              
+              <div class="upgrade-requirements">
+                <div class="requirement">
+                  <div class="requirement-name">
+                    <div class="requirement-icon">🎛️</div>
+                    <span>Чипы:</span>
+                  </div>
+                  <div class="requirement-value" id="miningChipsReq">0/5</div>
+                </div>
+              </div>
+              
+              <div class="upgrade-cost">
+                <button id="upgradeMiningBtn" class="upgrade-btn">Улучшить</button>
+              </div>
+            </div>
+            
+            <div class="upgrade-card">
+              <div class="upgrade-header">
+                <div class="upgrade-title">Туррели защиты</div>
+                <div class="upgrade-level" id="defenseStatus">Неактивно</div>
+              </div>
+              <div class="progress-container">
+                <div class="progress-fill" style="width: 0%"></div>
+              </div>
+              
+              <div class="upgrade-requirements">
+                <div class="requirement">
+                  <div class="requirement-name">
+                    <div class="requirement-icon">⚡</div>
+                    <span>Плазма:</span>
+                  </div>
+                  <div class="requirement-value" id="defensePlasmaReq">0/3</div>
+                </div>
+              </div>
+              
+              <div class="upgrade-cost">
+                <button id="upgradeDefenseBtn" class="upgrade-btn">Активировать</button>
+              </div>
+            </div>
+            
+            <div class="upgrade-card">
+              <div class="upgrade-header">
+                <div class="upgrade-title">Укрепление защиты</div>
+                <div class="upgrade-level" id="defenseLevel">Ур. 0/5</div>
+              </div>
+              <div class="progress-container">
+                <div class="progress-fill" style="width: 0%"></div>
+              </div>
+              
+              <div class="upgrade-requirements">
+                <div class="requirement">
+                  <div class="requirement-name">
+                    <div class="requirement-icon">🎛️</div>
+                    <span>Чипы:</span>
+                  </div>
+                  <div class="requirement-value" id="defenseChipsReq">0/10</div>
+                </div>
+                <div class="requirement">
+                  <div class="requirement-name">
+                    <div class="requirement-icon">⚡</div>
+                    <span>Плазма:</span>
+                  </div>
+                  <div class="requirement-value" id="defensePlasmaLevelReq">0/1</div>
+                </div>
+              </div>
+              
+              <div class="upgrade-cost">
+                <button id="upgradeDefenseLevelBtn" class="upgrade-btn">Улучшить</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="trade-tab">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Торговля</span>
+          <span class="collapse-icon">▼</span>
+        </div>
+        <div class="panel-content">
+          <div class="trade-container">
+            <div class="trade-mode-toggle">
+              <button id="buyModeBtn" class="trade-mode-btn active">Купить</button>
+              <button id="sellModeBtn" class="trade-mode-btn">Продать</button>
+            </div>
+            
+            <div id="buyItemsContainer" class="trade-items-grid">
+              <!-- Будет заполнено скриптом -->
+            </div>
+            
+            <div id="sellItemsContainer" class="trade-items-grid" style="display: none;">
+              <!-- Будет заполнено скриптом -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="quests-tab">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Задания</span>
+          <span class="collapse-icon">▼</span>
+        </div>
+        <div class="panel-content">
+          <div class="quest-container" id="questsContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Плавающая кнопка добычи для мобильных устройств -->
+  <div id="floatingMineBtn" class="floating-mine-btn">
+    <div class="btn-core-pulse"></div>
+    <div class="btn-core">
+        <div class="core-glow"></div>
+        <span class="btn-icon">⛏️</span>
+    </div>
+    <span class="btn-text">Добыть</span>
+    <span id="miningBonusFloat" class="mining-bonus">+0%</span>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/gameState.js"></script>
+  <script src="js/voice-alerts.js"></script>
+  <script src="js/audioManager.js"></script>
+  <script src="js/questSystem.js"></script>
+  <script src="js/mechanics.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/saveManager.js"></script>
+  <script src="js/init.js"></script>
+</body>
+</html>
