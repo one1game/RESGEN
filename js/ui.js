@@ -213,21 +213,8 @@ function render() {
     applyCollapsedState();
     updateVoiceControls();
 
-    // Скрываем/показываем апгрейды по квестам
-    const miningCard = document.querySelector('.upgrade-card:nth-child(1)');
-    const defenseCard1 = document.querySelector('.upgrade-card:nth-child(2)');
-    const defenseCard2 = document.querySelector('.upgrade-card:nth-child(3)');
     
-    if (miningCard) miningCard.style.display = chipsUnlocked ? 'block' : 'none';
-    if (defenseCard1) defenseCard1.style.display = plasmaUnlocked ? 'block' : 'none';
-    if (defenseCard2) defenseCard2.style.display = plasmaUnlocked ? 'block' : 'none';
-
-    renderQuests();
-    renderTrade();
-    applyCollapsedState();
-    updateVoiceControls();
 }
-
 
 function updateVoiceControls() {
     if (toggleVoiceBtn) {
