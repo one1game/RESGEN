@@ -134,12 +134,13 @@ function calculateTrashPrice() {
     let chipChance = chipsUnlocked ? (GameConfig.MINING.BASE_CHANCES.CHIPS + (upgrades.mining * 0.001)) : 0;
     let plasmaChance = plasmaUnlocked ? (GameConfig.MINING.BASE_CHANCES.PLASMA + (upgrades.mining * 0.002)) : 0;
     
+    // ОДИН раз определяем критическую добычу для всего клика
     const isCritical = Math.random() < (GameConfig.MINING.CRITICAL_CHANCE + upgrades.mining * GameConfig.MINING.CRITICAL_UPGRADE_BONUS);
     let foundSomething = false;
-    let criticalBonus = isCritical ? GameConfig.MINING.CRITICAL_MULTIPLIER - 1 : 0;
-  
+    
+    // Уголь
     if (Math.random() < coalChance) {
-        const amount = 1 + criticalBonus;
+        const amount = isCritical ? 2 : 1;
         if (!coalUnlocked) {
             coalUnlocked = true;
             inventory['Уголь'] = 0;
@@ -147,7 +148,6 @@ function calculateTrashPrice() {
             voiceAlerts.alertSystem('Обнаружены угольные месторождения');
         }
         inventory['Уголь'] += amount;
-        criticalMining = isCritical;
         
         log(`🪨 Найден${amount > 1 ? 'о' : ''} ${amount} угля${isCritical ? ' ✨КРИТ!' : ''}`);
         voiceAlerts.alertResourceFound('Уголь', amount, isCritical);
@@ -156,8 +156,9 @@ function calculateTrashPrice() {
         questProgress.totalMined += amount;
     }
     
+    // Мусор
     if (Math.random() < trashChance) {
-        const amount = 1 + criticalBonus;
+        const amount = isCritical ? 2 : 1;
         if (!trashUnlocked) {
             trashUnlocked = true;
             inventory['Мусор'] = 0;
@@ -172,10 +173,10 @@ function calculateTrashPrice() {
         questProgress.totalMined += amount;
     }
     
+    // Чипы
     if (chipsUnlocked && Math.random() < chipChance) {
-        const amount = 1 + criticalBonus;
+        const amount = isCritical ? 2 : 1;
         inventory['Чипы'] += amount;
-        criticalMining = true;
         log(`🎛️ Найден${amount > 1 ? 'о' : ''} ${amount} чип${amount > 1 ? 'ов' : ''}${isCritical ? ' ✨' : ''}`);
         voiceAlerts.alertResourceFound('Чипы', amount, isCritical);
         foundSomething = true;
@@ -183,19 +184,15 @@ function calculateTrashPrice() {
         questProgress.totalMined += amount;
     }
     
+    // Плазма
     if (plasmaUnlocked && Math.random() < plasmaChance) {
-        const amount = 1 + criticalBonus;
+        const amount = isCritical ? 2 : 1;
         inventory['Плазма'] += amount;
-        criticalMining = true;
         log(`⚡ Найден${amount > 1 ? 'о' : ''} ${amount} плазм${amount > 1 ? 'ы' : 'а'}${isCritical ? ' ✨' : ''}`);
         voiceAlerts.alertResourceFound('Плазма', amount, isCritical);
         foundSomething = true;
         totalMined += amount;
         questProgress.totalMined += amount;
-    }
-    
-    if (criticalMining) {
-        criticalMining = false;
     }
     
     if (foundSomething && currentQuestIndex < StoryQuests.length) {
@@ -204,7 +201,7 @@ function calculateTrashPrice() {
     
     saveGame();
     render();
-  }
+}
   
   function upgradeMining() {
     const requiredChips = GameConfig.UPGRADES.MINING.BASE_COST + upgrades.mining * GameConfig.UPGRADES.MINING.COST_MULTIPLIER;
