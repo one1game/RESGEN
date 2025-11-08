@@ -138,11 +138,12 @@ const StoryQuests = [
       specialEffect: '+10% к шансу добычи угля'
   },
   {
-      id: 'chips_discovery',
-      title: 'Технологические чипы',
-      description: 'Найдите и исследуйте технологические компоненты',
-      type: 'mine_any',
-      target: 200,
+    id: 'chips_discovery', 
+    title: 'Технологические чипы',
+    description: 'Найдите и исследуйте технологические компоненты',
+    type: 'mine_resource',  // ← ПРАВИЛЬНЫЙ ТИП
+    resource: 'Чипы',       // ← ДОБАВИТЬ РЕСУРС
+    target: 250,
       reward: 100,
       completed: false,
       flavorText: 'Сканеры обнаружили древние технологические артефакты...',
