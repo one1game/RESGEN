@@ -19,8 +19,8 @@ const GameConfig = {
         },
         UPGRADE_BONUS: 1,       // Прирост шанса добычи за апгрейд
         COAL_BONUS: 2,          // Бонус при активном угле
-        CRITICAL_CHANCE: 3,     // Шанс критической добычи (%)
-        CRITICAL_UPGRADE_BONUS: 1,
+        CRITICAL_CHANCE: 0.03,     // Шанс критической добычи (%)
+        CRITICAL_UPGRADE_BONUS: 0.005,
         CRITICAL_MULTIPLIER: 2,
         PASSIVE_CHANCES: {
             COAL: 1,
