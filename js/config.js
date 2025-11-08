@@ -142,7 +142,7 @@ const StoryQuests = [
       title: 'Технологические чипы',
       description: 'Найдите и исследуйте технологические компоненты',
       type: 'mine_any',
-      target: 25,
+      target: 200,
       reward: 100,
       completed: false,
       flavorText: 'Сканеры обнаружили древние технологические артефакты...',
