@@ -5,9 +5,7 @@ class CloudSaveManager {
         this.playerId = this.getPlayerId();
         this.isOnline = false;
         console.log('🔄 CloudSaveManager создан');
-        
-        // Даем время на загрузку Supabase
-        setTimeout(() => this.init(), 500);
+        this.init();
     }
 
     getPlayerId() {
@@ -29,25 +27,17 @@ class CloudSaveManager {
             this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             console.log('✅ Supabase client создан');
             
-            // ИСПРАВЛЕННЫЙ ТЕСТ - используем существующие колонки
-            console.log('🔄 Тестируем подключение...');
-            const { data, error } = await this.supabase
+            // ИСПРАВЛЕННЫЙ ТЕСТ - используем player_id вместо id
+            const { error } = await this.supabase
                 .from('game_saves')
-                .select('player_id')  // ← ИСПРАВЛЕНО: используем player_id
+                .select('player_id')  // ← ВАЖНО: используем существующую колонку
                 .limit(1);
             
-            console.log('📊 Результат теста:', { data, error });
-            
-            if (error) {
-                console.error('❌ Ошибка подключения:', error);
-                this.isOnline = false;
-            } else {
-                this.isOnline = true;
-                console.log('🎉 Cloud saves: ONLINE');
-            }
+            this.isOnline = !error;
+            console.log('🌐 Cloud saves:', this.isOnline ? 'ONLINE' : 'OFFLINE');
             
         } catch (error) {
-            console.error('💥 Ошибка инициализации:', error);
+            console.error('❌ Cloud saves: OFFLINE');
             this.isOnline = false;
         }
     }
