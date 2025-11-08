@@ -49,6 +49,7 @@ function gameLoop() {
       
       log(isDay ? '☀️ Наступил день' : '🌙 Наступила ночь');
       if (isDay) {
+        updateTrashPrice(); // Обновляем цену мусора каждый день
           voiceAlerts.alertSystem('Наступил день');
       } else {
           voiceAlerts.alertSystem('Наступила ночь');

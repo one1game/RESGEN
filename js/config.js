@@ -8,68 +8,68 @@ const GameConfig = {
   
   // === НАСТРОЙКИ ДОБЫЧИ ===
   MINING: {
-      BASE_CHANCES: {
-          COAL: 0.015,
-          TRASH: 0.01,  
-          CHIPS: 0.002,
-          PLASMA: 0.001
-      },
-      UPGRADE_BONUS: 0.005,
-      COAL_BONUS: 0.01,
-      CRITICAL_CHANCE: 0.02,
-      CRITICAL_UPGRADE_BONUS: 0.005,
-      CRITICAL_MULTIPLIER: 2,
-      PASSIVE_CHANCES: {
-          COAL: 0.002,
-          TRASH: 0.005,
-          CHIPS: 0.0003,
-          PLASMA: 0.0001
-      }
-  },
+    BASE_CHANCES: {          // Базовые шансы найти ресурс за клик
+        COAL: 0.015,         // 1.5% шанс найти уголь
+        TRASH: 0.01,         // 1% шанс найти мусор  
+        CHIPS: 0.002,        // 0.2% шанс найти чипы
+        PLASMA: 0.001        // 0.1% шанс найти плазму
+    },
+    UPGRADE_BONUS: 0.005,    // +0.5% к шансу за уровень апгрейда
+    COAL_BONUS: 0.01,        // +1% к шансам при включенной ТЭЦ
+    CRITICAL_CHANCE: 0.02,   // 2% базовый шанс крита
+    CRITICAL_UPGRADE_BONUS: 0.005, // +0.5% к шансу крита за уровень
+    CRITICAL_MULTIPLIER: 2,  // Крит дает x2 ресурсов
+    PASSIVE_CHANCES: {       // Шансы пассивной добычи (каждые 10 сек)
+        COAL: 0.002,         // 0.2% шанс угля
+        TRASH: 0.005,        // 0.5% шанс мусора
+        CHIPS: 0.0003,       // 0.03% шанс чипов  
+        PLASMA: 0.0001       // 0.01% шанс плазмы
+    }
+},
   
   // === НАСТРОЙКИ ЗАЩИТЫ ===
   DEFENSE: {
-      BASE_POWER: 30,
-      LEVEL_BONUS: 15,
-      MAX_LEVEL: 5,
-      ACTIVATION_COST: 3,
-      CHIPS_MULTIPLIER: 12,
-      PLASMA_BASE: 1,
-      REFLECT_CHANCE: 0.6,
-      DISABLE_CHANCE: 0.25
-  },
+    BASE_POWER: 30,           // 30% базовый шанс отразить атаку повстанцев
+    LEVEL_BONUS: 15,          // +15% к защите за каждый уровень
+    MAX_LEVEL: 5,             // Максимальный уровень защиты
+    ACTIVATION_COST: 3,       // 3 плазмы нужно для активации защиты
+    CHIPS_MULTIPLIER: 12,     // Чипы для улучшения: (уровень+1) * 12
+    PLASMA_BASE: 1,           // Базовая плазма для улучшения +1 за каждые 2 уровня
+    REFLECT_CHANCE: 0.6,      // 60% шанс отражения атаки при прокачанной защите
+    DISABLE_CHANCE: 0.25      // 25% шанс что защита отключится при атаке
+},
   
   // === НАСТРОЙКИ ПОВСТАНЦЕВ - ОПАСНЫЕ! ===
   REBELS: {
-      BASE_ATTACK_CHANCE: 0.9,
-      ACTIVITY_INCREASE: 2,
-      ACTIVITY_DECREASE: 0.5,
-      SEVERE_ATTACK_BONUS: 3,
-      ATTACK_CHANCES: {
-          STEAL_RESOURCES: 0.5,
-          DAMAGE_MINING: 0.6,
-          DESTROY_TRASH: 1.0,
-          DISABLE_DEFENSE: 0.4,
-          HACK_AI: 0.15
-      },
-      STEAL_AMOUNT: { min: 3, max: 8 },
-      DESTROY_PERCENT: { min: 0.5, max: 0.8 },
-      AI_DISABLE_TIME: { base: 300000, bonus: 180000 }
-  },
+    BASE_ATTACK_CHANCE: 0.9,           // 90% шанс атаки каждую ночь
+    ACTIVITY_INCREASE: 2,              // +2 к активности после атаки
+    ACTIVITY_DECREASE: 0.5,            // -0.5 к активности каждый день
+    SEVERE_ATTACK_BONUS: 3,            // +3 к активности за серьезную атаку
+    ATTACK_CHANCES: {                  // Шансы разных типов атак:
+        STEAL_RESOURCES: 0.5,          // 50% - кража ресурсов
+        DAMAGE_MINING: 0.6,            // 60% - повреждение добычи  
+        DESTROY_TRASH: 1.0,            // 100% - уничтожение мусора (если есть)
+        DISABLE_DEFENSE: 0.4,          // 40% - отключение защиты
+        HACK_AI: 0.15                  // 15% - взлом ИИ
+    },
+    STEAL_AMOUNT: { min: 3, max: 8 },           // Украдут 3-8 ресурсов
+    DESTROY_PERCENT: { min: 0.5, max: 0.8 },    // Уничтожат 50-80% мусора
+    AI_DISABLE_TIME: { base: 300000, bonus: 180000 } // ИИ отключен на 5-8 минут
+},
   
   // === НАСТРОЙКИ ЭКОНОМИКИ ===
   ECONOMY: {
-      TRASH: {
-          BASE_PRICE: 2,
-          PRICE_DROP: 0.03,
-          MIN_PRICE: 1
-      },
-      TRADE: {
-          COAL: { buy: 5, sell: 3 },
-          CHIPS: { buy: 15, sell: 10 },
-          PLASMA: { buy: 25, sell: 15 }
-      }
-  },
+    TRASH: {
+        MIN_PRICE: 1,      // Минимальная цена = 1₸
+        MAX_PRICE: 3,      // Максимальная цена = 3₸
+        BASE_PRICE: 2      // Базовая цена (для обратной совместимости)
+    },
+    TRADE: {
+        COAL: { buy: 15, sell: 3 },
+        CHIPS: { buy: 40, sell: 15 }, 
+        PLASMA: { buy: 65, sell: 25 }
+    }
+},
   
   // === НАСТРОЙКИ УЛУЧШЕНИЙ ===
   UPGRADES: {
