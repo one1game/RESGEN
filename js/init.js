@@ -1,56 +1,5 @@
 // ======== init.js ========
-let gameInitialized = false;
-let eventListenersInitialized = false;
-
-async function initGame() {
-    console.log('🔄 Инициализация игры...');
-    
-    // Ждем загрузки всех компонентов
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Проверяем инициализацию cloudSaveManager
-    if (!window.cloudSaveManager) {
-        console.error('❌ CloudSaveManager не загружен');
-        showAuthInterface();
-        return;
-    }
-    
-    // Ждем инициализации cloudSaveManager
-    await new Promise(resolve => {
-        const checkInit = setInterval(() => {
-            if (cloudSaveManager.supabase !== null) {
-                clearInterval(checkInit);
-                resolve();
-            }
-        }, 100);
-    });
-    
-    console.log('🔐 Проверка авторизации...', cloudSaveManager.getAuthStatus());
-    
-    // Проверяем авторизацию
-    if (cloudSaveManager.isAuthenticated) {
-        console.log('✅ Пользователь авторизован, загружаем игру...');
-        await loadGame();
-        initEventListeners(); // Инициализируем обработчики после загрузки игры
-        setupRadioPlayer();
-        showGameInterface();
-        startGameLoop();
-    } else {
-        console.log('❌ Пользователь не авторизован, показываем экран входа');
-        showAuthInterface();
-    }
-    
-    log(`Система CoreBox ${GameConfig.VERSION} инициализирована`);
-}
-
-function startGameLoop() {
-    setInterval(gameLoop, 1000);
-    console.log('🎮 Игровой цикл запущен');
-}
-
 function gameLoop() {
-    if (!gameInitialized) return;
-    
     const now = Date.now();
     const secondsPassed = Math.floor((now - lastUpdateTime) / 1000);
     lastUpdateTime = now;
@@ -106,12 +55,13 @@ function gameLoop() {
         }
         saveGame();
     }
-
+  
     passiveCounter += secondsPassed;
     while (passiveCounter >= 10) {
         passiveCounter -= 10;
         const aiActive = (isDay || coalEnabled) && Date.now() > aiDisabledUntil;
         if (aiActive) {
+            // ИСПРАВЛЕНО: применяем бонусы к пассивной добыче
             const coalChance = GameConfig.MINING.PASSIVE_CHANCES.COAL + passiveMiningBonus.coal + (upgrades.mining * 0.001);
             const trashChance = GameConfig.MINING.PASSIVE_CHANCES.TRASH + passiveMiningBonus.trash + (upgrades.mining * 0.001);
             const chipChance = GameConfig.MINING.PASSIVE_CHANCES.CHIPS + passiveMiningBonus.chips;
@@ -127,6 +77,7 @@ function gameLoop() {
                 totalMined++;
                 questProgress.totalMined++;
             }
+            // ИСПРАВЛЕНО: чипы и плазма только если разблокированы
             if (chipsUnlocked && Math.random() < chipChance) {
                 inventory['Чипы'] = (inventory['Чипы'] || 0) + 1;
                 totalMined++;
@@ -142,62 +93,21 @@ function gameLoop() {
             checkQuestsProgress();
         }
     }
-
-    if (gameInitialized) {
-        render();
-    }
-}
-
-function initEventListeners() {
-    if (eventListenersInitialized) {
-        console.log('⚠️ Обработчики событий уже инициализированы');
-        return;
-    }
-    
-    console.log('🎯 Инициализация обработчиков событий...');
-    
-    // Основные кнопки
+  
+    render();
+  }
+  
+  function initEventListeners() {
     const mineBtn = document.getElementById('mineBtn');
-    if (mineBtn) {
-        mineBtn.addEventListener('click', mineResources);
-        console.log('✅ Кнопка добычи инициализирована');
-    }
+    if (mineBtn) mineBtn.addEventListener('click', mineResources);
+    if (upgradeMiningBtn) upgradeMiningBtn.addEventListener('click', upgradeMining);
+    if (upgradeDefenseBtn) upgradeDefenseBtn.addEventListener('click', activateDefense);
+    if (upgradeDefenseLevelBtn) upgradeDefenseLevelBtn.addEventListener('click', upgradeDefense);
+    if (clearLogBtn) clearLogBtn.addEventListener('click', clearLog);
+    if (autoScrollBtn) autoScrollBtn.addEventListener('click', toggleAutoScroll);
+    if (buyModeBtn) buyModeBtn.addEventListener('click', () => toggleBuySellMode(true));
+    if (sellModeBtn) sellModeBtn.addEventListener('click', () => toggleBuySellMode(false));
     
-    // Кнопки улучшений
-    if (upgradeMiningBtn) {
-        upgradeMiningBtn.addEventListener('click', upgradeMining);
-        console.log('✅ Кнопка улучшения добычи инициализирована');
-    }
-    if (upgradeDefenseBtn) {
-        upgradeDefenseBtn.addEventListener('click', activateDefense);
-        console.log('✅ Кнопка активации защиты инициализирована');
-    }
-    if (upgradeDefenseLevelBtn) {
-        upgradeDefenseLevelBtn.addEventListener('click', upgradeDefense);
-        console.log('✅ Кнопка улучшения защиты инициализирована');
-    }
-    
-    // Кнопки журнала
-    if (clearLogBtn) {
-        clearLogBtn.addEventListener('click', clearLog);
-        console.log('✅ Кнопка очистки журнала инициализирована');
-    }
-    if (autoScrollBtn) {
-        autoScrollBtn.addEventListener('click', toggleAutoScroll);
-        console.log('✅ Кнопка автоскролла инициализирована');
-    }
-    
-    // Кнопки торговли
-    if (buyModeBtn) {
-        buyModeBtn.addEventListener('click', () => toggleBuySellMode(true));
-        console.log('✅ Кнопка режима покупки инициализирована');
-    }
-    if (sellModeBtn) {
-        sellModeBtn.addEventListener('click', () => toggleBuySellMode(false));
-        console.log('✅ Кнопка режима продажи инициализирована');
-    }
-    
-    // Панели
     document.querySelectorAll('.panel-title').forEach(title => {
         title.addEventListener('click', (e) => {
             if (e.target.classList.contains('collapse-icon')) return;
@@ -205,64 +115,34 @@ function initEventListeners() {
             if (panel) toggleCollapse(panel);
         });
     });
-    console.log('✅ Обработчики панелей инициализированы');
     
-    // Вкладки - ОСНОВНАЯ ПРОБЛЕМА БЫЛА ЗДЕСЬ
-    const tabs = document.querySelectorAll('.tab');
     if (tabs.length > 0) {
         tabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-                console.log('🎯 Клик по вкладке:', this.dataset.tab);
-                switchTab(this.dataset.tab);
+            tab.addEventListener('click', () => {
+                switchTab(tab.dataset.tab);
             });
         });
-        console.log('✅ Обработчики вкладок инициализированы:', tabs.length);
-    } else {
-        console.error('❌ Вкладки не найдены в DOM');
     }
     
-    // Плавающая кнопка
     initFloatingButton();
-    
-    // Голосовые контролы
     initVoiceControls();
+  }
+  
+  function initGame() {
+    loadGame();
+    initEventListeners();
+    setupRadioPlayer();
     
-    eventListenersInitialized = true;
-    console.log('✅ Все обработчики событий инициализированы');
-}
-
-// Переинициализация обработчиков при показе игрового интерфейса
-function showGameInterface() {
-    console.log('🎮 Показываем игровой интерфейс');
+    render();
+    toggleBuySellMode(true);
     
-    // Показываем игровые элементы
-    const header = document.querySelector('.header');
-    const main = document.querySelector('.main');
-    const floatingBtn = document.getElementById('floatingMineBtn');
+    setInterval(gameLoop, 1000);
     
-    if (header) header.style.display = 'block';
-    if (main) main.style.display = 'flex';
-    if (floatingBtn) floatingBtn.style.display = 'flex';
+    log(`Система CoreBox ${GameConfig.VERSION} инициализирована`);
+    log('Добро пожаловать в систему добычи ресурсов!');
+    log('Ваша задача - восстановить работу комплекса и защитить его от повстанцев');
     
-    // Скрываем контейнер авторизации
-    const authContainer = document.getElementById('authContainer');
-    if (authContainer) {
-        authContainer.style.display = 'none';
-    }
-    
-    // Переинициализируем обработчики после показа интерфейса
-    setTimeout(() => {
-        initEventListeners();
-        // Рендерим игру
-        if (typeof render === 'function') {
-            render();
-        }
-    }, 100);
-}
-
-// Помечаем игру как инициализированную когда все готово
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM загружен, начинаем инициализацию игры...');
-    gameInitialized = true;
-    initGame();
-});
+    voiceAlerts.alertSystem(`Система CoreBox ${GameConfig.VERSION} инициализирована`);
+  }
+  
+  document.addEventListener('DOMContentLoaded', initGame);
