@@ -682,19 +682,75 @@ function toggleCollapse(panel) {
 }
 
 function switchTab(tabName) {
+    console.log('🔄 Переключение на вкладку:', tabName);
+    
+    // Скрываем все вкладки
     tabContents.forEach(content => {
         content.classList.remove('active');
+        console.log('❌ Скрыта вкладка:', content.id);
     });
     
+    // Убираем активный класс со всех табов
     tabs.forEach(tab => {
         tab.classList.remove('active');
     });
     
+    // Показываем выбранную вкладку
     const tabContent = document.getElementById(`${tabName}-tab`);
     const tabElement = document.querySelector(`.tab[data-tab="${tabName}"]`);
     
-    if (tabContent) tabContent.classList.add('active');
-    if (tabElement) tabElement.classList.add('active');
+    if (tabContent) {
+        tabContent.classList.add('active');
+        console.log('✅ Показана вкладка:', tabContent.id);
+    } else {
+        console.error('❌ Вкладка не найдена:', `${tabName}-tab`);
+    }
+    
+    if (tabElement) {
+        tabElement.classList.add('active');
+        console.log('✅ Активирован таб:', tabElement.dataset.tab);
+    } else {
+        console.error('❌ Таб не найден:', `[data-tab="${tabName}"]`);
+    }
+    
+    // Принудительно рендерим контент вкладки
+    setTimeout(() => {
+        if (tabName === 'inventory') {
+            render();
+        } else if (tabName === 'trade') {
+            renderTrade();
+        } else if (tabName === 'quests') {
+            renderQuests();
+        }
+    }, 50);
+}
+
+function toggleBuySellMode(isBuyMode) {
+    console.log('🔄 Переключение режима торговли:', isBuyMode ? 'покупка' : 'продажа');
+    
+    if (buyModeBtn) {
+        buyModeBtn.classList.toggle('active', isBuyMode);
+        console.log('✅ Кнопка покупки:', isBuyMode ? 'активна' : 'неактивна');
+    }
+    if (sellModeBtn) {
+        sellModeBtn.classList.toggle('active', !isBuyMode);
+        console.log('✅ Кнопка продажи:', !isBuyMode ? 'активна' : 'неактивна');
+    }
+    if (buyItemsContainer) {
+        buyItemsContainer.style.display = isBuyMode ? 'grid' : 'none';
+        console.log('✅ Контейнер покупки:', isBuyMode ? 'показан' : 'скрыт');
+    }
+    if (sellItemsContainer) {
+        sellItemsContainer.style.display = isBuyMode ? 'none' : 'grid';
+        console.log('✅ Контейнер продажи:', !isBuyMode ? 'показан' : 'скрыт');
+    }
+    
+    // Принудительно рендерим торговлю при переключении
+    if (!isBuyMode) {
+        setTimeout(() => {
+            renderTrade();
+        }, 100);
+    }
 }
 
 function toggleBuySellMode(isBuyMode) {
