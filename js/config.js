@@ -12,21 +12,21 @@ const GameConfig = {
     // === НАСТРОЙКИ ДОБЫЧИ ===
     MINING: {
         BASE_CHANCES: {
-            COAL: 1,      // Уголь
-            TRASH: 1,     // Мусор
-            CHIPS: 1,     // Чипы
-            PLASMA: 1     // Плазма
+            COAL: 0.15,      // 15% шанс угля (ИСПРАВЛЕНО: было 1 = 100%)
+            TRASH: 0.10,     // 10% шанс мусора (ИСПРАВЛЕНО: было 1 = 100%)
+            CHIPS: 0.04,     // 4% шанс чипов (ИСПРАВЛЕНО: было 1 = 100%)
+            PLASMA: 0.02     // 2% шанс плазмы (ИСПРАВЛЕНО: было 1 = 100%)
         },
-        UPGRADE_BONUS: 1,       // Прирост шанса добычи за апгрейд
-        COAL_BONUS: 2,          // Бонус при активном угле
-        CRITICAL_CHANCE: 0.03,     // Шанс критической добычи (%)
-        CRITICAL_UPGRADE_BONUS: 0.005,
+        UPGRADE_BONUS: 0.01,       // +1% за уровень апгрейда (ИСПРАВЛЕНО: было 1 = +100%)
+        COAL_BONUS: 0.02,          // +2% при активном угле (ИСПРАВЛЕНО: было 2 = +200%)
+        CRITICAL_CHANCE: 0.03,     // 3% шанс критической добычи
+        CRITICAL_UPGRADE_BONUS: 0.005, // +0.5% за уровень
         CRITICAL_MULTIPLIER: 2,
         PASSIVE_CHANCES: {
-            COAL: 1,
-            TRASH: 1,
-            CHIPS: 0,
-            PLASMA: 0
+            COAL: 0.003,    // 0.3% пассивная добыча (ИСПРАВЛЕНО: было 1 = 100%)
+            TRASH: 0.007,   // 0.7% пассивная добыча (ИСПРАВЛЕНО: было 1 = 100%)
+            CHIPS: 0.001,   // 0.1% пассивная добыча
+            PLASMA: 0.0005  // 0.05% пассивная добыча
         }
     },
   
@@ -37,26 +37,26 @@ const GameConfig = {
         MAX_LEVEL: 5,
         ACTIVATION_COST: 2,
         CHIPS_MULTIPLIER: 10,
-        PLASMA_BASE: 5,
-        REFLECT_CHANCE: 50,   // %
-        DISABLE_CHANCE: 20    // %
+        PLASMA_BASE: 1,     // ИСПРАВЛЕНО: было 5 (слишком много)
+        REFLECT_CHANCE: 0.5,   // 50% шанс отражения (ИСПРАВЛЕНО: в десятичной форме)
+        DISABLE_CHANCE: 0.2    // 20% шанс отключения (ИСПРАВЛЕНО: в десятичной форме)
     },
   
     // === НАСТРОЙКИ ПОВСТАНЦЕВ ===
     REBELS: {
-        BASE_ATTACK_CHANCE: 60,   // %
+        BASE_ATTACK_CHANCE: 0.6,   // 60% шанс атаки (ИСПРАВЛЕНО: в десятичной форме)
         ACTIVITY_INCREASE: 3,
         ACTIVITY_DECREASE: 1,
         SEVERE_ATTACK_BONUS: 2,
         ATTACK_CHANCES: {
-            STEAL_RESOURCES: 40,
-            DAMAGE_MINING: 30,
-            DESTROY_TRASH: 60,
-            DISABLE_DEFENSE: 20,
-            HACK_AI: 10
+            STEAL_RESOURCES: 0.4,  // 40% (ИСПРАВЛЕНО: в десятичной форме)
+            DAMAGE_MINING: 0.3,    // 30% (ИСПРАВЛЕНО: в десятичной форме)
+            DESTROY_TRASH: 0.6,    // 60% (ИСПРАВЛЕНО: в десятичной форме)
+            DISABLE_DEFENSE: 0.2,  // 20% (ИСПРАВЛЕНО: в десятичной форме)
+            HACK_AI: 0.1           // 10% (ИСПРАВЛЕНО: в десятичной форме)
         },
         STEAL_AMOUNT: { min: 2, max: 6 },
-        DESTROY_PERCENT: { min: 40, max: 70 },
+        DESTROY_PERCENT: { min: 0.4, max: 0.7 }, // 40-70% (ИСПРАВЛЕНО: в десятичной форме)
         AI_DISABLE_TIME: { base: 300000, bonus: 120000 }
     },
   
@@ -64,7 +64,7 @@ const GameConfig = {
     ECONOMY: {
         TRASH: {
             BASE_PRICE: 2,
-            PRICE_DROP: 1,
+            PRICE_DROP: 0.1,      // Цена падает на 0.1 за каждые 8 проданных (ИСПРАВЛЕНО: было 1)
             MIN_PRICE: 1
         },
         TRADE: {
@@ -175,5 +175,4 @@ const StoryQuests = [
         specialEffect: 'Повстанцы атакуют реже, но с большей силой'
     }
 ];
-
   
