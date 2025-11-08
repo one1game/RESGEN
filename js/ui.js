@@ -227,6 +227,7 @@ function render() {
     updateVoiceControls();
 }
 
+
 function updateVoiceControls() {
     if (toggleVoiceBtn) {
         toggleVoiceBtn.textContent = voiceAlerts.enabled ? 'Выключить голос' : 'Включить голос';
