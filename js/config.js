@@ -12,21 +12,21 @@ const GameConfig = {
     // === НАСТРОЙКИ ДОБЫЧИ ===
     MINING: {
         BASE_CHANCES: {
-            COAL: 1,      // Уголь
-            TRASH: 1,     // Мусор
-            CHIPS: 1,     // Чипы
-            PLASMA: 1     // Плазма
+            COAL: 0.15,      // 15% шанс
+            TRASH: 0.10,     // 10% шанс  
+            CHIPS: 0.04,     // 4% шанс
+            PLASMA: 0.02     // 2% шанс
         },
-        UPGRADE_BONUS: 1,       // Прирост шанса добычи за апгрейд
-        COAL_BONUS: 2,          // Бонус при активном угле
-        CRITICAL_CHANCE: 3,     // Шанс критической добычи (%)
-        CRITICAL_UPGRADE_BONUS: 1,
+        UPGRADE_BONUS: 0.01,       // +1% за уровень
+        COAL_BONUS: 0.02,          // +2% при активном угле
+        CRITICAL_CHANCE: 0.03,     // 3% шанс крита
+        CRITICAL_UPGRADE_BONUS: 0.005,
         CRITICAL_MULTIPLIER: 2,
         PASSIVE_CHANCES: {
-            COAL: 1,
-            TRASH: 1,
-            CHIPS: 0,
-            PLASMA: 0
+            COAL: 0.003,
+            TRASH: 0.007,
+            CHIPS: 0.001,
+            PLASMA: 0.0005
         }
     },
   
