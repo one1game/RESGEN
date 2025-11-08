@@ -40,11 +40,11 @@ function saveGame() {
         
         // Облачное сохранение (не чаще чем раз в 10 секунд)
         const now = Date.now();
-        if (window.cloudSaveManagerCore && cloudSaveManagerCore.isOnline && 
+        if (window.cloudSaveManager && cloudSaveManager.isOnline && cloudSaveManager.isAuthenticated && 
             now - lastCloudSave > 10000) {
             
             lastCloudSave = now;
-            cloudSaveManagerCore.saveGame(saveData).then(success => {
+            cloudSaveManager.saveGame(saveData).then(success => {
                 if (success) {
                     console.log('💾 Игра сохранена в облако');
                 }
@@ -56,12 +56,12 @@ function saveGame() {
 }
 
 async function loadGame() {
-    // Сначала пробуем загрузить из облака (если нет локального сохранения)
+    // Сначала пробуем загрузить из облака (если нет локального сохранения И пользователь авторизован)
     let cloudData = null;
     const localSave = localStorage.getItem(GameConfig.STORAGE_KEY);
     
-    if (!localSave && window.cloudSaveManagerCore && cloudSaveManagerCore.isOnline) {
-        cloudData = await cloudSaveManagerCore.loadGame();
+    if (!localSave && window.cloudSaveManager && cloudSaveManager.isOnline && cloudSaveManager.isAuthenticated) {
+        cloudData = await cloudSaveManager.loadGame();
         if (cloudData) {
             console.log('🔄 Загружаем из облака...');
         }
@@ -149,7 +149,7 @@ function resetGame() {
         localStorage.removeItem(GameConfig.STORAGE_KEY);
         
         // Также удаляем из облака
-        if (window.cloudSaveManagerCore && cloudSaveManagerCore.isOnline) {
+        if (window.cloudSaveManager && cloudSaveManager.isOnline && cloudSaveManager.isAuthenticated) {
             // Можно добавить функцию удаления из облака если нужно
             console.log('Cloud save reset');
         }
@@ -160,8 +160,8 @@ function resetGame() {
 
 // Новая функция для принудительной синхронизации с облаком
 async function syncWithCloud() {
-    if (window.cloudSaveManagerCore && cloudSaveManagerCore.isOnline) {
-        const success = await cloudSaveManagerCore.saveGame(getSaveData());
+    if (window.cloudSaveManager && cloudSaveManager.isOnline && cloudSaveManager.isAuthenticated) {
+        const success = await cloudSaveManager.saveGame(getSaveData());
         if (success) {
             log('✅ Синхронизация с облаком завершена');
             return true;
