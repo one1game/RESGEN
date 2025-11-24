@@ -337,382 +337,375 @@
 <script type="module">
   import init, { start_game, apply_config_from_admin } from './pkg/corebox_rs.js';
 
-  let game;
-  let lastConfigHash = null;
-  let isAutoClicking = false;
-  let currentUser = null;
+  let game = null;
+  let gameInitialized = false;
+  let longPressTimer = null;
+  const LONG_PRESS_DELAY = 500;
 
-  // Система хранения пользователей
-  const USER_STORAGE_KEY = 'corebox_users';
-  const CURRENT_USER_KEY = 'corebox_current_user';
-
-  // Функции для работы с пользователями
-  function getUsers() {
-      const usersJson = localStorage.getItem(USER_STORAGE_KEY);
-      return usersJson ? JSON.parse(usersJson) : {};
-  }
-
-  function saveUsers(users) {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
-  }
-
-  function getCurrentUser() {
-      const userJson = localStorage.getItem(CURRENT_USER_KEY);
-      return userJson ? JSON.parse(userJson) : null;
-  }
-
-  function setCurrentUser(user) {
-      if (user) {
-          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-      } else {
-          localStorage.removeItem(CURRENT_USER_KEY);
-      }
-      currentUser = user;
-  }
-
-  // Функции авторизации
-  function showAuthMessage(message, isError = false) {
-      const messageEl = document.getElementById('authMessage');
-      messageEl.textContent = message;
-      messageEl.className = `auth-message ${isError ? 'error' : 'success'}`;
-  }
-
-  function loginUser(username, password) {
-      const users = getUsers();
+  // Обработчик формы авторизации
+  document.getElementById('authForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    if (gameInitialized) {
+      console.log('Игра уже инициализирована');
+      return;
+    }
+    
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    try {
+      console.log('1. Загружаем WASM...');
+      await init();
       
-      if (users[username]) {
-          // Проверяем пароль существующего пользователя
-          if (users[username].password === password) {
-              // Обновляем время последнего входа
-              users[username].lastLogin = new Date().toISOString();
-              saveUsers(users);
-              
-              setCurrentUser({ username, ...users[username] });
-              showAuthMessage(`Добро пожаловать, ${username}!`);
-              
-              // Показываем игру через секунду
-              setTimeout(() => {
-                  document.getElementById('authOverlay').style.display = 'none';
-                  document.getElementById('gameContent').style.display = 'block';
-                  showUserInfo();
-                  initializeGame();
-              }, 1000);
-              
-              return true;
-          } else {
-              showAuthMessage('Неверный пароль!', true);
-              return false;
-          }
-      } else {
-          // Создаем нового пользователя
-          users[username] = {
-              password: password,
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString()
-          };
-          
-          saveUsers(users);
-          setCurrentUser({ username, ...users[username] });
-          showAuthMessage(`Аккаунт ${username} создан! Добро пожаловать!`);
-          
-          // Показываем игру через секунду
-          setTimeout(() => {
-              document.getElementById('authOverlay').style.display = 'none';
-              document.getElementById('gameContent').style.display = 'block';
-              showUserInfo();
-              initializeGame();
-          }, 1000);
-          
-          return true;
-      }
-  }
-
-  function showUserInfo() {
-      if (currentUser) {
-          document.getElementById('userInfo').style.display = 'block';
-          document.getElementById('usernameDisplay').textContent = currentUser.username;
-          
-          document.getElementById('logoutBtn').addEventListener('click', logout);
-      }
-  }
-
-  function logout() {
-      setCurrentUser(null);
-      document.getElementById('authOverlay').style.display = 'flex';
-      document.getElementById('gameContent').style.display = 'none';
-      document.getElementById('authForm').reset();
-      document.getElementById('authMessage').textContent = '';
-      document.getElementById('userInfo').style.display = 'none';
+      console.log('2. Загружаем конфиг...');
+      const configResponse = await fetch('./config.json');
+      const configText = await configResponse.text();
       
-      // Перезагружаем страницу для сброса состояния игры
-      setTimeout(() => {
-          location.reload();
-      }, 500);
-  }
+      console.log('3. Применяем конфиг...');
+      apply_config_from_admin(configText);
+      
+      console.log('4. Запускаем игру...');
+      game = start_game();
+      window.game = game; // для дебага
+      
+      console.log('5. Настраиваем интерфейс...');
+      setupGameInterface();
+      
+      // Показываем игру
+      document.getElementById('authOverlay').style.display = 'none';
+      document.getElementById('gameContent').style.display = 'block';
+      document.getElementById('usernameDisplay').textContent = username;
+      
+      gameInitialized = true;
+      console.log('✅ Игра успешно запущена!');
+      
+    } catch (error) {
+      console.error('❌ Ошибка запуска:', error);
+    }
+  });
 
-  // Инициализация авторизации
-  function initializeAuth() {
-      // Проверяем, есть ли активный пользователь
-      const user = getCurrentUser();
-      if (user) {
-          document.getElementById('authOverlay').style.display = 'none';
-          document.getElementById('gameContent').style.display = 'block';
-          currentUser = user;
-          showUserInfo();
-          initializeGame();
-          return;
+  // Обработчики для мобильных устройств
+  function setupMobileHandlers() {
+    const mineBtn = document.getElementById('mineBtn');
+    const floatingBtn = document.getElementById('floatingMineBtn');
+    
+    if (!mineBtn || !floatingBtn) return;
+    
+    // Удаляем старые обработчики чтобы не было дублирования
+    mineBtn.replaceWith(mineBtn.cloneNode(true));
+    floatingBtn.replaceWith(floatingBtn.cloneNode(true));
+    
+    const newMineBtn = document.getElementById('mineBtn');
+    const newFloatingBtn = document.getElementById('floatingMineBtn');
+    
+    // ОБЩИЕ ФУНКЦИИ
+    function handleTap() {
+      if (game && typeof game.add_manual_click === 'function') {
+        game.add_manual_click();
+        updateUI();
+        
+        // Визуальная обратная связь
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          this.style.transform = 'scale(1)';
+        }, 150);
+      }
+    }
+    
+    function handleTouchStart(e) {
+      e.preventDefault();
+      this.classList.add('touching');
+      
+      // Запускаем таймер долгого нажатия
+      longPressTimer = setTimeout(() => {
+        if (game && typeof game.start_auto_clicking === 'function') {
+          game.start_auto_clicking();
+          this.classList.add('auto-clicking');
+          console.log('Автоклики включены');
+        }
+      }, LONG_PRESS_DELAY);
+    }
+    
+    function handleTouchEnd(e) {
+      e.preventDefault();
+      this.classList.remove('touching');
+      
+      // Отменяем долгое нажатие
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
       }
       
-      // Настраиваем обработчики формы
-      const authForm = document.getElementById('authForm');
-      const loginBtn = document.getElementById('loginBtn');
-      const registerBtn = document.getElementById('registerBtn');
-      
-      authForm.addEventListener('submit', (e) => {
-          e.preventDefault();
-          const username = document.getElementById('username').value.trim();
-          const password = document.getElementById('password').value;
-          
-          if (username.length < 3) {
-              showAuthMessage('Логин должен быть не менее 3 символов!', true);
-              return;
-          }
-          
-          if (password.length < 4) {
-              showAuthMessage('Пароль должен быть не менее 4 символов!', true);
-              return;
-          }
-          
-          loginUser(username, password);
-      });
-      
-      registerBtn.addEventListener('click', () => {
-          const username = document.getElementById('username').value.trim();
-          const password = document.getElementById('password').value;
-          
-          if (username.length < 3) {
-              showAuthMessage('Логин должен быть не менее 3 символов!', true);
-              return;
-          }
-          
-          if (password.length < 4) {
-              showAuthMessage('Пароль должен быть не менее 4 символов!', true);
-              return;
-          }
-          
-          const users = getUsers();
-          if (users[username]) {
-              showAuthMessage('Пользователь с таким логином уже существует!', true);
-              return;
-          }
-          
-          loginUser(username, password);
-      });
-  }
-
-  // Функция для хэширования конфига (чтобы определить изменения)
-  function hashConfig(configStr) {
-      let hash = 0, i, chr;
-      if (configStr.length === 0) return hash;
-      for (i = 0; i < configStr.length; i++) {
-          chr   = configStr.charCodeAt(i);
-          hash  = ((hash << 5) - hash) + chr;
-          hash |= 0; // Приведение к 32-битному числу
-      }
-      return hash;
-  }
-
-  // Функция загрузки конфига и применения только при изменении
-  async function loadConfig() {
-      try {
-          const resp = await fetch("config.json?_" + Date.now());
-          const configStr = await resp.text();
-          const currentHash = hashConfig(configStr);
-
-          if (currentHash !== lastConfigHash) {
-              lastConfigHash = currentHash;
-              
-              try {
-                  // Пробуем применить конфиг
-                  const result = apply_config_from_admin(configStr);
-                  console.log("✅ Конфиг применен:", result);
-              } catch (e) {
-                  // Если ошибка - очищаем localStorage
-                  console.error("❌ Ошибка применения конфига, очищаю кэш:", e);
-                  localStorage.removeItem('corebox_config');
-                  location.reload();
-                  return;
-              }
-              
-              if (game) {
-                  game.reload_config();
-              }
-          }
-      } catch (e) {
-          console.error("Не удалось загрузить config.json:", e);
-      }
-  }
-
-  // Функции для системы кликов
-  function toggleAutoClicking() {
-      if (isAutoClicking) {
-          // Выключаем автоклики
+      // Если автоклики активны, останавливаем их
+      if (this.classList.contains('auto-clicking')) {
+        if (game && typeof game.stop_auto_clicking === 'function') {
           game.stop_auto_clicking();
-          isAutoClicking = false;
-          document.getElementById('mineBtn').classList.remove('auto-clicking');
-          document.getElementById('floatingMineBtn').classList.remove('auto-clicking');
-      } else {
-          // Включаем автоклики если есть мощность
-          if (game.get_computational_power() > 0) {
-              game.start_auto_clicking();
-              isAutoClicking = true;
-              document.getElementById('mineBtn').classList.add('auto-clicking');
-              document.getElementById('floatingMineBtn').classList.add('auto-clicking');
-          }
+          this.classList.remove('auto-clicking');
+          console.log('Автоклики выключены');
+        }
       }
-  }
-
-  function handleClick() {
-      // Всегда делаем ручной клик при нажатии
-      game.add_manual_click();
-  }
-
-  // Обработчики долгого нажатия
-  function setupLongPressHandlers() {
-      const mineBtn = document.getElementById('mineBtn');
-      const floatingMineBtn = document.getElementById('floatingMineBtn');
-      let pressTimer;
-
-      function startPressTimer(element) {
-          pressTimer = setTimeout(() => {
-              toggleAutoClicking();
-          }, 500); // 500ms для долгого нажатия
+    }
+    
+    // ОСНОВНАЯ КНОПКА ДОБЫЧИ
+    // Клик мыши
+    newMineBtn.addEventListener('click', handleTap);
+    
+    // Тач события
+    newMineBtn.addEventListener('touchstart', handleTouchStart, { passive: false });
+    newMineBtn.addEventListener('touchend', handleTouchEnd, { passive: false });
+    newMineBtn.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    
+    // Долгое нажатие мышью
+    newMineBtn.addEventListener('mousedown', function(e) {
+      this.classList.add('touching');
+      longPressTimer = setTimeout(() => {
+        if (game && typeof game.start_auto_clicking === 'function') {
+          game.start_auto_clicking();
+          this.classList.add('auto-clicking');
+          console.log('Автоклики включены');
+        }
+      }, LONG_PRESS_DELAY);
+    });
+    
+    newMineBtn.addEventListener('mouseup', function(e) {
+      this.classList.remove('touching');
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
       }
-
-      function clearPressTimer() {
-          if (pressTimer) {
-              clearTimeout(pressTimer);
-              pressTimer = null;
-          }
+      if (this.classList.contains('auto-clicking')) {
+        if (game && typeof game.stop_auto_clicking === 'function') {
+          game.stop_auto_clicking();
+          this.classList.remove('auto-clicking');
+          console.log('Автоклики выключены');
+        }
       }
-
-      // Мышиные события для основной кнопки
-      mineBtn.addEventListener('mousedown', () => startPressTimer(mineBtn));
-      mineBtn.addEventListener('mouseup', clearPressTimer);
-      mineBtn.addEventListener('mouseleave', clearPressTimer);
-
-      // Мышиные события для плавающей кнопки
-      floatingMineBtn.addEventListener('mousedown', () => startPressTimer(floatingMineBtn));
-      floatingMineBtn.addEventListener('mouseup', clearPressTimer);
-      floatingMineBtn.addEventListener('mouseleave', clearPressTimer);
-
-      // Touch события для основной кнопки
-      mineBtn.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          startPressTimer(mineBtn);
-      });
-      mineBtn.addEventListener('touchend', clearPressTimer);
-      mineBtn.addEventListener('touchcancel', clearPressTimer);
-
-      // Touch события для плавающей кнопки
-      floatingMineBtn.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          startPressTimer(floatingMineBtn);
-      });
-      floatingMineBtn.addEventListener('touchend', clearPressTimer);
-      floatingMineBtn.addEventListener('touchcancel', clearPressTimer);
-  }
-
-  // Обработчики интерфейса
-  function setupEventListeners() {
-      // Обычные клики - только добыча
-      document.getElementById('mineBtn').addEventListener('click', handleClick);
-      document.getElementById('floatingMineBtn').addEventListener('click', handleClick);
-
-      // Обработчики долгого нажатия
-      setupLongPressHandlers();
-
-      // Общие обработчики действий
-      document.addEventListener('click', (event) => {
-          if (!game) return;
-          const target = event.target.closest('[data-action]');
-          if (!target) return;
-
-          const action = target.getAttribute('data-action');
-          const resource = target.getAttribute('data-resource');
-
-          if (action === 'buy' && resource) game.buy_resource(resource);
-          else if (action === 'sell' && resource) game.sell_resource(resource);
-          else if (action === 'toggle-coal') game.toggle_coal();
-      });
-
-      // Апгрейды
-      document.getElementById('upgradeMiningBtn').addEventListener('click', () => game.upgrade_mining());
-      document.getElementById('upgradeDefenseBtn').addEventListener('click', () => game.activate_defense());
-      document.getElementById('upgradeDefenseLevelBtn').addEventListener('click', () => game.upgrade_defense());
-
-      // Торговля
-      document.getElementById('buyModeBtn').addEventListener('click', () => {
-          document.getElementById('buyItemsContainer').style.display = 'grid';
-          document.getElementById('sellItemsContainer').style.display = 'none';
-          document.getElementById('buyModeBtn').classList.add('active');
-          document.getElementById('sellModeBtn').classList.remove('active');
-      });
-      document.getElementById('sellModeBtn').addEventListener('click', () => {
-          document.getElementById('buyItemsContainer').style.display = 'none';
-          document.getElementById('sellItemsContainer').style.display = 'grid';
-          document.getElementById('buyModeBtn').classList.remove('active');
-          document.getElementById('sellModeBtn').classList.add('active');
-      });
-
-      // Журнал
-      document.getElementById('clearLogBtn').addEventListener('click', () => {
-          document.getElementById('logBox').innerHTML = '';
-      });
-      document.getElementById('autoScrollBtn').addEventListener('click', () => {
-          const logBox = document.getElementById('logBox');
-          logBox.scrollTop = logBox.scrollHeight;
-      });
-
-      // Вкладки
-      document.querySelectorAll('.tab').forEach(tab => {
-          tab.addEventListener('click', () => game.switch_tab(tab.dataset.tab));
-      });
-  }
-
-  // Основная функция запуска игры
-  async function initializeGame() {
-      try {
-          // 1️⃣ Загружаем WASM
-          await init();
-
-          // 2️⃣ Загружаем конфиг перед стартом игры
-          await loadConfig();
-
-          // 3️⃣ Запускаем игру
-          game = start_game();
-          window.game = game; // для дебага в консоли
-
-          // 4️⃣ Ставим обработчики интерфейса
-          setupEventListeners();
-
-          // 5️⃣ Игровой цикл
-          setInterval(() => game.game_loop(), 1000);
-
-          // 6️⃣ Проверка обновления конфига каждые 10 секунд
-          setInterval(loadConfig, 10000);
-
-          console.log("🎮 Игра успешно запущена!");
-      } catch (error) {
-          console.error("❌ Ошибка при запуске игры:", error);
+    });
+    
+    newMineBtn.addEventListener('mouseleave', function(e) {
+      this.classList.remove('touching');
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
       }
+    });
+    
+    // ПЛАВАЮЩАЯ КНОПКА
+    // Клик мыши
+    newFloatingBtn.addEventListener('click', handleTap);
+    
+    // Тач события
+    newFloatingBtn.addEventListener('touchstart', handleTouchStart, { passive: false });
+    newFloatingBtn.addEventListener('touchend', handleTouchEnd, { passive: false });
+    newFloatingBtn.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    
+    // Долгое нажатие мышью
+    newFloatingBtn.addEventListener('mousedown', function(e) {
+      this.classList.add('touching');
+      longPressTimer = setTimeout(() => {
+        if (game && typeof game.start_auto_clicking === 'function') {
+          game.start_auto_clicking();
+          this.classList.add('auto-clicking');
+          console.log('Автоклики включены');
+        }
+      }, LONG_PRESS_DELAY);
+    });
+    
+    newFloatingBtn.addEventListener('mouseup', function(e) {
+      this.classList.remove('touching');
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+      if (this.classList.contains('auto-clicking')) {
+        if (game && typeof game.stop_auto_clicking === 'function') {
+          game.stop_auto_clicking();
+          this.classList.remove('auto-clicking');
+          console.log('Автоклики выключены');
+        }
+      }
+    });
+    
+    newFloatingBtn.addEventListener('mouseleave', function(e) {
+      this.classList.remove('touching');
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    });
+    
+    console.log('Мобильные обработчики установлены');
   }
 
-  // Запускаем систему авторизации когда страница загружена
-  if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeAuth);
-  } else {
-      initializeAuth();
+  // Настройка игрового интерфейса
+  function setupGameInterface() {
+    if (!game) return;
+    
+    // Ставим мобильные обработчики
+    setupMobileHandlers();
+    
+    // Обработчик выхода
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      document.getElementById('gameContent').style.display = 'none';
+      document.getElementById('authOverlay').style.display = 'flex';
+      gameInitialized = false;
+      game = null;
+    });
+    
+    // Вкладки
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        const tabName = this.getAttribute('data-tab');
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+      });
+    });
+    
+    // Апгрейды
+    document.getElementById('upgradeMiningBtn').addEventListener('click', () => {
+      if (game && typeof game.upgrade_mining === 'function') {
+        game.upgrade_mining();
+        updateUI();
+      }
+    });
+    
+    document.getElementById('upgradeDefenseBtn').addEventListener('click', () => {
+      if (game && typeof game.activate_defense === 'function') {
+        game.activate_defense();
+        updateUI();
+      }
+    });
+    
+    document.getElementById('upgradeDefenseLevelBtn').addEventListener('click', () => {
+      if (game && typeof game.upgrade_defense === 'function') {
+        game.upgrade_defense();
+        updateUI();
+      }
+    });
+    
+    // Торговля
+    document.getElementById('buyModeBtn').addEventListener('click', () => {
+      document.getElementById('buyItemsContainer').style.display = 'grid';
+      document.getElementById('sellItemsContainer').style.display = 'none';
+      document.getElementById('buyModeBtn').classList.add('active');
+      document.getElementById('sellModeBtn').classList.remove('active');
+    });
+    
+    document.getElementById('sellModeBtn').addEventListener('click', () => {
+      document.getElementById('buyItemsContainer').style.display = 'none';
+      document.getElementById('sellItemsContainer').style.display = 'grid';
+      document.getElementById('buyModeBtn').classList.remove('active');
+      document.getElementById('sellModeBtn').classList.add('active');
+    });
+    
+    // Журнал
+    document.getElementById('clearLogBtn').addEventListener('click', () => {
+      document.getElementById('logBox').innerHTML = '';
+    });
+    
+    document.getElementById('autoScrollBtn').addEventListener('click', () => {
+      const logBox = document.getElementById('logBox');
+      logBox.scrollTop = logBox.scrollHeight;
+    });
+    
+    // Запускаем игровой цикл
+    setInterval(() => {
+      if (game) {
+        game.game_loop();
+        updateUI();
+      }
+    }, 1000);
+    
+    // Первоначальное обновление UI
+    updateUI();
+  }
+
+  // Обновление интерфейса
+  function updateUI() {
+    if (!game) return;
+    
+    try {
+      // Время
+      const time = game.get_current_time();
+      if (time) document.getElementById('timeDisplay').textContent = time;
+      
+      // Мощность
+      const power = game.get_computational_power();
+      document.getElementById('powerFill').style.width = power + '%';
+      document.getElementById('powerText').textContent = power + '/100';
+      
+      // Прогресс кликов
+      const clicks = game.get_click_progress();
+      document.getElementById('clickProgress').style.width = (clicks * 10) + '%';
+      document.getElementById('clickProgressText').textContent = clicks + '/10';
+      
+      // Бонус добычи
+      const bonus = game.get_mining_bonus();
+      document.getElementById('miningBonus').textContent = `+${bonus}%`;
+      document.getElementById('miningBonusFloat').textContent = `+${bonus}%`;
+      
+      // Инвентарь
+      updateInventory();
+      
+      // Статус ТЭЦ
+      const coalStatus = game.is_coal_plant_active() ? 'ОНЛАЙН' : 'ОФФЛАЙН';
+      document.getElementById('coalStatus').textContent = coalStatus;
+      document.getElementById('coalStatus').nextElementSibling.className = 
+        game.is_coal_plant_active() ? 'status-indicator online' : 'status-indicator offline';
+      
+      // Статус защиты
+      const defenseActive = game.is_defense_active();
+      document.getElementById('defenseStatusText').textContent = defenseActive ? 'АКТИВНА' : 'НЕАКТИВНА';
+      document.getElementById('defenseStatusText').nextElementSibling.className = 
+        defenseActive ? 'status-indicator online' : 'status-indicator offline';
+      
+      // Уровни улучшений
+      const miningLevel = game.get_mining_level();
+      document.getElementById('miningLevel').textContent = miningLevel;
+      
+      const defenseLevel = game.get_defense_level();
+      document.getElementById('defenseLevel').textContent = `УР. ${defenseLevel}/5`;
+      
+      // Статус автокликов
+      const autoClickStatus = game.is_auto_clicking_active() ? 'АКТИВНА' : 'ОТКЛЮЧЕНА';
+      document.getElementById('autoClickStatus').textContent = autoClickStatus;
+      
+    } catch (error) {
+      console.log('UI update error:', error);
+    }
+  }
+
+  // Обновление инвентаря
+  function updateInventory() {
+    if (!game) return;
+    
+    try {
+      const resources = [
+        { name: 'Уголь', key: 'coal', icon: '⛏️' },
+        { name: 'Хлам', key: 'trash', icon: '🗑️' },
+        { name: 'Микросхемы', key: 'chips', icon: '🎛️' },
+        { name: 'Плазма', key: 'plasma', icon: '⚡' },
+        { name: 'Тенге', key: 'money', icon: '₸' }
+      ];
+      
+      const container = document.getElementById('resourcesContainer');
+      container.innerHTML = resources.map(resource => {
+        const amount = game.get_resource_amount(resource.key);
+        return `
+          <div class="inventory-item">
+            <div class="item-icon">${resource.icon}</div>
+            <div class="item-name">${resource.name}</div>
+            <div class="item-amount">${amount}</div>
+          </div>
+        `;
+      }).join('');
+      
+    } catch (error) {
+      console.log('Inventory update error:', error);
+    }
   }
 </script>
 </body>
