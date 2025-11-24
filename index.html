@@ -339,61 +339,78 @@
 
   let game = null;
   let gameInitialized = false;
-  let longPressTimer = null;
-  const LONG_PRESS_DELAY = 500;
 
   // Ключи для localStorage
-  const CURRENT_USER_KEY = 'corebox_current_user';
+  const CURRENT_USER_KEY = 'corebox_current_user_v2'; // меняем ключ чтобы избежать кэша
+
+  // ОТЛАДКА: выводим все что есть в localStorage
+  console.log('🔍 localStorage содержимое:', { ...localStorage });
+  console.log('🔍 Текущий пользователь:', localStorage.getItem(CURRENT_USER_KEY));
 
   // Проверяем авторизованного пользователя при загрузке
   async function checkExistingUser() {
     const userJson = localStorage.getItem(CURRENT_USER_KEY);
+    console.log('🔍 checkExistingUser вызван, userJson:', userJson);
+    
     if (userJson) {
-      const user = JSON.parse(userJson);
-      console.log('Найден сохраненный пользователь:', user.username);
-      
-      // Показываем сообщение о загрузке
-      document.getElementById('authMessage').textContent = 'Загружаем игру...';
-      document.getElementById('authMessage').className = 'auth-message success';
-      
-      // Ждем немного чтобы пользователь увидел сообщение
-      setTimeout(() => {
-        autoLogin(user.username);
-      }, 500);
+      try {
+        const user = JSON.parse(userJson);
+        console.log('✅ Найден сохраненный пользователь:', user.username);
+        
+        // Сразу показываем сообщение
+        document.getElementById('authMessage').textContent = 'Загружаем вашу игру...';
+        document.getElementById('authMessage').className = 'auth-message success';
+        
+        // Даем время увидеть сообщение
+        setTimeout(() => {
+          autoLogin(user.username);
+        }, 1000);
+        
+      } catch (e) {
+        console.error('❌ Ошибка парсинга пользователя:', e);
+        localStorage.removeItem(CURRENT_USER_KEY);
+      }
+    } else {
+      console.log('❌ Пользователь не найден в localStorage');
     }
   }
 
   // Автоматический вход
   async function autoLogin(username) {
     try {
-      console.log('Автоматический вход для:', username);
+      console.log('🚀 Начинаем автовход для:', username);
       
-      // Загружаем WASM
+      // 1. Загружаем WASM
+      console.log('1. Загружаем WASM...');
       await init();
       
-      // Загружаем конфиг
+      // 2. Загружаем конфиг
+      console.log('2. Загружаем конфиг...');
       const configResponse = await fetch('./config.json');
       const configText = await configResponse.text();
       apply_config_from_admin(configText);
       
-      // Запускаем игру
+      // 3. Запускаем игру
+      console.log('3. Запускаем игру...');
       game = start_game();
       window.game = game;
       
-      // Настраиваем интерфейс
+      // 4. Настраиваем интерфейс
+      console.log('4. Настраиваем интерфейс...');
       setupGameInterface();
       
-      // Показываем игру
+      // 5. Показываем игру
+      console.log('5. Показываем игру...');
       document.getElementById('authOverlay').style.display = 'none';
       document.getElementById('gameContent').style.display = 'block';
       document.getElementById('usernameDisplay').textContent = username;
       
       gameInitialized = true;
-      console.log('✅ Автовход выполнен!');
+      console.log('✅ Автовход УСПЕШНО выполнен!');
       
     } catch (error) {
       console.error('❌ Ошибка автовхода:', error);
-      // Если ошибка - очищаем сохранение и показываем форму
+      // Очищаем битое сохранение
       localStorage.removeItem(CURRENT_USER_KEY);
       document.getElementById('authMessage').textContent = 'Ошибка загрузки, войдите снова';
       document.getElementById('authMessage').className = 'auth-message error';
@@ -404,7 +421,10 @@
   document.getElementById('authForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    if (gameInitialized) return;
+    if (gameInitialized) {
+      console.log('⚠️ Игра уже инициализирована, игнорируем повторный вход');
+      return;
+    }
     
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
@@ -416,36 +436,39 @@
     }
     
     try {
-      console.log('Ручной вход для:', username);
+      console.log('🚀 Ручной вход для:', username);
       
-      // Загружаем WASM
+      // 1. Загружаем WASM
       await init();
       
-      // Загружаем конфиг
+      // 2. Загружаем конфиг
       const configResponse = await fetch('./config.json');
       const configText = await configResponse.text();
       apply_config_from_admin(configText);
       
-      // Запускаем игру
+      // 3. Запускаем игру
       game = start_game();
       window.game = game;
       
-      // Сохраняем пользователя
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({
+      // 4. СОХРАНЯЕМ пользователя ПЕРЕД показом игры
+      const userData = {
         username: username,
-        loginTime: new Date().toISOString()
-      }));
+        loginTime: new Date().toISOString(),
+        sessionId: Date.now() // уникальный ID сессии
+      };
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userData));
+      console.log('💾 Пользователь сохранен:', userData);
       
-      // Настраиваем интерфейс
+      // 5. Настраиваем интерфейс
       setupGameInterface();
       
-      // Показываем игру
+      // 6. Показываем игру
       document.getElementById('authOverlay').style.display = 'none';
       document.getElementById('gameContent').style.display = 'block';
       document.getElementById('usernameDisplay').textContent = username;
       
       gameInitialized = true;
-      console.log('✅ Ручной вход выполнен!');
+      console.log('✅ Ручной вход УСПЕШНО выполнен!');
       
     } catch (error) {
       console.error('❌ Ошибка входа:', error);
@@ -465,25 +488,23 @@
       return;
     }
     
-    if (password.length < 4) {
-      document.getElementById('authMessage').textContent = 'Пароль должен быть не менее 4 символов';
-      document.getElementById('authMessage').className = 'auth-message error';
-      return;
-    }
-    
     // Триггерим submit формы
     document.getElementById('authForm').dispatchEvent(new Event('submit'));
   });
 
-  // УПРОЩЕННЫЕ ОБРАБОТЧИКИ КНОПОК
+  // Обработчики кнопок добычи
   function setupGameInterface() {
-    if (!game) return;
+    if (!game) {
+      console.error('❌ game не определен в setupGameInterface');
+      return;
+    }
+    
+    console.log('🎮 Настраиваем игровой интерфейс...');
     
     // ОБРАБОТЧИКИ КНОПКИ ДОБЫЧИ
     const mineBtn = document.getElementById('mineBtn');
     const floatingBtn = document.getElementById('floatingMineBtn');
     
-    // Функция для обработки клика
     function handleMining() {
       if (game && game.add_manual_click) {
         game.add_manual_click();
@@ -497,14 +518,14 @@
       }
     }
     
-    // Вешаем обработчики на основную кнопку
+    // Основная кнопка
     mineBtn.addEventListener('click', handleMining);
     mineBtn.addEventListener('touchstart', function(e) {
       e.preventDefault();
       handleMining.call(this);
     }, { passive: false });
     
-    // Вешаем обработчики на плавающую кнопку
+    // Плавающая кнопка
     floatingBtn.addEventListener('click', handleMining);
     floatingBtn.addEventListener('touchstart', function(e) {
       e.preventDefault();
@@ -513,6 +534,7 @@
     
     // Обработчик выхода
     document.getElementById('logoutBtn').addEventListener('click', function() {
+      console.log('🚪 Выход из игры');
       localStorage.removeItem(CURRENT_USER_KEY);
       document.getElementById('gameContent').style.display = 'none';
       document.getElementById('authOverlay').style.display = 'flex';
@@ -520,7 +542,6 @@
       document.getElementById('authMessage').textContent = '';
       gameInitialized = false;
       game = null;
-      location.reload(); // Полная перезагрузка для чистого состояния
     });
     
     // Вкладки
@@ -534,28 +555,6 @@
       });
     });
     
-    // Апгрейды
-    document.getElementById('upgradeMiningBtn').addEventListener('click', () => {
-      if (game && game.upgrade_mining) {
-        game.upgrade_mining();
-        updateUI();
-      }
-    });
-    
-    document.getElementById('upgradeDefenseBtn').addEventListener('click', () => {
-      if (game && game.activate_defense) {
-        game.activate_defense();
-        updateUI();
-      }
-    });
-    
-    document.getElementById('upgradeDefenseLevelBtn').addEventListener('click', () => {
-      if (game && game.upgrade_defense) {
-        game.upgrade_defense();
-        updateUI();
-      }
-    });
-    
     // Запускаем игровой цикл
     setInterval(() => {
       if (game) {
@@ -566,6 +565,8 @@
     
     // Первоначальное обновление UI
     updateUI();
+    
+    console.log('✅ Игровой интерфейс настроен');
   }
 
   // Обновление интерфейса
@@ -584,16 +585,7 @@
       document.getElementById('clickProgress').style.width = (clicks * 10) + '%';
       document.getElementById('clickProgressText').textContent = clicks + '/10';
       
-      const bonus = game.get_mining_bonus();
-      document.getElementById('miningBonus').textContent = `+${bonus}%`;
-      document.getElementById('miningBonusFloat').textContent = `+${bonus}%`;
-      
       updateInventory();
-      
-      const coalStatus = game.is_coal_plant_active() ? 'ОНЛАЙН' : 'ОФФЛАЙН';
-      document.getElementById('coalStatus').textContent = coalStatus;
-      document.getElementById('coalStatus').nextElementSibling.className = 
-        game.is_coal_plant_active() ? 'status-indicator online' : 'status-indicator offline';
       
     } catch (error) {
       console.log('UI update error:', error);
@@ -630,7 +622,8 @@
   }
 
   // Запускаем проверку при загрузке страницы
-  document.addEventListener('DOMContentLoaded', checkExistingUser);
+  console.log('📄 DOM загружен, запускаем проверку пользователя...');
+  checkExistingUser();
 </script>
 </body>
 </html>
