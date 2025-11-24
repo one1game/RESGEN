@@ -1,0 +1,145 @@
+{
+  "version": "3.0",
+  "cycle_duration": 20,
+  "max_slots": 18,
+  "time_config": {
+    "day_duration": 10,
+    "night_duration": 10,
+    "initial_time": 10,
+    "start_at_day": true
+  },
+  "mining_config": {
+    "base_chances": {
+      "coal": 0.12,
+      "trash": 0.08,
+      "chips": 0.3,
+      "plasma": 0.3
+    },
+    "upgrade_bonus": 0.01,
+    "coal_bonus": 0.02,
+    "critical_chance": 0.04,
+    "critical_multiplier": 2,
+    "passive_chances": {
+      "coal": 0.003,
+      "trash": 0.007,
+      "chips": 0.001,
+      "plasma": 0.0005
+    }
+  },
+  "economy_config": {
+    "trash_base_price": 2,
+    "trade_prices": {
+      "coal_buy": 25,
+      "coal_sell": 18,
+      "chips_buy": 45,
+      "chips_sell": 25,
+      "plasma_buy": 80,
+      "plasma_sell": 50
+    }
+  },
+  "upgrade_config": {
+    "mining_base_cost": 8,
+    "mining_cost_multiplier": 2,
+    "mining_max_level": 10,
+    "defense_activation_cost": 5,
+    "defense_base_power": 30,
+    "defense_level_bonus": 10,
+    "defense_max_level": 5
+  },
+  "rebels": {
+    "base_attack_chance": 0.6,
+    "activity_increase": 3,
+    "activity_decrease": 1,
+    "max_activity": 10,
+    "activity_bonus_per_level": 0.03,
+    "max_attack_chance": 0.5,
+    "defense_base_power": 30,
+    "defense_level_bonus": 10,
+    "steal_rates": {
+      "low_activity_trash": 0.16,
+      "medium_activity_coal": 0.2,
+      "high_activity_chips": 0.25
+    },
+    "disable_chances": {
+      "coal_plant_disable": 0.15,
+      "power_reset": 0.1
+    },
+    "power_reset_rate": 0.25,
+    "log_activity_threshold": 2,
+    "enable_attack_messages": true,
+    "enable_defense_messages": true
+  },
+  "quests": [
+    {
+      "id": "800af052-8197-46eb-ae65-ad4d72a568be",
+      "title": "Автономный режим запустился не полностью",
+      "description": "Энергии почти нет. Автономный режим держится на последних процентах. Для запуска основных модулей требуется первичная добыча. Соберите 30 единиц ресурса.",
+      "quest_type": "MineAny",
+      "target": 20,
+      "reward": 40,
+      "enabled": true,
+      "order": 1,
+      "unlocks": []
+    },
+    {
+      "id": "52bb0b09-3a01-408d-9f9b-592d8073db92",
+      "title": "Ночной цикл",
+      "description": "Переживите 3 ночи",
+      "quest_type": "SurviveNight",
+      "target": 3,
+      "reward": 60,
+      "enabled": true,
+      "order": 2,
+      "unlocks": []
+    },
+    {
+      "id": "c5b4631a-e8bf-47ce-a0b3-a1cbb93e709b",
+      "title": "Угольный магнат",
+      "description": "Накопите 70 угля",
+      "quest_type": "MineCoal",
+      "target": 50,
+      "reward": 120,
+      "enabled": true,
+      "order": 3,
+      "unlocks": []
+    },
+    {
+      "id": "f8f0e0dd-ceaf-4b77-ba7e-c9e0a32baba8",
+      "title": "Электронные компоненты",
+      "description": "Накопите 120 угля чтобы разблокировать чипы",
+      "quest_type": "MineCoal",
+      "target": 120,
+      "reward": 200,
+      "enabled": true,
+      "order": 4,
+      "unlocks": [
+        "chips"
+      ]
+    },
+    {
+      "id": "294ee8ee-9fcd-4177-a21e-bd60fd934ee6",
+      "title": "Энергетический прорыв",
+      "description": "Накопите 150 угля что бы разблокировать плазму",
+      "quest_type": "MineCoal",
+      "target": 150,
+      "reward": 400,
+      "enabled": true,
+      "order": 5,
+      "unlocks": [
+        "plasma"
+      ]
+    }
+  ],
+  "auto_click_config": {
+    "enabled": true,
+    "max_computational_power": 800,
+    "clicks_per_power": 10,
+    "power_per_manual_click": 1,
+    "auto_click_interval": 4,
+    "power_per_auto_click": 2,
+    "use_same_chances_as_manual": true,
+    "auto_click_chance_multiplier": 0.9,
+    "long_press_duration": 500,
+    "visual_feedback": true
+  }
+}

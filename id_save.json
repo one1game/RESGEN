@@ -1,0 +1,54 @@
+{
+    "users": {
+      "admin": {
+        "password": "admin123",
+        "createdAt": "2024-01-15T10:00:00.000Z",
+        "lastLogin": "2024-01-15T12:30:00.000Z"
+      },
+      "player1": {
+        "password": "player1",
+        "createdAt": "2024-01-15T11:00:00.000Z", 
+        "lastLogin": "2024-01-15T11:30:00.000Z"
+      }
+    },
+    "gameSaves": {
+      "admin": {
+        "createdAt": "2024-01-15T10:00:00.000Z",
+        "lastPlayed": "2024-01-15T12:30:00.000Z",
+        "gameState": {
+          "tng": 150,
+          "inventory": {
+            "coal": 25,
+            "trash": 10,
+            "chips": 5,
+            "plasma": 2
+          },
+          "upgrades": {
+            "mining": 3,
+            "defense": true,
+            "defense_level": 1
+          },
+          "quests_completed": ["quest1", "quest2"]
+        }
+      },
+      "player1": {
+        "createdAt": "2024-01-15T11:00:00.000Z",
+        "lastPlayed": "2024-01-15T11:30:00.000Z",
+        "gameState": {
+          "tng": 50,
+          "inventory": {
+            "coal": 10,
+            "trash": 5,
+            "chips": 0,
+            "plasma": 0
+          },
+          "upgrades": {
+            "mining": 1,
+            "defense": false,
+            "defense_level": 0
+          },
+          "quests_completed": ["quest1"]
+        }
+      }
+    }
+  }

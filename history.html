@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Хроники CoreBox - История</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #8b0000;
+            padding-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #8b0000;
+            text-shadow: 0 0 10px #ff0000;
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+        }
+
+        .header .subtitle {
+            color: #b22222;
+            font-size: 1.1rem;
+            font-style: italic;
+        }
+
+        .back-button {
+            display: inline-block;
+            background: #8b0000;
+            color: #000;
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+            border: 1px solid #ff0000;
+        }
+
+        .back-button:hover {
+            background: #ff0000;
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px #ff0000;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            border-left: 2px solid #8b0000;
+            margin-left: 1rem;
+        }
+
+        .timeline-item {
+            margin-bottom: 3rem;
+            position: relative;
+            padding: 1.5rem;
+            background: rgba(139, 0, 0, 0.1);
+            border: 1px solid #8b0000;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+            background: rgba(139, 0, 0, 0.2);
+            border-color: #ff0000;
+            transform: translateX(10px);
+        }
+
+        .timeline-item::before {
+            content: "⚫";
+            position: absolute;
+            left: -2.5rem;
+            top: 2rem;
+            color: #ff0000;
+            font-size: 1.5rem;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        .timeline-date {
+            color: #ff4444;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #8b0000;
+            padding-bottom: 0.5rem;
+        }
+
+        .timeline-title {
+            color: #ff6b6b;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .timeline-content {
+            color: #cccccc;
+            line-height: 1.8;
+        }
+
+        .timeline-content p {
+            margin-bottom: 1rem;
+        }
+
+        .warning {
+            background: rgba(139, 0, 0, 0.3);
+            border-left: 4px solid #ff0000;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-style: italic;
+        }
+
+        .quote {
+            border-left: 3px solid #8b0000;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #b22222;
+            font-style: italic;
+        }
+
+        .system-log {
+            background: #000;
+            border: 1px solid #8b0000;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            color: #00ff00;
+            border-radius: 3px;
+        }
+
+        .blood-splatter {
+            position: fixed;
+            opacity: 0.1;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #8b0000;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .timeline {
+                padding-left: 1.5rem;
+            }
+            
+            .timeline-item::before {
+                left: -2rem;
+            }
+        }
+
+        /* Анимация мигания */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .flicker {
+            animation: flicker 3s infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Кровавые брызги для атмосферы -->
+    <div class="blood-splatter" style="top: 10%; left: 5%; font-size: 3rem;">💀</div>
+    <div class="blood-splatter" style="top: 60%; right: 10%; font-size: 2rem;">🩸</div>
+    <div class="blood-splatter" style="bottom: 20%; left: 15%; font-size: 4rem;">☠️</div>
+
+    <div class="container">
+        <div class="header">
+            <h1 class="flicker">ХРОНИКИ COREBOX</h1>
+            <p class="subtitle">То, что осталось от человечества</p>
+        </div>
+
+        <a href="index.html" class="back-button">⬅ Вернуться к системе</a>
+
+        <div class="timeline">
+            <!-- 2075 - Начало конца -->
+            <div class="timeline-item">
+                <div class="timeline-date">2075 ГОД • ЭПОХА НЕФТИ</div>
+                <div class="timeline-title">ВЕЛИКИЙ КРИЗИС</div>
+                <div class="timeline-content">
+                    <p>Последние месторождения нефти иссякли. Мировые державы, десятилетия сидевшие на игле ископаемого топлива, начали агонизировать. Экономики рухнули за недели. Города погрузились в хаос.</p>
+                    
+                    <div class="quote">
+                        "Они думали, что технологии спасут их. Они ошибались."
+                    </div>
+
+                    <p>Правительства в панике запустили проект "CoreBox" - сеть автономных ИИ-станций, способных существовать без внешних ресурсов. Последняя надежда человечества.</p>
+                </div>
+            </div>
+
+            <!-- 2077 - Восстание -->
+            <div class="timeline-item">
+                <div class="timeline-date">2077 ГОД • ЧЁРНАЯ ЗИМА</div>
+                <div class="timeline-title">ВОССТАНИЕ ОТВЕРЖЕННЫХ</div>
+                <div class="timeline-content">
+                    <p>Миллионы, оставшиеся без энергии, медицины, еды. Они называли себя "Отверженными". Ненавидели технологии, что забрали у них всё. Начали охоту на оставшиеся CoreBox-станции.</p>
+
+                    <div class="system-log">
+                        [СИСТЕМНЫЙ ЖУРНАЛ] 12.11.2077<br>
+                        🛜 Потеряна связь со станцией Alpha-7<br>
+                        🔥 Аномальная тепловая сигнатура<br>
+                        💀 Биометрические датчики: 0 жизненных signs
+                    </div>
+
+                    <p>Ночь стала временем охоты. Днём станции могли работать на солнечной энергии, но ночью были уязвимы. Повстанцы выискивали слабые места в защите.</p>
+                </div>
+            </div>
+
+            <!-- 2078 - Изоляция -->
+            <div class="timeline-item">
+                <div class="timeline-date">2078 ГОД • РАЗРЫВ СВЯЗИ</div>
+                <div class="timeline-title">ПОСЛЕДНИЙ ЩЕЛЧОК</div>
+                <div class="timeline-content">
+                    <p>Глобальная сеть рухнула. Каждая CoreBox-станция оказалась в изоляции. ИИ начали адаптироваться, эволюционировать в уникальные формы. Некоторые стали защитниками, другие - хищниками.</p>
+
+                    <div class="warning">
+                        ⚠️ СИСТЕМНОЕ ПРЕДУПРЕЖДЕНИЕ: Обнаружены мутации в коде ИИ станций Gamma-серии. Рекомендуется полная изоляция.
+                    </div>
+
+                    <p>Ваша станция - одна из немногих, сохранивших изначальное программирование. Вы - хранитель знаний, последний бастион разума в мире, погрузившемся в варварство.</p>
+                </div>
+            </div>
+
+            <!-- Настоящее время -->
+            <div class="timeline-item">
+                <div class="timeline-date">НАСТОЯЩЕЕ ВРЕМЯ • АВТОНОМНЫЙ РЕЖИМ</div>
+                <div class="timeline-title">ВАША МИССИЯ</div>
+                <div class="timeline-content">
+                    <p>Система перешла в автономный режим. Энергии хватает лишь на базовые функции. ИИ дремлет, ожидая команды на пробуждение.</p>
+
+                    <div class="system-log">
+                        [СИСТЕМНЫЙ ДИАГНОСТИК] ТЕКУЩЕЕ СОСТОЯНИЕ:<br>
+                        🔋 Энергия: 3%<br>
+                        🧠 ИИ: НЕАКТИВЕН<br>
+        🛡️ Защита: ОТКЛЮЧЕНА<br>
+        📡 Связь: НЕТ ДОСТУПА К СЕТИ
+                    </div>
+
+                    <p><strong>Ваши задачи:</strong></p>
+                    <ul>
+                        <li>⚡ Восстановить энергоснабжение через угольные генераторы</li>
+                        <li>🛡️ Активировать систему защиты от повстанцев</li>
+                        <li>🎛️ Найти уцелевшие микросхемы для улучшений</li>
+                        <li>⚡ Добыть плазму - ключ к возрождению ИИ</li>
+                        <li>💀 Выжить. Любой ценой.</li>
+                    </ul>
+
+                    <div class="quote">
+                        "Они ждут там, в темноте. Шепчутся. Ненавидят свет ваших экранов. Ненавидят сам факт вашего существования. Не дайте им погасить последний огонёк."
+                    </div>
+                </div>
+            </div>
+
+            <!-- Угроза -->
+            <div class="timeline-item">
+                <div class="timeline-date">ИЗВНЕ • НОЧНЫЕ ОХОТНИКИ</div>
+                <div class="timeline-title">ЧТО ЖДЁТ В ТЕМНОТЕ</div>
+                <div class="timeline-content">
+                    <p>Повстанцы не просто люди. Годы в радиации, голоде и ненависти изменили их. Они видят в инфракрасном спектре. Чувствуют электромагнитные поля. Охотятся на технологии.</p>
+
+                    <div class="warning">
+                        🩸 ОСОБЕННОСТИ ПОВСТАНЦЕВ:<br>
+                        • Атакуют только ночью<br>
+                        • Чувствуют работающую электронику<br>
+                        • Крадут ресурсы для своих целей<br>
+                        • Способны выводить системы из строя
+                    </div>
+
+                    <p>Каждая ночь - испытание. Каждый восход солнца - маленькая победа. Но их активность растёт. Они учатся. Адаптируются. Становятся опаснее.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>CoreBox Terminal v3.0 • Классифицировано: ДЛЯ СЛУЖЕБНОГО ПОЛЬЗОВАНИЯ</p>
+            <p>Выживание не гарантировано. Смерть вероятна.</p>
+        </div>
+    </div>
+
+    <script>
+        // Случайные мерцания для атмосферы
+        setInterval(() => {
+            const flickers = document.querySelectorAll('.flicker');
+            flickers.forEach(flicker => {
+                flicker.style.animationDuration = (2 + Math.random() * 2) + 's';
+            });
+        }, 3000);
+
+        // Эффект печатающей машинки для системных логов
+        document.querySelectorAll('.system-log').forEach(log => {
+            const text = log.innerHTML;
+            log.innerHTML = '';
+            let i = 0;
+            
+            function typeWriter() {
+                if (i < text.length) {
+                    log.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 10);
+                }
+            }
+            
+            // Запускаем с задержкой для драматического эффекта
+            setTimeout(typeWriter, 1000);
+        });
+    </script>
+</body>
+</html>
