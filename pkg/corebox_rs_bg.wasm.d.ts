@@ -1,0 +1,37 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const __wbg_coregame_free: (a: number, b: number) => void;
+export const apply_config_from_admin: (a: number, b: number) => [number, number];
+export const coregame_activate_defense: (a: number) => void;
+export const coregame_add_manual_click: (a: number) => void;
+export const coregame_buy_resource: (a: number, b: number, c: number) => void;
+export const coregame_clear_log: (a: number) => void;
+export const coregame_debug_power_info: (a: number) => [number, number];
+export const coregame_debug_rebel_info: (a: number) => [number, number];
+export const coregame_debug_time_info: (a: number) => [number, number];
+export const coregame_game_loop: (a: number) => void;
+export const coregame_get_computational_power: (a: number) => number;
+export const coregame_init: (a: number) => void;
+export const coregame_is_auto_clicking: (a: number) => number;
+export const coregame_mine_resources: (a: number) => void;
+export const coregame_new: () => number;
+export const coregame_reload_config: (a: number) => void;
+export const coregame_sell_resource: (a: number, b: number, c: number) => void;
+export const coregame_start_auto_clicking: (a: number) => void;
+export const coregame_stop_auto_clicking: (a: number) => void;
+export const coregame_switch_tab: (a: number, b: number, c: number) => void;
+export const coregame_toggle_coal: (a: number) => void;
+export const coregame_upgrade_defense: (a: number) => void;
+export const coregame_upgrade_mining: (a: number) => void;
+export const get_config: () => [number, number];
+export const main: () => void;
+export const start_game: () => number;
+export const validate_config: (a: number, b: number) => [number, number];
+export const __wbindgen_exn_store: (a: number) => void;
+export const __externref_table_alloc: () => number;
+export const __wbindgen_externrefs: WebAssembly.Table;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_start: () => void;
