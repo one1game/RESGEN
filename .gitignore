@@ -1,0 +1,5 @@
+/target/
+/src/           # Исходники Rust можно не заливать
+Cargo.lock
+Cargo.toml
+main.rs
