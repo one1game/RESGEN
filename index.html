@@ -339,9 +339,11 @@
 
   let game = null;
   let gameInitialized = false;
+  let longPressTimer = null;
+  const LONG_PRESS_DELAY = 800; // Увеличил время для удобства
 
   // Ключи для localStorage
-  const CURRENT_USER_KEY = 'corebox_current_user_v2'; // меняем ключ чтобы избежать кэша
+  const CURRENT_USER_KEY = 'corebox_current_user_v2';
 
   // ОТЛАДКА: выводим все что есть в localStorage
   console.log('🔍 localStorage содержимое:', { ...localStorage });
@@ -492,7 +494,7 @@
     document.getElementById('authForm').dispatchEvent(new Event('submit'));
   });
 
-  // Обработчики кнопок добычи
+  // Обработчики кнопок добычи с ДОЛГИМ НАЖАТИЕМ
   function setupGameInterface() {
     if (!game) {
       console.error('❌ game не определен в setupGameInterface');
@@ -505,6 +507,7 @@
     const mineBtn = document.getElementById('mineBtn');
     const floatingBtn = document.getElementById('floatingMineBtn');
     
+    // Функция для обычного клика (добыча)
     function handleMining() {
       if (game && game.add_manual_click) {
         game.add_manual_click();
@@ -518,18 +521,106 @@
       }
     }
     
-    // Основная кнопка
+    // Функции для долгого нажатия (автоклики)
+    function startLongPress(button) {
+      console.log('⏱️ Начало долгого нажатия...');
+      button.classList.add('pressing');
+      
+      longPressTimer = setTimeout(() => {
+        console.log('🔁 Включаем автоклики!');
+        if (game && game.start_auto_clicking) {
+          game.start_auto_clicking();
+          button.classList.add('auto-clicking');
+          button.classList.remove('pressing');
+          updateUI();
+        }
+      }, LONG_PRESS_DELAY);
+    }
+    
+    function cancelLongPress(button) {
+      console.log('❌ Отмена долгого нажатия');
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+      
+      button.classList.remove('pressing');
+      
+      // Если автоклики активны - останавливаем их
+      if (button.classList.contains('auto-clicking')) {
+        console.log('🛑 Выключаем автоклики!');
+        if (game && game.stop_auto_clicking) {
+          game.stop_auto_clicking();
+          button.classList.remove('auto-clicking');
+          updateUI();
+        }
+      }
+    }
+    
+    // ОСНОВНАЯ КНОПКА
+    // Обычный клик
     mineBtn.addEventListener('click', handleMining);
+    
+    // Долгое нажатие мышью
+    mineBtn.addEventListener('mousedown', function() {
+      startLongPress(this);
+    });
+    
+    mineBtn.addEventListener('mouseup', function() {
+      cancelLongPress(this);
+    });
+    
+    mineBtn.addEventListener('mouseleave', function() {
+      cancelLongPress(this);
+    });
+    
+    // Долгое нажатие тач
     mineBtn.addEventListener('touchstart', function(e) {
       e.preventDefault();
-      handleMining.call(this);
+      startLongPress(this);
     }, { passive: false });
     
-    // Плавающая кнопка
+    mineBtn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      cancelLongPress(this);
+    }, { passive: false });
+    
+    mineBtn.addEventListener('touchcancel', function(e) {
+      e.preventDefault();
+      cancelLongPress(this);
+    }, { passive: false });
+    
+    // ПЛАВАЮЩАЯ КНОПКА
+    // Обычный клик
     floatingBtn.addEventListener('click', handleMining);
+    
+    // Долгое нажатие мышью
+    floatingBtn.addEventListener('mousedown', function() {
+      startLongPress(this);
+    });
+    
+    floatingBtn.addEventListener('mouseup', function() {
+      cancelLongPress(this);
+    });
+    
+    floatingBtn.addEventListener('mouseleave', function() {
+      cancelLongPress(this);
+    });
+    
+    // Долгое нажатие тач
     floatingBtn.addEventListener('touchstart', function(e) {
       e.preventDefault();
-      handleMining.call(this);
+      startLongPress(this);
+    }, { passive: false });
+    
+    floatingBtn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      cancelLongPress(this);
+    }, { passive: false });
+    
+    floatingBtn.addEventListener('touchcancel', function(e) {
+      e.preventDefault();
+      cancelLongPress(this);
     }, { passive: false });
     
     // Обработчик выхода
@@ -584,6 +675,10 @@
       const clicks = game.get_click_progress();
       document.getElementById('clickProgress').style.width = (clicks * 10) + '%';
       document.getElementById('clickProgressText').textContent = clicks + '/10';
+      
+      // Статус автокликов
+      const autoClicking = game.is_auto_clicking_active ? game.is_auto_clicking_active() : false;
+      document.getElementById('autoClickStatus').textContent = autoClicking ? 'АКТИВНА' : 'ОТКЛЮЧЕНА';
       
       updateInventory();
       
