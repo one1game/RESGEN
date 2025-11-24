@@ -339,7 +339,6 @@
 
   let game = null;
   let gameInitialized = false;
-  let longPressTimer = null;
   let isAutoClicking = false;
   const LONG_PRESS_DELAY = 600;
 
@@ -463,7 +462,7 @@
     document.getElementById('authForm').dispatchEvent(new Event('submit'));
   });
 
-  // Обработчики кнопок добычи с РАЗДЕЛЕННОЙ логикой
+  // Обработчики кнопок добычи с ПРАВИЛЬНОЙ логикой автокликов
   function setupGameInterface() {
     if (!game) return;
     
@@ -487,51 +486,56 @@
       }
     }
     
-    // Функция для переключения автокликов
-    function toggleAutoClicking() {
-      if (!game) return;
+    // Функция для ВКЛЮЧЕНИЯ автокликов
+    function startAutoClicking() {
+      if (!game || !game.start_auto_clicking || isAutoClicking) return;
       
-      if (isAutoClicking) {
-        // Выключаем автоклики
-        if (game.stop_auto_clicking) {
-          game.stop_auto_clicking();
-          isAutoClicking = false;
-          newMineBtn.classList.remove('auto-clicking');
-          newFloatingBtn.classList.remove('auto-clicking');
-          console.log('🛑 Автоклики выключены');
-        }
-      } else {
-        // Включаем автоклики
-        if (game.start_auto_clicking) {
-          game.start_auto_clicking();
-          isAutoClicking = true;
-          newMineBtn.classList.add('auto-clicking');
-          newFloatingBtn.classList.add('auto-clicking');
-          console.log('🔁 Автоклики включены');
-        }
-      }
+      game.start_auto_clicking();
+      isAutoClicking = true;
+      newMineBtn.classList.add('auto-clicking');
+      newFloatingBtn.classList.add('auto-clicking');
+      console.log('🔁 Автоклики ВКЛЮЧЕНЫ');
       updateUI();
+    }
+    
+    // Функция для ВЫКЛЮЧЕНИЯ автокликов
+    function stopAutoClicking() {
+      if (!game || !game.stop_auto_clicking || !isAutoClicking) return;
+      
+      game.stop_auto_clicking();
+      isAutoClicking = false;
+      newMineBtn.classList.remove('auto-clicking');
+      newFloatingBtn.classList.remove('auto-clicking');
+      console.log('🛑 Автоклики ВЫКЛЮЧЕНЫ');
+      updateUI();
+    }
+    
+    // Функция для ПЕРЕКЛЮЧЕНИЯ автокликов
+    function toggleAutoClicking() {
+      if (isAutoClicking) {
+        stopAutoClicking();
+      } else {
+        startAutoClicking();
+      }
     }
     
     // ОБРАБОТЧИКИ ДЛЯ ОСНОВНОЙ КНОПКИ
     let mineBtnPressTimer = null;
-    let mineBtnPressed = false;
     
-    // Начало нажатия
+    // Начало нажатия - запускаем таймер для автокликов
     function startMineBtnPress() {
-      mineBtnPressed = true;
       this.classList.add('pressing');
       
+      // Запускаем таймер для включения автокликов
       mineBtnPressTimer = setTimeout(() => {
-        // Долгое нажатие - переключаем автоклики
-        toggleAutoClicking();
-        mineBtnPressed = false;
+        startAutoClicking();
         this.classList.remove('pressing');
       }, LONG_PRESS_DELAY);
     }
     
     // Конец нажатия
     function endMineBtnPress() {
+      // Очищаем таймер (если не успел сработать)
       if (mineBtnPressTimer) {
         clearTimeout(mineBtnPressTimer);
         mineBtnPressTimer = null;
@@ -539,13 +543,22 @@
       
       this.classList.remove('pressing');
       
-      // Если было короткое нажатие - делаем добычу
-      if (mineBtnPressed && !isAutoClicking) {
+      // Если автоклики уже включены - ИГНОРИРУЕМ обычный клик
+      // Если автоклики выключены - делаем обычную добычу
+      if (!isAutoClicking) {
         doMining();
       }
-      
-      mineBtnPressed = false;
     }
+    
+    // Двойной клик для выключения автокликов
+    let lastMineBtnClick = 0;
+    newMineBtn.addEventListener('click', function(e) {
+      const currentTime = Date.now();
+      if (currentTime - lastMineBtnClick < 300) { // 300ms для двойного клика
+        stopAutoClicking();
+      }
+      lastMineBtnClick = currentTime;
+    });
     
     // Мышь
     newMineBtn.addEventListener('mousedown', startMineBtnPress);
@@ -570,23 +583,21 @@
     
     // ОБРАБОТЧИКИ ДЛЯ ПЛАВАЮЩЕЙ КНОПКИ
     let floatingBtnPressTimer = null;
-    let floatingBtnPressed = false;
     
-    // Начало нажатия
+    // Начало нажатия - запускаем таймер для автокликов
     function startFloatingBtnPress() {
-      floatingBtnPressed = true;
       this.classList.add('pressing');
       
+      // Запускаем таймер для включения автокликов
       floatingBtnPressTimer = setTimeout(() => {
-        // Долгое нажатие - переключаем автоклики
-        toggleAutoClicking();
-        floatingBtnPressed = false;
+        startAutoClicking();
         this.classList.remove('pressing');
       }, LONG_PRESS_DELAY);
     }
     
     // Конец нажатия
     function endFloatingBtnPress() {
+      // Очищаем таймер (если не успел сработать)
       if (floatingBtnPressTimer) {
         clearTimeout(floatingBtnPressTimer);
         floatingBtnPressTimer = null;
@@ -594,13 +605,22 @@
       
       this.classList.remove('pressing');
       
-      // Если было короткое нажатие - делаем добычу
-      if (floatingBtnPressed && !isAutoClicking) {
+      // Если автоклики уже включены - ИГНОРИРУЕМ обычный клик
+      // Если автоклики выключены - делаем обычную добычу
+      if (!isAutoClicking) {
         doMining();
       }
-      
-      floatingBtnPressed = false;
     }
+    
+    // Двойной клик для выключения автокликов
+    let lastFloatingBtnClick = 0;
+    newFloatingBtn.addEventListener('click', function(e) {
+      const currentTime = Date.now();
+      if (currentTime - lastFloatingBtnClick < 300) { // 300ms для двойного клика
+        stopAutoClicking();
+      }
+      lastFloatingBtnClick = currentTime;
+    });
     
     // Мышь
     newFloatingBtn.addEventListener('mousedown', startFloatingBtnPress);
