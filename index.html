@@ -335,39 +335,68 @@
 </div>
 
 <script type="module">
-  import init from './pkg/corebox_rs.js';
+  import init, { start_game, CoreGame, get_config } from './pkg/corebox_rs.js';
   
   console.log('Загружаем WASM...');
   await init();
   console.log('WASM загружен!');
   
-  // Проверим что доступно через import
-  import * as wasm from './pkg/corebox_rs.js';
-  console.log('WASM модуль:', wasm);
+  // Сохраняем функции в глобальную область
+  window.startGameWasm = start_game;
+  window.CoreGameWasm = CoreGame;
+  window.getConfigWasm = get_config;
   
-  // Сохраним модуль в глобальную область для отладки
-  window.wasmModule = wasm;
+  console.log('Доступные функции:', {
+    start_game,
+    CoreGame, 
+    get_config
+  });
 </script>
 
 <script>
 // ОСНОВНОЙ СКРИПТ ИГРЫ
-document.getElementById('authForm').addEventListener('submit', function(e) {
+document.getElementById('authForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
     
-    // Скрываем форму, показываем игру
-    document.getElementById('authOverlay').style.display = 'none';
-    document.getElementById('gameContent').style.display = 'block';
-    document.getElementById('usernameDisplay').textContent = username;
-    
-    // Инициализируем игру
-    initializeGame(username);
+    try {
+        // Пытаемся использовать WASM функции
+        if (window.startGameWasm) {
+            console.log('Запускаем игру через WASM...');
+            window.startGameWasm(username, password);
+        }
+        
+        // Скрываем форму, показываем игру
+        document.getElementById('authOverlay').style.display = 'none';
+        document.getElementById('gameContent').style.display = 'block';
+        document.getElementById('usernameDisplay').textContent = username;
+        
+        // Инициализируем игру
+        initializeGame(username);
+        
+    } catch (error) {
+        console.error('Ошибка WASM:', error);
+        // Fallback на JS версию
+        initializeGame(username);
+    }
 });
 
 function initializeGame(username) {
     console.log('Инициализация игры для:', username);
     
-    // Тестовые данные
+    // Пытаемся получить конфиг из WASM
+    let gameConfig = {};
+    if (window.getConfigWasm) {
+        try {
+            gameConfig = window.getConfigWasm();
+            console.log('Конфиг из WASM:', gameConfig);
+        } catch (e) {
+            console.log('Не удалось получить конфиг из WASM');
+        }
+    }
+    
+    // Тестовые данные (будем заменять на данные из WASM)
     const testInventory = [
         { name: 'Микросхемы', amount: 5, icon: '🎛️', type: 'chips' },
         { name: 'Плазма', amount: 3, icon: '⚡', type: 'plasma' },
@@ -382,7 +411,8 @@ function initializeGame(username) {
         inventory: testInventory,
         power: 0,
         clicks: 0,
-        lastUpdate: Date.now()
+        lastUpdate: Date.now(),
+        config: gameConfig
     };
     
     // Заполняем интерфейс
@@ -393,8 +423,57 @@ function initializeGame(username) {
     // Добавляем тестовые сообщения в лог
     addLogMessage('Система инициализирована');
     addLogMessage('Добро пожаловать в CoreBox 3.0, ' + username);
+    
+    // Пытаемся использовать CoreGame из WASM
+    if (window.CoreGameWasm) {
+        try {
+            const coreGame = new window.CoreGameWasm();
+            console.log('CoreGame instance:', coreGame);
+            window.coreGameInstance = coreGame;
+        } catch (e) {
+            console.log('Не удалось создать CoreGame instance');
+        }
+    }
 }
 
+// ОБРАБОТЧИК ДОБЫЧИ С WASM
+document.getElementById('mineBtn').addEventListener('click', function() {
+    // Пытаемся использовать WASM функцию для добычи
+    if (window.coreGameInstance && typeof window.coreGameInstance.mine === 'function') {
+        try {
+            const result = window.coreGameInstance.mine();
+            console.log('Добыча через WASM:', result);
+            addLogMessage('Добыча через WASM завершена');
+        } catch (e) {
+            console.error('Ошибка добычи WASM:', e);
+            mineResourcesJS(); // Fallback на JS
+        }
+    } else {
+        mineResourcesJS(); // JS версия
+    }
+});
+
+// JS версия добычи (fallback)
+function mineResourcesJS() {
+    const state = window.gameState;
+    
+    state.inventory.forEach(item => {
+        if (item.type !== 'money') {
+            item.amount += Math.floor(Math.random() * 2);
+        }
+    });
+    
+    const moneyItem = state.inventory.find(item => item.type === 'money');
+    if (moneyItem) {
+        moneyItem.amount += Math.floor(Math.random() * 3) + 1;
+    }
+    
+    updateInventory();
+    state.clicks++;
+    addLogMessage('Добыча завершена +' + (Math.floor(Math.random() * 2) + 1) + ' ресурсов');
+}
+
+// Остальные функции остаются как были...
 function updateInventory() {
     const container = document.getElementById('resourcesContainer');
     const inventory = window.gameState.inventory;
@@ -429,56 +508,24 @@ function startGameLoop() {
 
 function updateProgressBars() {
     const state = window.gameState;
-    
-    // Обновляем мощность
     state.power = Math.min(100, state.power + 0.5);
     document.getElementById('powerFill').style.width = state.power + '%';
     document.getElementById('powerText').textContent = Math.floor(state.power) + '/100';
     
-    // Обновляем прогресс кликов
     const clickProgress = (state.clicks % 10) * 10;
     document.getElementById('clickProgress').style.width = clickProgress + '%';
     document.getElementById('clickProgressText').textContent = (state.clicks % 10) + '/10';
 }
 
 function updateAutoMining() {
-    // Автоматическая добыча каждые 5 секунд
     const now = Date.now();
     if (now - window.gameState.lastUpdate > 5000) {
-        mineResources();
+        mineResourcesJS();
         window.gameState.lastUpdate = now;
     }
 }
 
-function mineResources() {
-    const state = window.gameState;
-    
-    // Добавляем ресурсы
-    state.inventory.forEach(item => {
-        if (item.type !== 'money') {
-            item.amount += Math.floor(Math.random() * 2);
-        }
-    });
-    
-    // Добавляем деньги
-    const moneyItem = state.inventory.find(item => item.type === 'money');
-    if (moneyItem) {
-        moneyItem.amount += Math.floor(Math.random() * 3) + 1;
-    }
-    
-    // Обновляем инвентарь
-    updateInventory();
-    state.clicks++;
-    
-    addLogMessage('Добыча завершена +' + (Math.floor(Math.random() * 2) + 1) + ' ресурсов');
-}
-
-// ОБРАБОТЧИКИ СОБЫТИЙ
-document.getElementById('mineBtn').addEventListener('click', function() {
-    mineResources();
-    addLogMessage('Ручная добыча инициирована');
-});
-
+// Остальные обработчики (логи, вкладки, выход) остаются без изменений...
 document.getElementById('logoutBtn').addEventListener('click', function() {
     document.getElementById('gameContent').style.display = 'none';
     document.getElementById('authOverlay').style.display = 'flex';
@@ -495,7 +542,6 @@ document.querySelectorAll('.tab').forEach(tab => {
     });
 });
 
-// Система логов
 function addLogMessage(message) {
     const logBox = document.getElementById('logBox');
     const timestamp = new Date().toLocaleTimeString();
@@ -511,7 +557,6 @@ document.getElementById('clearLogBtn').addEventListener('click', function() {
     document.getElementById('logBox').innerHTML = '';
 });
 
-// Обработчики улучшений
 document.getElementById('upgradeMiningBtn').addEventListener('click', function() {
     const chips = window.gameState.inventory.find(item => item.type === 'chips');
     if (chips && chips.amount >= 5) {
