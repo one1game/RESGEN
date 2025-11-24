@@ -335,239 +335,385 @@
 </div>
 
 <script type="module">
-  import init, { start_game, CoreGame, get_config } from './pkg/corebox_rs.js';
-  
-  console.log('Загружаем WASM...');
-  await init();
-  console.log('WASM загружен!');
-  
-  // Сохраняем функции в глобальную область
-  window.startGameWasm = start_game;
-  window.CoreGameWasm = CoreGame;
-  window.getConfigWasm = get_config;
-  
-  console.log('Доступные функции:', {
-    start_game,
-    CoreGame, 
-    get_config
-  });
-</script>
+  import init, { start_game, apply_config_from_admin } from './pkg/corebox_rs.js';
 
-<script>
-// ОСНОВНОЙ СКРИПТ ИГРЫ
-document.getElementById('authForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    
-    try {
-        // Пытаемся использовать WASM функции
-        if (window.startGameWasm) {
-            console.log('Запускаем игру через WASM...');
-            window.startGameWasm(username, password);
-        }
-        
-        // Скрываем форму, показываем игру
-        document.getElementById('authOverlay').style.display = 'none';
-        document.getElementById('gameContent').style.display = 'block';
-        document.getElementById('usernameDisplay').textContent = username;
-        
-        // Инициализируем игру
-        initializeGame(username);
-        
-    } catch (error) {
-        console.error('Ошибка WASM:', error);
-        // Fallback на JS версию
-        initializeGame(username);
-    }
-});
+  let game;
+  let lastConfigHash = null;
+  let isAutoClicking = false;
+  let currentUser = null;
 
-function initializeGame(username) {
-    console.log('Инициализация игры для:', username);
-    
-    // Пытаемся получить конфиг из WASM
-    let gameConfig = {};
-    if (window.getConfigWasm) {
-        try {
-            gameConfig = window.getConfigWasm();
-            console.log('Конфиг из WASM:', gameConfig);
-        } catch (e) {
-            console.log('Не удалось получить конфиг из WASM');
-        }
-    }
-    
-    // Тестовые данные (будем заменять на данные из WASM)
-    const testInventory = [
-        { name: 'Микросхемы', amount: 5, icon: '🎛️', type: 'chips' },
-        { name: 'Плазма', amount: 3, icon: '⚡', type: 'plasma' },
-        { name: 'Тенге', amount: 100, icon: '₸', type: 'money' },
-        { name: 'Уголь', amount: 10, icon: '⛏️', type: 'coal' },
-        { name: 'Данные', amount: 25, icon: '💾', type: 'data' }
-    ];
-    
-    // Сохраняем состояние игры
-    window.gameState = {
-        username: username,
-        inventory: testInventory,
-        power: 0,
-        clicks: 0,
-        lastUpdate: Date.now(),
-        config: gameConfig
-    };
-    
-    // Заполняем интерфейс
-    updateInventory();
-    startGameTimer();
-    startGameLoop();
-    
-    // Добавляем тестовые сообщения в лог
-    addLogMessage('Система инициализирована');
-    addLogMessage('Добро пожаловать в CoreBox 3.0, ' + username);
-    
-    // Пытаемся использовать CoreGame из WASM
-    if (window.CoreGameWasm) {
-        try {
-            const coreGame = new window.CoreGameWasm();
-            console.log('CoreGame instance:', coreGame);
-            window.coreGameInstance = coreGame;
-        } catch (e) {
-            console.log('Не удалось создать CoreGame instance');
-        }
-    }
-}
+  // Система хранения пользователей
+  const USER_STORAGE_KEY = 'corebox_users';
+  const CURRENT_USER_KEY = 'corebox_current_user';
 
-// ОБРАБОТЧИК ДОБЫЧИ С WASM
-document.getElementById('mineBtn').addEventListener('click', function() {
-    // Пытаемся использовать WASM функцию для добычи
-    if (window.coreGameInstance && typeof window.coreGameInstance.mine === 'function') {
-        try {
-            const result = window.coreGameInstance.mine();
-            console.log('Добыча через WASM:', result);
-            addLogMessage('Добыча через WASM завершена');
-        } catch (e) {
-            console.error('Ошибка добычи WASM:', e);
-            mineResourcesJS(); // Fallback на JS
-        }
-    } else {
-        mineResourcesJS(); // JS версия
-    }
-});
+  // Функции для работы с пользователями
+  function getUsers() {
+      const usersJson = localStorage.getItem(USER_STORAGE_KEY);
+      return usersJson ? JSON.parse(usersJson) : {};
+  }
 
-// JS версия добычи (fallback)
-function mineResourcesJS() {
-    const state = window.gameState;
-    
-    state.inventory.forEach(item => {
-        if (item.type !== 'money') {
-            item.amount += Math.floor(Math.random() * 2);
-        }
-    });
-    
-    const moneyItem = state.inventory.find(item => item.type === 'money');
-    if (moneyItem) {
-        moneyItem.amount += Math.floor(Math.random() * 3) + 1;
-    }
-    
-    updateInventory();
-    state.clicks++;
-    addLogMessage('Добыча завершена +' + (Math.floor(Math.random() * 2) + 1) + ' ресурсов');
-}
+  function saveUsers(users) {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+  }
 
-// Остальные функции остаются как были...
-function updateInventory() {
-    const container = document.getElementById('resourcesContainer');
-    const inventory = window.gameState.inventory;
-    
-    container.innerHTML = inventory.map(item => `
-        <div class="inventory-item" data-type="${item.type}">
-            <div class="item-icon">${item.icon}</div>
-            <div class="item-name">${item.name}</div>
-            <div class="item-amount">${item.amount}</div>
-        </div>
-    `).join('');
-}
+  function getCurrentUser() {
+      const userJson = localStorage.getItem(CURRENT_USER_KEY);
+      return userJson ? JSON.parse(userJson) : null;
+  }
 
-function startGameTimer() {
-    setInterval(updateTime, 60000);
-    updateTime();
-}
+  function setCurrentUser(user) {
+      if (user) {
+          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+      } else {
+          localStorage.removeItem(CURRENT_USER_KEY);
+      }
+      currentUser = user;
+  }
 
-function updateTime() {
-    const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    document.getElementById('timeDisplay').textContent = `ДЕНЬ ${hours}:${minutes}`;
-}
+  // Функции авторизации
+  function showAuthMessage(message, isError = false) {
+      const messageEl = document.getElementById('authMessage');
+      messageEl.textContent = message;
+      messageEl.className = `auth-message ${isError ? 'error' : 'success'}`;
+  }
 
-function startGameLoop() {
-    setInterval(() => {
-        updateProgressBars();
-        updateAutoMining();
-    }, 1000);
-}
+  function loginUser(username, password) {
+      const users = getUsers();
+      
+      if (users[username]) {
+          // Проверяем пароль существующего пользователя
+          if (users[username].password === password) {
+              // Обновляем время последнего входа
+              users[username].lastLogin = new Date().toISOString();
+              saveUsers(users);
+              
+              setCurrentUser({ username, ...users[username] });
+              showAuthMessage(`Добро пожаловать, ${username}!`);
+              
+              // Показываем игру через секунду
+              setTimeout(() => {
+                  document.getElementById('authOverlay').style.display = 'none';
+                  document.getElementById('gameContent').style.display = 'block';
+                  showUserInfo();
+                  initializeGame();
+              }, 1000);
+              
+              return true;
+          } else {
+              showAuthMessage('Неверный пароль!', true);
+              return false;
+          }
+      } else {
+          // Создаем нового пользователя
+          users[username] = {
+              password: password,
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString()
+          };
+          
+          saveUsers(users);
+          setCurrentUser({ username, ...users[username] });
+          showAuthMessage(`Аккаунт ${username} создан! Добро пожаловать!`);
+          
+          // Показываем игру через секунду
+          setTimeout(() => {
+              document.getElementById('authOverlay').style.display = 'none';
+              document.getElementById('gameContent').style.display = 'block';
+              showUserInfo();
+              initializeGame();
+          }, 1000);
+          
+          return true;
+      }
+  }
 
-function updateProgressBars() {
-    const state = window.gameState;
-    state.power = Math.min(100, state.power + 0.5);
-    document.getElementById('powerFill').style.width = state.power + '%';
-    document.getElementById('powerText').textContent = Math.floor(state.power) + '/100';
-    
-    const clickProgress = (state.clicks % 10) * 10;
-    document.getElementById('clickProgress').style.width = clickProgress + '%';
-    document.getElementById('clickProgressText').textContent = (state.clicks % 10) + '/10';
-}
+  function showUserInfo() {
+      if (currentUser) {
+          document.getElementById('userInfo').style.display = 'block';
+          document.getElementById('usernameDisplay').textContent = currentUser.username;
+          
+          document.getElementById('logoutBtn').addEventListener('click', logout);
+      }
+  }
 
-function updateAutoMining() {
-    const now = Date.now();
-    if (now - window.gameState.lastUpdate > 5000) {
-        mineResourcesJS();
-        window.gameState.lastUpdate = now;
-    }
-}
+  function logout() {
+      setCurrentUser(null);
+      document.getElementById('authOverlay').style.display = 'flex';
+      document.getElementById('gameContent').style.display = 'none';
+      document.getElementById('authForm').reset();
+      document.getElementById('authMessage').textContent = '';
+      document.getElementById('userInfo').style.display = 'none';
+      
+      // Перезагружаем страницу для сброса состояния игры
+      setTimeout(() => {
+          location.reload();
+      }, 500);
+  }
 
-// Остальные обработчики (логи, вкладки, выход) остаются без изменений...
-document.getElementById('logoutBtn').addEventListener('click', function() {
-    document.getElementById('gameContent').style.display = 'none';
-    document.getElementById('authOverlay').style.display = 'flex';
-    addLogMessage('Выход из системы');
-});
+  // Инициализация авторизации
+  function initializeAuth() {
+      // Проверяем, есть ли активный пользователь
+      const user = getCurrentUser();
+      if (user) {
+          document.getElementById('authOverlay').style.display = 'none';
+          document.getElementById('gameContent').style.display = 'block';
+          currentUser = user;
+          showUserInfo();
+          initializeGame();
+          return;
+      }
+      
+      // Настраиваем обработчики формы
+      const authForm = document.getElementById('authForm');
+      const loginBtn = document.getElementById('loginBtn');
+      const registerBtn = document.getElementById('registerBtn');
+      
+      authForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const username = document.getElementById('username').value.trim();
+          const password = document.getElementById('password').value;
+          
+          if (username.length < 3) {
+              showAuthMessage('Логин должен быть не менее 3 символов!', true);
+              return;
+          }
+          
+          if (password.length < 4) {
+              showAuthMessage('Пароль должен быть не менее 4 символов!', true);
+              return;
+          }
+          
+          loginUser(username, password);
+      });
+      
+      registerBtn.addEventListener('click', () => {
+          const username = document.getElementById('username').value.trim();
+          const password = document.getElementById('password').value;
+          
+          if (username.length < 3) {
+              showAuthMessage('Логин должен быть не менее 3 символов!', true);
+              return;
+          }
+          
+          if (password.length < 4) {
+              showAuthMessage('Пароль должен быть не менее 4 символов!', true);
+              return;
+          }
+          
+          const users = getUsers();
+          if (users[username]) {
+              showAuthMessage('Пользователь с таким логином уже существует!', true);
+              return;
+          }
+          
+          loginUser(username, password);
+      });
+  }
 
-document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-        const tabName = this.getAttribute('data-tab');
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        this.classList.add('active');
-        document.getElementById(`${tabName}-tab`).classList.add('active');
-    });
-});
+  // Функция для хэширования конфига (чтобы определить изменения)
+  function hashConfig(configStr) {
+      let hash = 0, i, chr;
+      if (configStr.length === 0) return hash;
+      for (i = 0; i < configStr.length; i++) {
+          chr   = configStr.charCodeAt(i);
+          hash  = ((hash << 5) - hash) + chr;
+          hash |= 0; // Приведение к 32-битному числу
+      }
+      return hash;
+  }
 
-function addLogMessage(message) {
-    const logBox = document.getElementById('logBox');
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = document.createElement('div');
-    logEntry.textContent = `[${timestamp}] ${message}`;
-    logEntry.style.padding = '2px 0';
-    logEntry.style.borderBottom = '1px solid #333';
-    logBox.appendChild(logEntry);
-    logBox.scrollTop = logBox.scrollHeight;
-}
+  // Функция загрузки конфига и применения только при изменении
+  async function loadConfig() {
+      try {
+          const resp = await fetch("config.json?_" + Date.now());
+          const configStr = await resp.text();
+          const currentHash = hashConfig(configStr);
 
-document.getElementById('clearLogBtn').addEventListener('click', function() {
-    document.getElementById('logBox').innerHTML = '';
-});
+          if (currentHash !== lastConfigHash) {
+              lastConfigHash = currentHash;
+              
+              try {
+                  // Пробуем применить конфиг
+                  const result = apply_config_from_admin(configStr);
+                  console.log("✅ Конфиг применен:", result);
+              } catch (e) {
+                  // Если ошибка - очищаем localStorage
+                  console.error("❌ Ошибка применения конфига, очищаю кэш:", e);
+                  localStorage.removeItem('corebox_config');
+                  location.reload();
+                  return;
+              }
+              
+              if (game) {
+                  game.reload_config();
+              }
+          }
+      } catch (e) {
+          console.error("Не удалось загрузить config.json:", e);
+      }
+  }
 
-document.getElementById('upgradeMiningBtn').addEventListener('click', function() {
-    const chips = window.gameState.inventory.find(item => item.type === 'chips');
-    if (chips && chips.amount >= 5) {
-        chips.amount -= 5;
-        document.getElementById('miningLevel').textContent = '1';
-        addLogMessage('Улучшение добычи активировано!');
-        updateInventory();
-    } else {
-        addLogMessage('Недостаточно микросхем для улучшения');
-    }
-});
+  // Функции для системы кликов
+  function toggleAutoClicking() {
+      if (isAutoClicking) {
+          // Выключаем автоклики
+          game.stop_auto_clicking();
+          isAutoClicking = false;
+          document.getElementById('mineBtn').classList.remove('auto-clicking');
+          document.getElementById('floatingMineBtn').classList.remove('auto-clicking');
+      } else {
+          // Включаем автоклики если есть мощность
+          if (game.get_computational_power() > 0) {
+              game.start_auto_clicking();
+              isAutoClicking = true;
+              document.getElementById('mineBtn').classList.add('auto-clicking');
+              document.getElementById('floatingMineBtn').classList.add('auto-clicking');
+          }
+      }
+  }
+
+  function handleClick() {
+      // Всегда делаем ручной клик при нажатии
+      game.add_manual_click();
+  }
+
+  // Обработчики долгого нажатия
+  function setupLongPressHandlers() {
+      const mineBtn = document.getElementById('mineBtn');
+      const floatingMineBtn = document.getElementById('floatingMineBtn');
+      let pressTimer;
+
+      function startPressTimer(element) {
+          pressTimer = setTimeout(() => {
+              toggleAutoClicking();
+          }, 500); // 500ms для долгого нажатия
+      }
+
+      function clearPressTimer() {
+          if (pressTimer) {
+              clearTimeout(pressTimer);
+              pressTimer = null;
+          }
+      }
+
+      // Мышиные события для основной кнопки
+      mineBtn.addEventListener('mousedown', () => startPressTimer(mineBtn));
+      mineBtn.addEventListener('mouseup', clearPressTimer);
+      mineBtn.addEventListener('mouseleave', clearPressTimer);
+
+      // Мышиные события для плавающей кнопки
+      floatingMineBtn.addEventListener('mousedown', () => startPressTimer(floatingMineBtn));
+      floatingMineBtn.addEventListener('mouseup', clearPressTimer);
+      floatingMineBtn.addEventListener('mouseleave', clearPressTimer);
+
+      // Touch события для основной кнопки
+      mineBtn.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          startPressTimer(mineBtn);
+      });
+      mineBtn.addEventListener('touchend', clearPressTimer);
+      mineBtn.addEventListener('touchcancel', clearPressTimer);
+
+      // Touch события для плавающей кнопки
+      floatingMineBtn.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          startPressTimer(floatingMineBtn);
+      });
+      floatingMineBtn.addEventListener('touchend', clearPressTimer);
+      floatingMineBtn.addEventListener('touchcancel', clearPressTimer);
+  }
+
+  // Обработчики интерфейса
+  function setupEventListeners() {
+      // Обычные клики - только добыча
+      document.getElementById('mineBtn').addEventListener('click', handleClick);
+      document.getElementById('floatingMineBtn').addEventListener('click', handleClick);
+
+      // Обработчики долгого нажатия
+      setupLongPressHandlers();
+
+      // Общие обработчики действий
+      document.addEventListener('click', (event) => {
+          if (!game) return;
+          const target = event.target.closest('[data-action]');
+          if (!target) return;
+
+          const action = target.getAttribute('data-action');
+          const resource = target.getAttribute('data-resource');
+
+          if (action === 'buy' && resource) game.buy_resource(resource);
+          else if (action === 'sell' && resource) game.sell_resource(resource);
+          else if (action === 'toggle-coal') game.toggle_coal();
+      });
+
+      // Апгрейды
+      document.getElementById('upgradeMiningBtn').addEventListener('click', () => game.upgrade_mining());
+      document.getElementById('upgradeDefenseBtn').addEventListener('click', () => game.activate_defense());
+      document.getElementById('upgradeDefenseLevelBtn').addEventListener('click', () => game.upgrade_defense());
+
+      // Торговля
+      document.getElementById('buyModeBtn').addEventListener('click', () => {
+          document.getElementById('buyItemsContainer').style.display = 'grid';
+          document.getElementById('sellItemsContainer').style.display = 'none';
+          document.getElementById('buyModeBtn').classList.add('active');
+          document.getElementById('sellModeBtn').classList.remove('active');
+      });
+      document.getElementById('sellModeBtn').addEventListener('click', () => {
+          document.getElementById('buyItemsContainer').style.display = 'none';
+          document.getElementById('sellItemsContainer').style.display = 'grid';
+          document.getElementById('buyModeBtn').classList.remove('active');
+          document.getElementById('sellModeBtn').classList.add('active');
+      });
+
+      // Журнал
+      document.getElementById('clearLogBtn').addEventListener('click', () => {
+          document.getElementById('logBox').innerHTML = '';
+      });
+      document.getElementById('autoScrollBtn').addEventListener('click', () => {
+          const logBox = document.getElementById('logBox');
+          logBox.scrollTop = logBox.scrollHeight;
+      });
+
+      // Вкладки
+      document.querySelectorAll('.tab').forEach(tab => {
+          tab.addEventListener('click', () => game.switch_tab(tab.dataset.tab));
+      });
+  }
+
+  // Основная функция запуска игры
+  async function initializeGame() {
+      try {
+          // 1️⃣ Загружаем WASM
+          await init();
+
+          // 2️⃣ Загружаем конфиг перед стартом игры
+          await loadConfig();
+
+          // 3️⃣ Запускаем игру
+          game = start_game();
+          window.game = game; // для дебага в консоли
+
+          // 4️⃣ Ставим обработчики интерфейса
+          setupEventListeners();
+
+          // 5️⃣ Игровой цикл
+          setInterval(() => game.game_loop(), 1000);
+
+          // 6️⃣ Проверка обновления конфига каждые 10 секунд
+          setInterval(loadConfig, 10000);
+
+          console.log("🎮 Игра успешно запущена!");
+      } catch (error) {
+          console.error("❌ Ошибка при запуске игры:", error);
+      }
+  }
+
+  // Запускаем систему авторизации когда страница загружена
+  if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeAuth);
+  } else {
+      initializeAuth();
+  }
 </script>
 </body>
 </html>
