@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Вселенная CoreBox</title>
+    <style>
+        :root {
+            --p: #4a9eff; --s: #9d4aff; --ok: #4aff9d; --err: #ff4a4a;
+            --bg1: #0a0a1a; --bg2: #1a1a3a; --card: rgba(25, 25, 55, 0.95);
+            --t1: #e0e0ff; --t2: #a0a0ff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg1); color: var(--t1); font-family: system-ui; overflow: hidden; height: 100vh; touch-action: none; }
+        
+        .ui-container { display: flex; flex-direction: column; height: 100vh; }
+        .header { height: 60px; background: rgba(10, 10, 30, 0.95); border-bottom: 2px solid var(--p); padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+        .stats { display: flex; gap: 8px; font-size: 13px; font-weight: bold; }
+        .stat { background: rgba(20, 20, 50, 0.8); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--p); display: flex; align-items: center; gap: 4px; }
+        
+        .main { flex: 1; display: flex; position: relative; overflow: hidden; }
+        .side-panel { width: 300px; background: var(--bg2); border: 1px solid var(--p); padding: 15px; overflow-y: auto; transition: 0.3s; z-index: 500; }
+        .map { flex: 1; position: relative; background: radial-gradient(circle at center, #1a1a3a 0%, #0a0a1a 100%); overflow: hidden; }
+        
+        .btn { background: linear-gradient(135deg, var(--p), #2a5aaa); color: #fff; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 13px; margin-top: 5px; }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        .btn:active { transform: scale(0.98); }
+
+        .planet, .ship { position: absolute; cursor: pointer; transition: 0.3s; z-index: 10; transform: translate(-50%, -50%); }
+        .planet { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+        .planet-name { position: absolute; bottom: -20px; font-size: 10px; white-space: nowrap; text-shadow: 0 0 3px #000; }
+        .ship { width: 24px; height: 24px; font-size: 16px; transition: all 0.5s linear; }
+
+        .log { background: var(--card); height: 200px; border: 1px solid var(--s); border-radius: 10px; padding: 10px; font-size: 11px; overflow-y: auto; }
+        .log-entry { border-left: 3px solid var(--p); padding: 3px 6px; margin-bottom: 4px; background: rgba(255,255,255,0.05); }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .modal-content { background: var(--bg2); border: 2px solid var(--p); padding: 20px; border-radius: 15px; width: 100%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+
+        .bar { height: 8px; background: #222; border-radius: 4px; overflow: hidden; margin: 10px 0; }
+        .fill { height: 100%; background: var(--p); width: 0%; transition: 0.3s; }
+
+        .mobile-ui { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1000; gap: 10px; }
+        .m-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--card); border: 2px solid var(--p); color: var(--p); display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 10px #000; }
+
+        /* Улучшения для мобильных */
+        .touch-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+            animation: fadeInOut 3s infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .scan-effect {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid var(--ok);
+            animation: scan 1.5s linear infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes scan {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+
+        .resource-badge {
+            display: inline-block;
+            background: rgba(74, 255, 157, 0.2);
+            border: 1px solid var(--ok);
+            border-radius: 12px;
+            padding: 2px 8px;
+            margin: 2px;
+            font-size: 11px;
+        }
+
+        @media (max-width: 768px) {
+            .side-panel { position: absolute; width: 100%; height: 40%; bottom: -40%; left: 0; }
+            .side-panel.active { bottom: 0; }
+            .side-panel.info { top: -40%; bottom: auto; }
+            .side-panel.info.active { top: 60px; }
+            .mobile-ui { display: flex; }
+            .desktop-only { display: none; }
+            
+            /* Улучшения для мобильных */
+            .planet { width: 45px; height: 45px; }
+            .ship { width: 22px; height: 22px; font-size: 14px; }
+            .m-btn { width: 50px; height: 50px; }
+            
+            /* Touch-дружественные элементы */
+            .btn { padding: 12px; min-height: 44px; }
+            .stat { min-width: 80px; justify-content: center; }
+        }
+
+        @media (max-width: 480px) {
+            .header { height: 50px; padding: 0 10px; }
+            .stats { gap: 4px; }
+            .stat { padding: 4px 8px; font-size: 12px; min-width: 70px; }
+            .planet { width: 40px; height: 40px; }
+            .planet-name { font-size: 9px; bottom: -18px; }
+        }
+        
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.1); } }
+        
+        /* Цвета для разных типов планет */
+        .planet-earth { border-color: #4aff9d !important; background: rgba(74, 255, 157, 0.2) !important; }
+        .planet-volc { border-color: #ff4a4a !important; background: rgba(255, 74, 74, 0.2) !important; }
+        .planet-ice { border-color: #4a9eff !important; background: rgba(74, 158, 255, 0.2) !important; }
+        .planet-gas { border-color: #9d4aff !important; background: rgba(157, 74, 255, 0.2) !important; }
+    </style>
+</head>
+<body>
+    <div class="ui-container">
+        <header class="header">
+            <div style="font-weight:bold; color:var(--p); display:flex; align-items:center; gap:8px;">
+                <span>🌌</span>
+                <span>COREBOX</span>
+            </div>
+            <div class="stats">
+                <div class="stat" title="Вычислительная мощность">⚡ <span id="s-pwr">1000</span></div>
+                <div class="stat" title="Корабли">🚀 <span id="s-shp">0</span></div>
+                <div class="stat" title="Планеты">🪐 <span id="s-pln">0</span></div>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="side-panel" id="p-ctrl">
+                <h4 style="color:var(--s); margin-bottom:10px;">🔭 ИССЛЕДОВАНИЕ</h4>
+                <div style="font-size:12px; margin-bottom:5px; display:flex; justify-content:space-between;">
+                    <span>Стоимость: 100⚡</span>
+                    <span id="research-time">~5 сек</span>
+                </div>
+                <div class="bar"><div id="r-prog" class="fill"></div></div>
+                <button class="btn" id="r-btn" onclick="startRes()">
+                    🔍 ИССЛЕДОВАТЬ (100⚡)
+                </button>
+                
+                <h4 style="margin-top:20px; color:var(--s); margin-bottom:10px;">🚀 ВЕРФЬ</h4>
+                <div style="display:flex; gap:5px; margin-bottom:15px;">
+                    <button class="btn" onclick="addShip('scout')" style="flex:1;">
+                        <div style="font-size:20px;">🛸</div>
+                        <div style="font-size:11px;">Разведчик</div>
+                        <div style="font-size:10px; opacity:0.8;">200⚡</div>
+                    </button>
+                    <button class="btn" onclick="addShip('cargo')" style="flex:1;">
+                        <div style="font-size:20px;">📦</div>
+                        <div style="font-size:11px;">Грузовой</div>
+                        <div style="font-size:10px; opacity:0.8;">500⚡</div>
+                    </button>
+                </div>
+                
+                <h4 style="margin-top:20px; color:var(--s); margin-bottom:10px;">📦 СКЛАД</h4>
+                <div id="res-list" style="font-size:12px; display:flex; flex-wrap:wrap; gap:5px;"></div>
+                
+                <!-- Быстрые действия для мобильных -->
+                <div class="desktop-only" style="margin-top:20px; font-size:11px; opacity:0.7; text-align:center;">
+                    👆 Нажмите на планету для выбора
+                </div>
+            </div>
+
+            <div class="map" id="map">
+                <div id="stars"></div>
+                <div id="objects">
+                    <div class="planet pulse" style="left:50%; top:50%;" onclick="openBase()">
+                        <span>🏠</span>
+                        <div class="planet-name">База</div>
+                    </div>
+                </div>
+                <!-- Эффекты -->
+                <div id="effects"></div>
+                <!-- Подсказка для мобильных -->
+                <div class="touch-hint" id="touchHint">
+                    👆 Нажмите на планету
+                </div>
+            </div>
+
+            <div class="side-panel info" id="p-info">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h4 style="color:var(--p); margin:0;">📝 ЖУРНАЛ</h4>
+                    <button onclick="$('log').innerHTML=''" style="background:none; border:none; color:var(--t2); font-size:12px; cursor:pointer;">
+                        Очистить
+                    </button>
+                </div>
+                <div class="log" id="log">
+                    <div class="log-entry" style="border-color:var(--ok)">
+                        [00:00] Система инициализирована
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="mobile-ui">
+            <div class="m-btn" onclick="tglP('p-ctrl')" title="Управление">⚙️</div>
+            <div class="m-btn" onclick="tglP('p-info')" title="Журнал">📋</div>
+            <div class="m-btn" onclick="quickResearch()" title="Быстрое исследование">🔍</div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal" onclick="if(event.target==this)closeM()">
+        <div class="modal-content" id="m-body"></div>
+    </div>
+
+<script>
+    const $ = id => document.getElementById(id);
+    const state = { 
+        pwr: 1000, 
+        res: { Металл: 0, Кристаллы: 0, Газ: 0, Экзотика: 0 },
+        planets: [], 
+        ships: [], 
+        missions: [],
+        zoom: 1, 
+        offset: {x:0, y:0},
+        isResearching: false
+    };
+    
+    const types = { 
+        'earth-like': {i:'🌍', c:'#4aff9d', name:'Землеподобная'}, 
+        'volcanic': {i:'🌋', c:'#ff4a4a', name:'Вулканическая'}, 
+        'ice': {i:'❄️', c:'#4a9eff', name:'Ледяная'}, 
+        'gas': {i:'☁️', c:'#9d4aff', name:'Газовая'} 
+    };
+
+    function init() {
+        // Генерация звезд
+        for(let i = 0; i < 300; i++) {
+            let s = document.createElement('div');
+            const size = Math.random() > 0.1 ? '1px' : '2px';
+            const opacity = Math.random() * 0.8 + 0.2;
+            s.style.cssText = `
+                position: absolute; 
+                left: ${Math.random()*100}%; 
+                top: ${Math.random()*100}%; 
+                width: ${size}; 
+                height: ${size}; 
+                background: #fff; 
+                opacity: ${opacity};
+                border-radius: 50%;
+            `;
+            $('stars').appendChild(s);
+        }
+        
+        // Скрываем подсказку через 5 секунд
+        setTimeout(() => {
+            $('touchHint').style.display = 'none';
+        }, 5000);
+        
+        updateUI();
+        addLog("Система готова к исследованию", "ok");
+        
+        // Инициализируем тач-контролы для мобильных
+        if(window.innerWidth <= 768) {
+            setupTouchControls();
+        }
+    }
+
+    function addLog(m, t = 'info') {
+        let e = document.createElement('div');
+        e.className = 'log-entry';
+        const colors = { ok: '--ok', err: '--err', info: '--p' };
+        e.style.borderColor = `var(${colors[t] || colors.info})`;
+        e.textContent = `[${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}] ${m}`;
+        $('log').prepend(e);
+        if($('log').children.length > 20) $('log').lastChild.remove();
+    }
+
+    function updateUI() {
+        $('s-pwr').textContent = state.pwr;
+        $('s-shp').textContent = state.ships.length;
+        $('s-pln').textContent = state.planets.length;
+        
+        // Обновляем ресурсы
+        $('res-list').innerHTML = Object.entries(state.res)
+            .filter(([_, v]) => v > 0)
+            .map(([k,v]) => `<div class="resource-badge">${k}: <b>${v}</b></div>`)
+            .join('') || '<div style="opacity:0.6">Ресурсов нет</div>';
+    }
+
+    function startRes() {
+        if(state.isResearching) return addLog("Исследование уже идет", "err");
+        if(state.pwr < 100) return addLog("Недостаточно энергии!", "err");
+        
+        state.isResearching = true;
+        state.pwr -= 100; 
+        updateUI();
+        
+        $('r-btn').disabled = true;
+        $('r-btn').textContent = "🔬 ИССЛЕДУЕТСЯ...";
+        
+        let p = 0;
+        const duration = window.innerWidth <= 768 ? 3000 : 5000; // Быстрее на мобильных
+        $('research-time').textContent = `~${duration/1000} сек`;
+        
+        let iv = setInterval(() => {
+            p += (100 / (duration / 100));
+            $('r-prog').style.width = p + '%';
+            
+            if(p >= 100) {
+                clearInterval(iv);
+                createPlanet();
+                state.isResearching = false;
+                $('r-btn').disabled = false;
+                $('r-btn').textContent = "🔍 ИССЛЕДОВАТЬ (100⚡)";
+                $('r-prog').style.width = '0%';
+                $('research-time').textContent = "~5 сек";
+            }
+        }, 100);
+        
+        addLog("Запущено исследование", "info");
+    }
+
+    function quickResearch() {
+        if(window.innerWidth <= 768) {
+            startRes();
+            tglP('p-ctrl'); // Закрываем панель после запуска на мобильных
+        }
+    }
+
+    function createPlanet() {
+        let x, y, tooClose;
+        let attempts = 0;
+        
+        do {
+            x = 10 + Math.random()*80; 
+            y = 10 + Math.random()*80;
+            tooClose = state.planets.some(p => Math.hypot(p.x-x, p.y-y) < 15);
+            attempts++;
+        } while(tooClose && attempts < 100);
+        
+        const id = Date.now();
+        const type = Object.keys(types)[Math.floor(Math.random()*4)];
+        const p = { 
+            id, 
+            x, 
+            y, 
+            type, 
+            discovered: false, 
+            name: `PLN-${String(state.planets.length + 1).padStart(3, '0')}`,
+            resources: generateResources(),
+            travelTime: Math.floor(Math.hypot(x-50, y-50) / 10) + 1 // Время в секундах для демо
+        };
+        state.planets.push(p);
+        
+        // Эффект обнаружения
+        createScanEffect(x + '%', y + '%');
+        
+        // Создаем элемент планеты
+        setTimeout(() => {
+            let el = document.createElement('div');
+            el.className = `planet planet-${type.split('-')[0]}`;
+            el.id = 'p-' + id;
+            el.style.left = x + '%'; 
+            el.style.top = y + '%';
+            el.style.borderColor = types[type].c;
+            el.innerHTML = `
+                <span style="font-size:24px;">${types[type].i}</span>
+                <div class="planet-name">${p.name}</div>
+            `;
+            el.onclick = () => openPlanet(p);
+            $('objects').appendChild(el);
+            
+            addLog(`Обнаружена ${types[type].name.toLowerCase()} планета ${p.name}`, "ok");
+            updateUI();
+        }, 500);
+    }
+
+    function generateResources() {
+        const resources = {};
+        const possible = ['Металл', 'Кристаллы', 'Газ', 'Экзотика'];
+        const count = Math.floor(Math.random() * 2) + 1; // 1-2 типа ресурсов
+        
+        for(let i = 0; i < count; i++) {
+            const res = possible[Math.floor(Math.random() * possible.length)];
+            resources[res] = Math.floor(Math.random() * 50) + 10;
+        }
+        
+        return resources;
+    }
+
+    function createScanEffect(x, y) {
+        const effect = document.createElement('div');
+        effect.className = 'scan-effect';
+        effect.style.left = x;
+        effect.style.top = y;
+        $('effects').appendChild(effect);
+        
+        setTimeout(() => {
+            effect.remove();
+        }, 1500);
+    }
+
+    function addShip(type) {
+        const cost = type === 'scout' ? 200 : 500;
+        if(state.pwr < cost) return addLog("Мало энергии", "err");
+        
+        state.pwr -= cost;
+        const s = { 
+            id: Date.now(), 
+            type, 
+            status: 'idle', 
+            name: (type === 'scout' ? 'СКАУТ' : 'ГРУЗ') + '-' + String(state.ships.length + 1).padStart(2, '0')
+        };
+        state.ships.push(s);
+        
+        let el = document.createElement('div');
+        el.className = 'ship'; 
+        el.id = 's-' + s.id;
+        el.style.left = '50%'; 
+        el.style.top = '50%';
+        el.textContent = type === 'scout' ? '🛸' : '📦';
+        el.title = s.name;
+        $('objects').appendChild(el);
+        
+        updateUI();
+        addLog(`Построен ${type === 'scout' ? 'разведывательный' : 'грузовой'} корабль ${s.name}`, "ok");
+    }
+
+    function openPlanet(p) {
+        const idleShips = state.ships.filter(s => s.status === 'idle');
+        const shipButtons = idleShips.map(s => `
+            <button class="btn" onclick="sendShip(${s.id}, ${p.id})" style="margin-bottom:5px;">
+                ${s.type === 'scout' ? '🛸' : '📦'} ${s.name}
+                <div style="font-size:11px; opacity:0.8;">
+                    ${s.type === 'scout' ? 'Разведка' : 'Добыча'} (${p.travelTime}сек)
+                </div>
+            </button>
+        `).join('');
+        
+        const resourcesList = Object.entries(p.resources || {})
+            .map(([res, amt]) => `<div class="resource-badge">${res}: ${amt}</div>`)
+            .join('');
+        
+        $('m-body').innerHTML = `
+            <h3 style="margin-bottom:10px;">${types[p.type].i} ${p.name}</h3>
+            <div style="font-size:13px; margin-bottom:15px;">
+                <p>Тип: <b>${types[p.type].name}</b></p>
+                <p>Статус: <b style="color:${p.discovered ? 'var(--ok)' : 'var(--p)'}">${p.discovered ? 'Исследована' : 'Неизвестно'}</b></p>
+                <p>Время полета: <b>${p.travelTime} секунд</b></p>
+                ${p.discovered && resourcesList ? `
+                    <p style="margin-top:10px;">Ресурсы:</p>
+                    <div style="display:flex; flex-wrap:wrap; gap:5px; margin:5px 0;">
+                        ${resourcesList}
+                    </div>
+                ` : ''}
+            </div>
+            <hr style="margin:15px 0; opacity:0.2">
+            <h4 style="margin-bottom:10px;">Отправить корабль:</h4>
+            ${idleShips.length > 0 ? shipButtons : '<p style="opacity:0.7; text-align:center;">Нет свободных кораблей</p>'}
+            <button class="btn" onclick="closeM()" style="background:#333; margin-top:10px;">
+                Закрыть
+            </button>
+        `;
+        
+        $('modal').style.display = 'flex';
+    }
+
+    function sendShip(sid, pid) {
+        closeM();
+        const s = state.ships.find(x => x.id === sid);
+        const p = state.planets.find(x => x.id === pid);
+        
+        if(!s || !p) return;
+        
+        s.status = 'mission';
+        const el = $('s-' + sid);
+        
+        // Анимация полета к планете
+        el.style.left = p.x + '%';
+        el.style.top = p.y + '%';
+        el.style.transition = `all ${p.travelTime * 100}ms linear`;
+        
+        // Миссия
+        const missionId = Date.now();
+        state.missions.push({
+            id: missionId,
+            shipId: sid,
+            planetId: pid,
+            type: s.type,
+            startTime: Date.now()
+        });
+        
+        addLog(`${s.name} отправлен к ${p.name}`, "info");
+        
+        // Завершение миссии
+        setTimeout(() => {
+            if(s.type === 'scout') {
+                p.discovered = true;
+                // Добавляем ресурсы при исследовании
+                Object.entries(p.resources || {}).forEach(([res, amt]) => {
+                    state.res[res] = (state.res[res] || 0) + Math.floor(amt * 0.1); // 10% при исследовании
+                });
+                addLog(`${s.name} исследовал ${p.name} (+ресурсы)`, "ok");
+            } else {
+                // Добыча ресурсов
+                Object.entries(p.resources || {}).forEach(([res, amt]) => {
+                    const mined = Math.min(amt, 20); // Максимум 20 за раз
+                    state.res[res] = (state.res[res] || 0) + mined;
+                    p.resources[res] -= mined;
+                    
+                    if(p.resources[res] <= 0) {
+                        delete p.resources[res];
+                    }
+                });
+                addLog(`${s.name} добыл ресурсы с ${p.name}`, "ok");
+            }
+            
+            // Возвращение на базу
+            el.style.left = '50%';
+            el.style.top = '50%';
+            
+            setTimeout(() => {
+                s.status = 'idle';
+                updateUI();
+                addLog(`${s.name} вернулся на базу`, "info");
+                
+                // Удаляем завершенную миссию
+                state.missions = state.missions.filter(m => m.id !== missionId);
+            }, p.travelTime * 100);
+        }, p.travelTime * 100);
+    }
+
+    function openBase() {
+        const activeMissions = state.missions.length;
+        const idleShips = state.ships.filter(s => s.status === 'idle').length;
+        
+        $('m-body').innerHTML = `
+            <h3 style="margin-bottom:15px;">🏠 База CoreBox</h3>
+            <div style="margin-bottom:20px;">
+                <div style="background:rgba(74, 158, 255, 0.1); padding:10px; border-radius:8px; margin-bottom:10px;">
+                    <div style="color:var(--p); font-size:13px;">⚡ Вычислительная мощность:</div>
+                    <div style="font-size:24px; color:var(--ok); font-weight:bold;">${state.pwr}</div>
+                </div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+                    <div style="background:rgba(74, 255, 157, 0.1); padding:8px; border-radius:6px;">
+                        <div style="font-size:11px; opacity:0.8;">Активные миссии</div>
+                        <div style="font-size:18px; font-weight:bold;">${activeMissions}</div>
+                    </div>
+                    <div style="background:rgba(157, 74, 255, 0.1); padding:8px; border-radius:6px;">
+                        <div style="font-size:11px; opacity:0.8;">Свободные корабли</div>
+                        <div style="font-size:18px; font-weight:bold;">${idleShips}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="state.pwr+=100; updateUI(); addLog('+100⚡ получено', 'ok');">
+                ⚡ Генерация энергии (+100⚡)
+            </button>
+            <button class="btn" onclick="closeM()" style="background:#333; margin-top:10px;">
+                Закрыть
+            </button>
+        `;
+        $('modal').style.display = 'flex';
+    }
+
+    function tglP(id) {
+        const el = $(id);
+        const active = el.classList.contains('active');
+        document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('active'));
+        if(!active) el.classList.add('active');
+        
+        // На мобильных закрываем другую панель
+        if(window.innerWidth <= 768) {
+            const otherId = id === 'p-ctrl' ? 'p-info' : 'p-ctrl';
+            $(otherId).classList.remove('active');
+        }
+    }
+
+    function closeM() { 
+        $('modal').style.display = 'none'; 
+    }
+
+    // Touch controls для мобильных
+    function setupTouchControls() {
+        const map = $('map');
+        let lastTouch = null;
+        let touchDistance = 0;
+        
+        map.addEventListener('touchstart', (e) => {
+            if(e.touches.length === 2) {
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                touchDistance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+            } else if(e.touches.length === 1) {
+                lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        }, { passive: false });
+        
+        map.addEventListener('touchend', (e) => {
+            if(e.changedTouches.length === 1 && !lastTouch) {
+                const touch = e.changedTouches[0];
+                const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                if(element && element.classList.contains('planet')) {
+                    const planetId = parseInt(element.id.replace('p-', ''));
+                    const planet = state.planets.find(p => p.id === planetId);
+                    if(planet) openPlanet(planet);
+                }
+            }
+            lastTouch = null;
+            touchDistance = 0;
+        });
+    }
+
+    // Запуск
+    init();
+</script>
+</body>
+</html>
