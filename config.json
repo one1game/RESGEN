@@ -1,145 +1,231 @@
 {
   "version": "3.0",
-  "cycle_duration": 20,
+  "cycle_duration": 32,
   "max_slots": 18,
   "time_config": {
-    "day_duration": 10,
-    "night_duration": 10,
-    "initial_time": 10,
+    "day_duration": 20,
+    "night_duration": 12,
+    "initial_time": 12,
     "start_at_day": true
   },
   "mining_config": {
     "base_chances": {
-      "coal": 0.12,
-      "trash": 0.08,
-      "chips": 0.3,
-      "plasma": 0.3
+      "coal": 0.25,
+      "trash": 0.4,
+      "ore": 0.15
     },
     "upgrade_bonus": 0.01,
     "coal_bonus": 0.02,
-    "critical_chance": 0.04,
+    "critical_chance": 0.05,
     "critical_multiplier": 2,
     "passive_chances": {
       "coal": 0.003,
       "trash": 0.007,
-      "chips": 0.001,
-      "plasma": 0.0005
+      "ore": 0.002
     }
   },
   "economy_config": {
     "trash_base_price": 2,
     "trade_prices": {
-      "coal_buy": 25,
-      "coal_sell": 18,
-      "chips_buy": 45,
-      "chips_sell": 25,
-      "plasma_buy": 80,
-      "plasma_sell": 50
+      "coal_buy": 15,
+      "coal_sell": 10,
+      "chips_buy": 50,
+      "chips_sell": 30,
+      "plasma_buy": 150,
+      "plasma_sell": 100,
+      "ore_buy": 25,
+      "ore_sell": 18
     }
   },
   "upgrade_config": {
-    "mining_base_cost": 8,
+    "mining_base_cost": 10,
     "mining_cost_multiplier": 2,
     "mining_max_level": 10,
-    "defense_activation_cost": 5,
+    "defense_activation_cost": 1,
     "defense_base_power": 30,
     "defense_level_bonus": 10,
     "defense_max_level": 5
   },
   "rebels": {
-    "base_attack_chance": 0.6,
-    "activity_increase": 3,
+    "base_attack_chance": 0.05,
+    "activity_increase": 2,
     "activity_decrease": 1,
-    "max_activity": 10,
-    "activity_bonus_per_level": 0.03,
-    "max_attack_chance": 0.5,
-    "defense_base_power": 30,
-    "defense_level_bonus": 10,
+    "max_activity": 15,
+    "activity_bonus_per_level": 0.02,
+    "max_attack_chance": 0.1,
+    "defense_base_power": 50,
+    "defense_level_bonus": 15,
     "steal_rates": {
-      "low_activity_trash": 0.16,
-      "medium_activity_coal": 0.2,
-      "high_activity_chips": 0.25
+      "low_activity_trash": 0.1,
+      "medium_activity_coal": 0.05,
+      "high_activity_chips": 0.03,
+      "very_high_activity_ore": 0.04
     },
     "disable_chances": {
-      "coal_plant_disable": 0.15,
-      "power_reset": 0.1
+      "coal_plant_disable": 0.1,
+      "power_reset": 0.08
     },
-    "power_reset_rate": 0.25,
-    "log_activity_threshold": 2,
+    "power_reset_rate": 0.2,
+    "log_activity_threshold": 8,
     "enable_attack_messages": true,
-    "enable_defense_messages": true
+    "enable_defense_messages": true,
+    "enable_strategic_behavior": true,
+    "max_adaptation_level": 100,
+    "psychological_warfare_chance": 0.1,
+    "strategy_adaptation_speed": 0.5,
+    "enable_activity_messages": false
   },
   "quests": [
     {
-      "id": "800af052-8197-46eb-ae65-ad4d72a568be",
+      "id": "3bd16a6a-3c3a-44dd-bca7-75add0883e4a",
       "title": "Автономный режим запустился не полностью",
-      "description": "Энергии почти нет. Автономный режим держится на последних процентах. Для запуска основных модулей требуется первичная добыча. Соберите 30 единиц ресурса.",
+      "description": "Энергии почти нет. Автономный режим держится на последних процентах. Для запуска основных модулей требуется первичная добыча. Соберите 50 единиц ресурса.",
       "quest_type": "MineAny",
-      "target": 20,
-      "reward": 40,
-      "enabled": true,
+      "target": 50,
+      "reward": 100,
+      "enabled": false,
       "order": 1,
       "unlocks": []
     },
     {
-      "id": "52bb0b09-3a01-408d-9f9b-592d8073db92",
+      "id": "046d9d57-8748-4a38-b930-271680f9ed62",
       "title": "Ночной цикл",
-      "description": "Переживите 3 ночи",
+      "description": "Переживите 5 ночей",
       "quest_type": "SurviveNight",
-      "target": 3,
-      "reward": 60,
-      "enabled": true,
+      "target": 5,
+      "reward": 150,
+      "enabled": false,
       "order": 2,
       "unlocks": []
     },
     {
-      "id": "c5b4631a-e8bf-47ce-a0b3-a1cbb93e709b",
+      "id": "4a391a8b-34ef-45b3-8e92-a734a373dad9",
       "title": "Угольный магнат",
-      "description": "Накопите 70 угля",
+      "description": "Накопите 100 угля",
       "quest_type": "MineCoal",
-      "target": 50,
-      "reward": 120,
-      "enabled": true,
+      "target": 100,
+      "reward": 300,
+      "enabled": false,
       "order": 3,
       "unlocks": []
     },
     {
-      "id": "f8f0e0dd-ceaf-4b77-ba7e-c9e0a32baba8",
+      "id": "2e7fcdab-30e7-49ea-837f-56a0abbdbc46",
       "title": "Электронные компоненты",
-      "description": "Накопите 120 угля чтобы разблокировать чипы",
+      "description": "Накопите 200 угля чтобы разблокировать чипы",
       "quest_type": "MineCoal",
-      "target": 120,
-      "reward": 200,
-      "enabled": true,
+      "target": 200,
+      "reward": 500,
+      "enabled": false,
       "order": 4,
-      "unlocks": [
-        "chips"
-      ]
+      "unlocks": []
     },
     {
-      "id": "294ee8ee-9fcd-4177-a21e-bd60fd934ee6",
+      "id": "688e7d28-ae71-452d-ad6d-1a8ac91d4b35",
       "title": "Энергетический прорыв",
-      "description": "Накопите 150 угля что бы разблокировать плазму",
+      "description": "Накопите 300 угля чтобы разблокировать плазму",
       "quest_type": "MineCoal",
-      "target": 150,
-      "reward": 400,
-      "enabled": true,
+      "target": 300,
+      "reward": 1000,
+      "enabled": false,
       "order": 5,
-      "unlocks": [
-        "plasma"
-      ]
+      "unlocks": []
     }
   ],
   "auto_click_config": {
     "enabled": true,
-    "max_computational_power": 800,
-    "clicks_per_power": 10,
-    "power_per_manual_click": 1,
-    "auto_click_interval": 4,
-    "power_per_auto_click": 2,
-    "use_same_chances_as_manual": true,
-    "auto_click_chance_multiplier": 0.9,
-    "long_press_duration": 500,
+    "max_computational_power": 1000,
+    "clicks_per_power": 15,
+    "power_per_manual_click": 2,
+    "auto_click_interval": 5,
+    "power_per_auto_click": 3,
+    "use_same_chances_as_manual": false,
+    "auto_click_chance_multiplier": 0.8,
+    "long_press_duration": 600,
     "visual_feedback": true
+  },
+  "coal_consumption_config": {
+    "day_coal_min": 1,
+    "day_coal_max": 2,
+    "night_coal_min": 2,
+    "night_coal_max": 5,
+    "plasma_conversion_rate": 50
+  },
+  "ui_config": {
+    "max_log_entries": 200,
+    "auto_save_interval": 30,
+    "panel_collapse_enabled": true,
+    "power_glow_enabled": true,
+    "floating_button_enabled": true
+  },
+  "game_balance_config": {
+    "initial_coal": 0,
+    "initial_trash": 0,
+    "initial_chips": 0,
+    "initial_plasma": 0,
+    "initial_ore": 0,
+    "max_inventory_stack": 9999,
+    "rebel_protection_cost": 100,
+    "base_mining_bonus": 3,
+    "coal_mining_bonus": 2,
+    "ore_mining_bonus": 1
+  },
+  "debug_config": {
+    "enable_debug_commands": true,
+    "log_level": "info",
+    "show_fps": false,
+    "enable_cheats": false
+  },
+  "ship_config": {
+    "max_fleet_size": 20,
+    "ship_types": {
+      "cargo": {
+        "name": "Грузовой корабль",
+        "description": "Перевозит ресурсы между колониями",
+        "capacity": 500,
+        "speed": 1.0,
+        "combat_power": 5
+      },
+      "scout": {
+        "name": "Разведывательный корабль",
+        "description": "Исследует новые территории",
+        "capacity": 100,
+        "speed": 3.0,
+        "combat_power": 15
+      },
+      "combat": {
+        "name": "Боевой корабль",
+        "description": "Защита флота и атака угроз",
+        "capacity": 200,
+        "speed": 2.0,
+        "combat_power": 50
+      }
+    },
+    "design_costs": {
+      "cargo": 500,
+      "scout": 300,
+      "combat": 800
+    },
+    "craft_costs": {
+      "cargo": {
+        "ore": 200,
+        "chips": 50,
+        "plasma": 10,
+        "time_seconds": 60
+      },
+      "scout": {
+        "ore": 100,
+        "chips": 100,
+        "plasma": 20,
+        "time_seconds": 45
+      },
+      "combat": {
+        "ore": 300,
+        "chips": 150,
+        "plasma": 30,
+        "time_seconds": 90
+      }
+    },
+    "upgrade_costs_multiplier": 1.5
   }
 }

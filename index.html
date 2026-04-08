@@ -1,679 +1,576 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoreBox 3.0 - Rust</title>
-    <link rel="stylesheet" href="style.css">
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>CoreBox 3.0 - Rust</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
 <body>
     
-<!-- Форма авторизации -->
-<div id="authOverlay" class="auth-overlay">
-    <div class="auth-container">
-        <div class="auth-header">
-            <h2>CoreBox 3.0</h2>
-            <p>Войдите или зарегистрируйтесь</p>
-        </div>
-        
-        <form id="authForm" class="auth-form">
-            <div class="input-group">
-                <label for="username">Логин:</label>
-                <input type="text" id="username" name="username" required minlength="3" maxlength="20" placeholder="минимум 3 символа">
+    <!-- Форма авторизации -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-container">
+            <div class="auth-header">
+                <h2>CoreBox 3.0</h2>
+                <p>Войдите или зарегистрируйтесь</p>
             </div>
             
-            <div class="input-group">
-                <label for="password">Пароль:</label>
-                <input type="password" id="password" name="password" required minlength="4" placeholder="минимум 4 символа">
-            </div>
+            <form id="authForm" class="auth-form">
+                <div class="input-group">
+                    <label for="username">Логин:</label>
+                    <input type="text" id="username" name="username" required minlength="3" maxlength="20" placeholder="минимум 3 символа">
+                </div>
+                
+                <div class="input-group">
+                    <label for="password">Пароль:</label>
+                    <input type="password" id="password" name="password" required minlength="4" placeholder="минимум 4 символа">
+                </div>
+                
+                <div class="auth-buttons">
+                    <button type="submit" id="loginBtn" class="auth-btn primary">Войти</button>
+                    <button type="button" id="registerBtn" class="auth-btn secondary">Регистрация</button>
+                </div>
+            </form>
             
-            <div class="auth-buttons">
-                <button type="submit" id="loginBtn" class="auth-btn primary">Войти</button>
-                <button type="button" id="registerBtn" class="auth-btn secondary">Регистрация</button>
-            </div>
-        </form>
-        
-        <div id="authMessage" class="auth-message"></div>
-        
-        <div class="auth-info">
-            <p>При первом входе будет создан новый аккаунт</p>
+            <div id="authMessage" class="auth-message"></div>
             
-            <!-- ССЫЛКИ НА ДОПОЛНИТЕЛЬНЫЕ СТРАНИЦЫ (БЕЗ target="_blank") -->
-            <div class="additional-links">
-                <a href="faq.html" class="story-link">
-                    📖 FAQ
-                </a>
-                <a href="history.html" class="story-link history-link">
-                    🎭 ИСТОРИЯ МИРА
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ОСНОВНОЙ КОНТЕНТ ИГРЫ (СКРЫТ ДО АВТОРИЗАЦИИ) -->
-<div id="gameContent" style="display: none;">
-    <div class="header">
-        <h1>CoreBox 3.0</h1>
-        
-        <div class="user-info" id="userInfo">
-            <span id="usernameDisplay"></span>
-            <button id="logoutBtn" class="logout-btn">Выйти</button>
-        </div>
-        
-        <div class="stats-container">
-            <div class="stat-card">
-                <div>ЦИКЛ</div>
-                <div id="timeDisplay" class="stat-value">ДЕНЬ 08:00</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="main">
-        <!-- СЕРЬЕЗНАЯ СЕКЦИЯ СОСТОЯНИЯ СИСТЕМЫ -->
-        <div class="panel">
-            <div class="panel-title">
-                <span>СИСТЕМНЫЙ СТАТУС</span>
-                <span class="collapse-icon">▼</span>
-            </div>
-            <div class="panel-content">
-                <div class="system-status">
-                    <div class="status-line">
-                        <div class="status-label">ТЭЦ:</div>
-                        <div class="status-value" id="coalStatus">ОФФЛАЙН</div>
-                        <div class="status-indicator offline"></div>
-                    </div>
-                    <div class="status-line">
-                        <div class="status-label">ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ:</div>
-                        <div class="status-value" id="aiStatusText">НЕАКТИВЕН</div>
-                        <div class="status-indicator offline"></div>
-                    </div>
-                    <!-- ДОБАВЛЕНА ЗАЩИТА -->
-                    <div class="status-line">
-                        <div class="status-label">СИСТЕМА ЗАЩИТЫ:</div>
-                        <div class="status-value" id="defenseStatusText">НЕАКТИВНА</div>
-                        <div class="status-indicator offline"></div>
-                    </div>
-                    <div class="status-line">
-                        <div class="status-label">УГРОЗА ПОВСТАНЦЕВ:</div>
-                        <div class="status-value" id="rebelStatus">НИЗКИЙ УРОВЕНЬ</div>
-                        <div class="threat-level low"></div>
-                    </div>
+            <div class="auth-info">
+                <p>При первом входе будет создан новый аккаунт</p>
+                
+                <div class="additional-links">
+                    <a href="faq.html" class="story-link">
+                        📖 FAQ
+                    </a>
+                    <a href="history.html" class="story-link history-link">
+                        🎭 ИСТОРИЯ МИРА
+                    </a>
                 </div>
             </div>
         </div>
-        
-        <div class="mining-action">
-            <button id="mineBtn" class="btn pulse">ИНИЦИИРОВАТЬ ДОБЫЧУ <span id="miningBonus">+0%</span></button>
+    </div>
+
+    <!-- ОСНОВНОЙ КОНТЕНТ ИГРЫ -->
+    <div id="gameContent" style="display: none;">
+        <div class="header">
+            <h1>CoreBox 3.0</h1>
             
-            <!-- СИСТЕМА КЛИКОВ -->
-            <div class="click-system">
-                <!-- Мощность -->
-                <div class="power-section">
-                    <div class="power-label">
-                        <span>ВЫЧИСЛИТЕЛЬНАЯ МОЩНОСТЬ:</span>
-                        <span id="powerText">0/100</span>
+            <div class="user-info" id="userInfo">
+                <span id="usernameDisplay"></span>
+                <button id="logoutBtn" class="logout-btn">Выйти</button>
+            </div>
+            
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div>ЦИКЛ</div>
+                    <div id="timeDisplay" class="stat-value">ДЕНЬ 08:00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+            <!-- ВКЛАДКИ СИСТЕМНЫЙ СТАТУС / СТАТИСТИКА -->
+            <div class="status-tabs">
+                <div class="status-tab active" id="system-status-tab">СИСТЕМНЫЙ СТАТУС</div>
+                <div class="status-tab" id="statistics-tab">СТАТИСТИКА</div>
+            </div>
+            
+            <!-- СЕКЦИЯ СИСТЕМНЫЙ СТАТУС -->
+            <div id="system-status-section" class="status-section">
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>СИСТЕМНЫЙ СТАТУС</span>
+                        <span class="collapse-icon">▼</span>
                     </div>
-                    <div class="progress-container">
-                        <div class="progress-fill" id="powerFill" style="width: 0%"></div>
+                    <div class="panel-content">
+                        <div class="system-status">
+                            <div class="status-line">
+                                <div class="status-label">ТЭЦ:</div>
+                                <div class="status-value" id="coalStatus">ОФФЛАЙН</div>
+                                <div class="status-indicator offline"></div>
+                            </div>
+                            <div class="status-line">
+                                <div class="status-label">ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ:</div>
+                                <div class="status-value" id="aiStatusText">НЕАКТИВЕН</div>
+                                <div class="status-indicator offline"></div>
+                            </div>
+                            <div class="status-line">
+                                <div class="status-label">СИСТЕМА ЗАЩИТЫ:</div>
+                                <div class="status-value" id="defenseStatusText">НЕАКТИВНА</div>
+                                <div class="status-indicator offline"></div>
+                            </div>
+                            <div class="status-line">
+                                <div class="status-label">УГРОЗА ПОВСТАНЦЕВ:</div>
+                                <div class="status-value" id="rebelStatus">НИЗКИЙ УРОВЕНЬ</div>
+                                <div class="threat-level low"></div>
+                            </div>
+
+                            <!-- ИНДИКАТОР ЗАМЕТНОСТИ -->
+                            <div class="visibility-container">
+                                <div class="stat-label" id="visibilityLabel">👁️ Заметность: 0%</div>
+                                <div class="visibility-bar">
+                                    <div class="visibility-fill visibility-low" id="visibilityBar" style="width: 0%"></div>
+                                </div>
+                                <div class="visibility-hint">Меньше добываешь — меньше заметен</div>
+                            </div>
+
+                            <div class="status-line">
+                                <div class="status-label">НЕЙРО-СОЗНАНИЕ:</div>
+                                <div class="status-value" id="neuroStatus">0.0% (Ур. 0)</div>
+                                <div class="neuro-level">
+                                    <div class="neuro-progress" id="neuroProgress"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Режим ИИ -->
+                            <div class="status-line ai-mode-row">
+                                <div class="status-label">РЕЖИМ ИИ:</div>
+                                <div class="status-value" id="aiMode">⚙️ Обычный</div>
+                            </div>
+                            
+                            <!-- Предупреждение об атаке -->
+                            <div id="attackWarning" class="attack-warning" style="display: none;"></div>
+                            
+                            <!-- Активные дебаффы -->
+                            <div id="miningDebuff" class="debuff-indicator mining-debuff" style="display: none;"></div>
+                            <div id="autoclickDebuff" class="debuff-indicator autoclick-debuff" style="display: none;"></div>
+                            <div id="defenseDebuff" class="debuff-indicator defense-debuff" style="display: none;"></div>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Прогресс кликов -->
-                <div class="click-progress-section">
-                    <div class="click-label">
-                        <span>ПРОГРЕСС СИНХРОНИЗАЦИИ:</span>
-                        <span id="clickProgressText">0/10</span>
-                    </div>
-                    <div class="progress-container">
-                        <div class="progress-fill click-progress" id="clickProgress" style="width: 0%"></div>
-                    </div>
-                </div>
-                
-                <!-- Статус автокликов -->
-                <div class="auto-click-section">
-                    <div class="auto-click-status">
-                        <span>АВТОМАТИЧЕСКАЯ ДОБЫЧА:</span>
-                        <span id="autoClickStatus">ОТКЛЮЧЕНА</span>
-                    </div>
-                    <div class="auto-click-settings">
-                        <span class="setting-icon">⚡</span>
-                        <span class="setting-label">МОЩНОСТЬ/ЦИКЛ:</span>
-                        <span id="powerPerClick" class="setting-value">1</span>
-                        
-                        <span class="setting-separator">|</span>
-                        
-                        <span class="setting-icon">⏱️</span>
-                        <span class="setting-label">ИНТЕРВАЛ:</span>
-                        <span id="autoClickInterval" class="setting-value">5</span>
-                        <span class="setting-unit">СЕК</span>
-                        
-                        <span class="setting-separator">|</span>
-                        
-                        <span class="setting-icon">💎</span>
-                        <span class="setting-label">СТОИМОСТЬ:</span>
-                        <span id="autoClickCost" class="setting-value">1</span>
-                        <span class="setting-unit">МОЩН</span>
-                    </div>
-                    <div class="auto-click-info">
-                        УДЕРЖИВАЙТЕ ДЛЯ АКТИВАЦИИ АВТОМАТИЧЕСКОЙ ДОБЫЧИ
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="panel">
-            <div class="panel-title">
-                <span>СИСТЕМНЫЙ ЖУРНАЛ</span>
-                <span class="collapse-icon">▼</span>
-            </div>
-            <div class="panel-content">
-                <div class="log-controls">
-                    <button id="clearLogBtn" class="log-btn">ОЧИСТИТЬ</button>
-                    <button id="autoScrollBtn" class="log-btn">АВТОСКРОЛЛ</button>
-                </div>
-                <div id="logBox" style="height: 200px; overflow-y: auto;"></div>
-            </div>
-        </div>
-        
-        <div class="tabs">
-            <div class="tab active" data-tab="inventory">ИНВЕНТАРЬ</div>
-            <div class="tab" data-tab="upgrades">МОДУЛИ</div>
-            <div class="tab" data-tab="trade">ТОРГОВЛЯ</div>
-            <div class="tab" data-tab="quests">ЗАДАНИЯ</div>
-        </div>
-        
-        <div class="tab-content active" id="inventory-tab">
-            <div class="panel">
-                <div class="panel-title">
-                    <span>СИСТЕМНЫЕ РЕСУРСЫ</span>
-                    <span class="collapse-icon">▼</span>
-                </div>
-                <div class="panel-content">
-                    <!-- ТОЛЬКО ОДИН КОНТЕЙНЕР ДЛЯ ВСЕХ ЯЧЕЙК -->
-                    <div class="inventory-grid" id="resourcesContainer">
-                        <!-- Здесь будут генерироваться ВСЕ ячейки включая тенге -->
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="tab-content" id="upgrades-tab">
-            <div class="panel">
-                <div class="panel-title">
-                    <span>СИСТЕМНЫЕ МОДУЛИ</span>
-                    <span class="collapse-icon">▼</span>
-                </div>
-                <div class="panel-content">
-                    <div class="upgrade-container">
-                        <div class="upgrade-card">
-                            <div class="upgrade-header">
-                                <div class="upgrade-title">ЭФФЕКТИВНОСТЬ ДОБЫЧИ</div>
-                                <div class="upgrade-level">УР. <span id="miningLevel">0</span>/10</div>
+                <div class="mining-action">
+                    <div class="click-system">
+                        <div class="power-section">
+                            <div class="power-label">
+                                <span>ВЫЧИСЛИТЕЛЬНАЯ МОЩНОСТЬ:</span>
+                                <span id="powerText">0/100</span>
                             </div>
                             <div class="progress-container">
-                                <div class="progress-fill" id="miningProgress" style="width: 0%"></div>
-                            </div>
-                            
-                            <div class="upgrade-requirements">
-                                <div class="requirement">
-                                    <div class="requirement-name">
-                                        <div class="requirement-icon">🎛️</div>
-                                        <span>МИКРОСХЕМЫ:</span>
-                                    </div>
-                                    <div class="requirement-value" id="miningChipsReq">0/5</div>
-                                </div>
-                            </div>
-                            
-                            <div class="upgrade-cost">
-                                <button id="upgradeMiningBtn" class="upgrade-btn">АКТИВИРОВАТЬ</button>
+                                <div class="progress-fill" id="powerFill" style="width: 0%"></div>
                             </div>
                         </div>
                         
-                        <div class="upgrade-card">
-                            <div class="upgrade-header">
-                                <div class="upgrade-title">СИСТЕМА ЗАЩИТЫ</div>
-                                <div class="upgrade-level" id="defenseStatus">НЕАКТИВНО</div>
+                        <div class="click-progress-section">
+                            <div class="click-label">
+                                <span>ПРОГРЕСС СИНХРОНИЗАЦИИ:</span>
+                                <span id="clickProgressText">0/10</span>
                             </div>
                             <div class="progress-container">
-                                <div class="progress-fill" style="width: 0%"></div>
-                            </div>
-                            
-                            <div class="upgrade-requirements">
-                                <div class="requirement">
-                                    <div class="requirement-name">
-                                        <div class="requirement-icon">⚡</div>
-                                        <span>ПЛАЗМА:</span>
-                                    </div>
-                                    <div class="requirement-value" id="defensePlasmaReq">0/3</div>
-                                </div>
-                            </div>
-                            
-                            <div class="upgrade-cost">
-                                <button id="upgradeDefenseBtn" class="upgrade-btn">АКТИВИРОВАТЬ</button>
+                                <div class="progress-fill click-progress" id="clickProgress" style="width: 0%"></div>
                             </div>
                         </div>
                         
-                        <div class="upgrade-card">
-                            <div class="upgrade-header">
-                                <div class="upgrade-title">УСИЛЕНИЕ ЗАЩИТЫ</div>
-                                <div class="upgrade-level" id="defenseLevel">УР. 0/5</div>
+                        <div class="auto-click-section">
+                            <div class="auto-click-status">
+                                <span>АВТОМАТИЧЕСКАЯ ДОБЫЧА:</span>
+                                <span id="autoClickStatus">ОТКЛЮЧЕНА</span>
                             </div>
-                            <div class="progress-container">
-                                <div class="progress-fill" style="width: 0%"></div>
+                            <div class="auto-click-settings">
+                                <span class="setting-icon">⚡</span>
+                                <span class="setting-label">МОЩНОСТЬ/ЦИКЛ:</span>
+                                <span id="powerPerClick" class="setting-value">1</span>
+                                
+                                <span class="setting-separator">|</span>
+                                
+                                <span class="setting-icon">⏱️</span>
+                                <span class="setting-label">ИНТЕРВАЛ:</span>
+                                <span id="autoClickInterval" class="setting-value">5</span>
+                                <span class="setting-unit">СЕК</span>
+                                
+                                <span class="setting-separator">|</span>
+                                
+                                <span class="setting-icon">💎</span>
+                                <span class="setting-label">СТОИМОСТЬ:</span>
+                                <span id="autoClickCost" class="setting-value">1</span>
+                                <span class="setting-unit">МОЩН</span>
+                            </div>
+                            <div class="auto-click-info">
+                                УДЕРЖИВАЙТЕ ПЛАВАЮЩУЮ КНОПКУ ДЛЯ АКТИВАЦИИ АВТОМАТИЧЕСКОЙ ДОБЫЧИ
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- СЕКЦИЯ СТАТИСТИКИ -->
+            <div id="statistics-section" class="status-section" style="display: none;">
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>📊 МИНИМАЛИСТИЧНАЯ СТАТИСТИКА</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="statistics-grid">
+                            <div class="stat-card-large">
+                                <div class="stat-title">🕹️ ОСНОВНОЕ</div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Всего кликов:</span>
+                                    <span class="stat-value" id="totalClicks">0</span>
+                                </div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Макс. мощность:</span>
+                                    <span class="stat-value" id="maxPowerReached">0</span>
+                                </div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Ночей пережито:</span>
+                                    <span class="stat-value" id="nightsSurvived">0</span>
+                                </div>
                             </div>
                             
-                            <div class="upgrade-requirements">
-                                <div class="requirement">
-                                    <div class="requirement-name">
-                                        <div class="requirement-icon">🎛️</div>
-                                        <span>МИКРОСХЕМЫ:</span>
-                                    </div>
-                                    <div class="requirement-value" id="defenseChipsReq">0/10</div>
+                            <div class="stat-card-large">
+                                <div class="stat-title">🛡️ БЕЗОПАСНОСТЬ</div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Атак повстанцев:</span>
+                                    <span class="stat-value" id="rebelAttacks">0</span>
                                 </div>
-                                <div class="requirement">
-                                    <div class="requirement-name">
-                                        <div class="requirement-icon">⚡</div>
-                                        <span>ПЛАЗМА:</span>
-                                    </div>
-                                    <div class="requirement-value" id="defensePlasmaLevelReq">0/1</div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Отражено атак:</span>
+                                    <span class="stat-value" id="attacksDefended">0</span>
                                 </div>
                             </div>
                             
-                            <div class="upgrade-cost">
-                                <button id="upgradeDefenseLevelBtn" class="upgrade-btn">УСИЛИТЬ</button>
+                            <div class="stat-card-large">
+                                <div class="stat-title">⛏️ РЕСУРСЫ</div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Угля добыто:</span>
+                                    <span class="stat-value" id="coalMined">0</span>
+                                </div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Мусора найдено:</span>
+                                    <span class="stat-value" id="trashMined">0</span>
+                                </div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Плазмы добыто:</span>
+                                    <span class="stat-value" id="plasmaMined">0</span>
+                                </div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Руды добыто:</span>
+                                    <span class="stat-value" id="oreMined">0</span>
+                                </div>
                             </div>
+                            
+                            <div class="stat-card-large">
+                                <div class="stat-title">🔥 ПОТЕРИ</div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Угля сожжено:</span>
+                                    <span class="stat-value" id="coalBurned">0</span>
+                                </div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Украдено угля:</span>
+                                    <span class="stat-value" id="coalStolen">0</span>
+                                </div>
+                                <div class="stat-line">
+                                    <span class="stat-label">Время игры:</span>
+                                    <span class="stat-value" id="playTime">0 сек</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="statistics-controls">
+                            <button id="refreshStatsBtn" class="stat-btn">🔄 ОБНОВИТЬ</button>
+                            <button id="resetStatsBtn" class="stat-btn danger">🗑️ СБРОСИТЬ СТАТИСТИКУ</button>
+                            <button id="prestigeBtn" class="stat-btn prestige">🔁 ПРЕСТИЖ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-title">
+                    <span>СИСТЕМНЫЙ ЖУРНАЛ</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="panel-content">
+                    <div class="log-controls">
+                        <button id="clearLogBtn" class="log-btn">ОЧИСТИТЬ</button>
+                        <button id="autoScrollBtn" class="log-btn">АВТОСКРОЛЛ</button>
+                    </div>
+                    <div id="logBox" style="height: 200px; overflow-y: auto;"></div>
+                </div>
+            </div>
+            
+            <div class="tabs" id="tabs">
+                <div class="tab active" data-tab="inventory" id="inventory-tab-btn">ИНВЕНТАРЬ</div>
+                <div class="tab" data-tab="upgrades" id="upgrades-tab-btn">МОДУЛИ</div>
+                <div class="tab" data-tab="trade" id="trade-tab-btn">ТОРГОВЛЯ</div>
+                <div class="tab" data-tab="quests" id="quests-tab-btn">ЗАДАНИЯ</div>
+                <div class="tab" data-tab="command" id="command-tab-btn">КОМАНДНЫЙ ПУНКТ</div>
+                <div class="tab" data-tab="craft" id="craft-tab-btn">КРАФТ</div>
+                <div class="tab" data-tab="design" id="design-tab-btn">РАЗРАБОТКА</div>
+                <div class="tab" data-tab="fleet" id="fleet-tab-btn">ФЛОТ</div>
+            </div>
+            
+            <div class="tab-content active" id="inventory-tab">
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>СИСТЕМНЫЕ РЕСУРСЫ</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="inventory-grid" id="resourcesContainer"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="upgrades-tab">
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>СИСТЕМНЫЕ МОДУЛИ</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="upgrade-container">
+                            <div class="upgrade-card">
+                                <div class="upgrade-header">
+                                    <div class="upgrade-title">ЭФФЕКТИВНОСТЬ ДОБЫЧИ</div>
+                                    <div class="upgrade-level">УР. <span id="miningLevel">0</span>/10</div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-fill" id="miningProgress" style="width: 0%"></div>
+                                </div>
+                                
+                                <div class="upgrade-requirements">
+                                    <div class="requirement">
+                                        <div class="requirement-name">
+                                            <div class="requirement-icon">🎛️</div>
+                                            <span>МИКРОСХЕМЫ:</span>
+                                        </div>
+                                        <div class="requirement-value" id="miningChipsReq">0/5</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="upgrade-cost">
+                                    <button id="upgradeMiningBtn" class="upgrade-btn">АКТИВИРОВАТЬ</button>
+                                </div>
+                            </div>
+                            
+                            <div class="upgrade-card">
+                                <div class="upgrade-header">
+                                    <div class="upgrade-title">СИСТЕМА ЗАЩИТЫ</div>
+                                    <div class="upgrade-level" id="defenseStatus">НЕАКТИВНО</div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                
+                                <div class="upgrade-requirements">
+                                    <div class="requirement">
+                                        <div class="requirement-name">
+                                            <div class="requirement-icon">⚡</div>
+                                            <span>ПЛАЗМА:</span>
+                                        </div>
+                                        <div class="requirement-value" id="defensePlasmaReq">0/3</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="upgrade-cost">
+                                    <button id="upgradeDefenseBtn" class="upgrade-btn">АКТИВИРОВАТЬ</button>
+                                </div>
+                            </div>
+                            
+                            <div class="upgrade-card">
+                                <div class="upgrade-header">
+                                    <div class="upgrade-title">УСИЛЕНИЕ ЗАЩИТЫ</div>
+                                    <div class="upgrade-level" id="defenseLevel">УР. 0/5</div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                
+                                <div class="upgrade-requirements">
+                                    <div class="requirement">
+                                        <div class="requirement-name">
+                                            <div class="requirement-icon">🎛️</div>
+                                            <span>МИКРОСХЕМЫ:</span>
+                                        </div>
+                                        <div class="requirement-value" id="defenseChipsReq">0/10</div>
+                                    </div>
+                                    <div class="requirement">
+                                        <div class="requirement-name">
+                                            <div class="requirement-icon">⚡</div>
+                                            <span>ПЛАЗМА:</span>
+                                        </div>
+                                        <div class="requirement-value" id="defensePlasmaLevelReq">0/1</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="upgrade-cost">
+                                    <button id="upgradeDefenseLevelBtn" class="upgrade-btn">УСИЛИТЬ</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="trade-tab">
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>ТОРГОВЫЙ ТЕРМИНАЛ</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="trade-container">
+                            <div class="trade-mode-toggle">
+                                <button id="buyModeBtn" class="trade-mode-btn active">ЗАКУПКА</button>
+                                <button id="sellModeBtn" class="trade-mode-btn">ПРОДАЖА</button>
+                            </div>
+                            
+                            <div id="buyItemsContainer" class="trade-items-grid"></div>
+                            <div id="sellItemsContainer" class="trade-items-grid" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="quests-tab">
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>СИСТЕМНЫЕ ЗАДАЧИ</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="quest-container" id="questsContainer"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- КОМАНДНЫЙ ПУНКТ -->
+            <div class="tab-content" id="command-tab">
+                <!-- 🔥 ОТДЕЛЬНЫЙ КОНТЕЙНЕР ДЛЯ ЗАЩИТЫ -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>🛡️ ЗАЩИТА ОТ ПОВСТАНЦЕВ</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="rebelProtectionPanel" class="protection-panel"></div>
+                    </div>
+                </div>
+
+                <!-- Панель фракций -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>⚔️ ФРАКЦИИ ПОВСТАНЦЕВ</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="factionPanel" class="faction-panel"></div>
+                    </div>
+                </div>
+
+                <!-- История атак -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>📋 ИСТОРИЯ АТАК</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="attackHistory" class="attack-history"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="craft-tab">
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>⚙️ СИСТЕМА КРАФТА</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="craft-container" id="craftContainer">
+                            <!-- Контент крафта будет загружен через JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="design-tab">
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>📐 РАЗРАБОТКА КОРАБЛЕЙ</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="design-container" id="designContainer">
+                            <!-- Контент разработки будет загружен через JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="fleet-tab">
+                <div class="panel">
+                    <div class="panel-title">
+                        <span>🚀 МОЙ ФЛОТ</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="fleet-container" id="fleetContainer">
+                            <!-- Контент флота будет загружен через JavaScript -->
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="tab-content" id="trade-tab">
-            <div class="panel">
-                <div class="panel-title">
-                    <span>ТОРГОВЫЙ ТЕРМИНАЛ</span>
-                    <span class="collapse-icon">▼</span>
-                </div>
-                <div class="panel-content">
-                    <div class="trade-container">
-                        <div class="trade-mode-toggle">
-                            <button id="buyModeBtn" class="trade-mode-btn active">ЗАКУПКА</button>
-                            <button id="sellModeBtn" class="trade-mode-btn">ПРОДАЖА</button>
-                        </div>
-                        
-                        <div id="buyItemsContainer" class="trade-items-grid">
-                            <!-- Будет заполнено Rust -->
-                        </div>
-                        
-                        <div id="sellItemsContainer" class="trade-items-grid" style="display: none;">
-                            <!-- Будет заполнено Rust -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="tab-content" id="quests-tab">
-            <div class="panel">
-                <div class="panel-title">
-                    <span>СИСТЕМНЫЕ ЗАДАЧИ</span>
-                    <span class="collapse-icon">▼</span>
-                </div>
-                <div class="panel-content">
-                    <div class="quest-container" id="questsContainer"></div>
-                </div>
-            </div>
+        <div id="floatingMineBtn" class="floating-mine-btn">
+            <span class="btn-icon">⚙️</span>
+            <span class="btn-text">ДОБЫЧА</span>
+            <span id="miningBonusFloat" class="mining-bonus">+0%</span>
         </div>
     </div>
-    <!-- Плавающая кнопка добычи -->
-    <div id="floatingMineBtn" class="floating-mine-btn">
-        <span class="btn-icon">⚙️</span>
-        <span class="btn-text">ДОБЫЧА</span>
-        <span id="miningBonusFloat" class="mining-bonus">+0%</span>
-    </div>
-</div>
+   
+    <script type="module" src="statistics.js"></script>
+    <script type="module" src="game.js"></script>
+    <script type="module" src="craft.js"></script>
+    <script type="module" src="design.js"></script>
+    <script type="module" src="fleet.js"></script>
+    
+    <!-- Все звуки игры -->
+    <audio id="clickSound" preload="auto" style="display: none;">
+        <source src="music/click.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="errorSound" preload="auto" style="display: none;">
+        <source src="music/error.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="upgradeSound" preload="auto" style="display: none;">
+        <source src="music/upgrade.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="bgMusic" autoplay loop style="display: none;">
+        <source src="music/game-music.mp3" type="audio/mpeg">
+    </audio>
 
-<script type="module">
-  import init, { start_game, apply_config_from_admin } from './pkg/corebox_rs.js';
-
-  let game = null;
-  let gameInitialized = false;
-  let isAutoClicking = false;
-  const LONG_PRESS_DELAY = 600;
-
-  // Ключи для localStorage
-  const CURRENT_USER_KEY = 'corebox_current_user_v2';
-
-  // Проверяем авторизованного пользователя при загрузке
-  async function checkExistingUser() {
-    const userJson = localStorage.getItem(CURRENT_USER_KEY);
-    console.log('🔍 checkExistingUser вызван, userJson:', userJson);
-    
-    if (userJson) {
-      try {
-        const user = JSON.parse(userJson);
-        console.log('✅ Найден сохраненный пользователь:', user.username);
-        
-        document.getElementById('authMessage').textContent = 'Загружаем вашу игру...';
-        document.getElementById('authMessage').className = 'auth-message success';
-        
-        setTimeout(() => {
-          autoLogin(user.username);
-        }, 1000);
-        
-      } catch (e) {
-        console.error('❌ Ошибка парсинга пользователя:', e);
-        localStorage.removeItem(CURRENT_USER_KEY);
-      }
-    }
-  }
-
-  // Автоматический вход
-  async function autoLogin(username) {
-    try {
-      console.log('🚀 Начинаем автовход для:', username);
-      await init();
-      
-      const configResponse = await fetch('./config.json');
-      const configText = await configResponse.text();
-      apply_config_from_admin(configText);
-      
-      game = start_game();
-      window.game = game;
-      
-      setupGameInterface();
-      
-      document.getElementById('authOverlay').style.display = 'none';
-      document.getElementById('gameContent').style.display = 'block';
-      document.getElementById('usernameDisplay').textContent = username;
-      
-      gameInitialized = true;
-      console.log('✅ Автовход УСПЕШНО выполнен!');
-      
-    } catch (error) {
-      console.error('❌ Ошибка автовхода:', error);
-      localStorage.removeItem(CURRENT_USER_KEY);
-      document.getElementById('authMessage').textContent = 'Ошибка загрузки, войдите снова';
-      document.getElementById('authMessage').className = 'auth-message error';
-    }
-  }
-
-  // Обработчик формы авторизации
-  document.getElementById('authForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    if (gameInitialized) return;
-    
-    const username = document.getElementById('username').value.trim();
-    
-    if (username.length < 3) {
-      document.getElementById('authMessage').textContent = 'Логин должен быть не менее 3 символов';
-      document.getElementById('authMessage').className = 'auth-message error';
-      return;
-    }
-    
-    try {
-      console.log('🚀 Ручной вход для:', username);
-      await init();
-      
-      const configResponse = await fetch('./config.json');
-      const configText = await configResponse.text();
-      apply_config_from_admin(configText);
-      
-      game = start_game();
-      window.game = game;
-      
-      const userData = {
-        username: username,
-        loginTime: new Date().toISOString(),
-        sessionId: Date.now()
-      };
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userData));
-      console.log('💾 Пользователь сохранен:', userData);
-      
-      setupGameInterface();
-      
-      document.getElementById('authOverlay').style.display = 'none';
-      document.getElementById('gameContent').style.display = 'block';
-      document.getElementById('usernameDisplay').textContent = username;
-      
-      gameInitialized = true;
-      console.log('✅ Ручной вход УСПЕШНО выполнен!');
-      
-    } catch (error) {
-      console.error('❌ Ошибка входа:', error);
-      document.getElementById('authMessage').textContent = 'Ошибка входа: ' + error.message;
-      document.getElementById('authMessage').className = 'auth-message error';
-    }
-  });
-
-  // Обработчик кнопки регистрации
-  document.getElementById('registerBtn').addEventListener('click', function() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    
-    if (username.length < 3) {
-      document.getElementById('authMessage').textContent = 'Логин должен быть не менее 3 символов';
-      document.getElementById('authMessage').className = 'auth-message error';
-      return;
-    }
-    
-    document.getElementById('authForm').dispatchEvent(new Event('submit'));
-  });
-
-  // Обработчики кнопок добычи - ПРОСТАЯ ЛОГИКА
-  function setupGameInterface() {
-    if (!game) return;
-    
-    console.log('🎮 Настраиваем игровой интерфейс...');
-    
-    const mineBtn = document.getElementById('mineBtn');
-    const floatingBtn = document.getElementById('floatingMineBtn');
-    
-    // Удаляем старые обработчики
-    mineBtn.replaceWith(mineBtn.cloneNode(true));
-    floatingBtn.replaceWith(floatingBtn.cloneNode(true));
-    
-    const newMineBtn = document.getElementById('mineBtn');
-    const newFloatingBtn = document.getElementById('floatingMineBtn');
-    
-    // Функция для обычной добычи
-    function doMining() {
-      if (game && game.add_manual_click) {
-        game.add_manual_click();
-        updateUI();
-      }
-    }
-    
-    // Функция для переключения автокликов
-    function toggleAutoClicking() {
-      if (!game) return;
-      
-      if (isAutoClicking) {
-        // Выключаем автоклики
-        if (game.stop_auto_clicking) {
-          game.stop_auto_clicking();
-          isAutoClicking = false;
-          newMineBtn.classList.remove('auto-clicking');
-          newFloatingBtn.classList.remove('auto-clicking');
-          console.log('🛑 Автоклики ВЫКЛЮЧЕНЫ');
-        }
-      } else {
-        // Включаем автоклики
-        if (game.start_auto_clicking) {
-          game.start_auto_clicking();
-          isAutoClicking = true;
-          newMineBtn.classList.add('auto-clicking');
-          newFloatingBtn.classList.add('auto-clicking');
-          console.log('🔁 Автоклики ВКЛЮЧЕНЫ');
-        }
-      }
-      updateUI();
-    }
-    
-    // ПРОСТАЯ ЛОГИКА: долгое нажатие = вкл/выкл автоклики
-    function setupButtonHandlers(button) {
-      let pressTimer = null;
-      let isPressing = false;
-      
-      // Начало нажатия
-      function startPress() {
-        isPressing = true;
-        button.classList.add('pressing');
-        
-        pressTimer = setTimeout(() => {
-          // Долгое нажатие - переключаем автоклики
-          toggleAutoClicking();
-          isPressing = false;
-          button.classList.remove('pressing');
-        }, LONG_PRESS_DELAY);
-      }
-      
-      // Конец нажатия
-      function endPress() {
-        if (pressTimer) {
-          clearTimeout(pressTimer);
-          pressTimer = null;
+    <script>
+    window.onload = function() {
+        const bgMusic = document.getElementById('bgMusic');
+        if (bgMusic) {
+            bgMusic.volume = 0.025;
+            
+            function forcePlay() {
+                bgMusic.play()
+                    .then(() => console.log('🎵 Музыка на 2% громкости'))
+                    .catch(e => {
+                        setTimeout(forcePlay, 100);
+                    });
+            }
+            
+            forcePlay();
         }
         
-        button.classList.remove('pressing');
-        
-        // Короткое нажатие - обычная добыча (только если не автоклики)
-        if (isPressing && !isAutoClicking) {
-          doMining();
-        }
-        
-        isPressing = false;
-      }
-      
-      // Мышь
-      button.addEventListener('mousedown', startPress);
-      button.addEventListener('mouseup', endPress);
-      button.addEventListener('mouseleave', endPress);
-      
-      // Тач
-      button.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        startPress.call(this);
-      }, { passive: false });
-      
-      button.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        endPress.call(this);
-      }, { passive: false });
-      
-      button.addEventListener('touchcancel', function(e) {
-        e.preventDefault();
-        endPress.call(this);
-      }, { passive: false });
-      
-      // Обычный клик для ВЫКЛЮЧЕНИЯ когда автоклики активны
-      button.addEventListener('click', function() {
-        if (isAutoClicking) {
-          toggleAutoClicking();
-        }
-      });
-    }
-    
-    // Настраиваем обе кнопки
-    setupButtonHandlers(newMineBtn);
-    setupButtonHandlers(newFloatingBtn);
-    
-    // Обработчик выхода
-    document.getElementById('logoutBtn').addEventListener('click', function() {
-      console.log('🚪 Выход из игры');
-      localStorage.removeItem(CURRENT_USER_KEY);
-      document.getElementById('gameContent').style.display = 'none';
-      document.getElementById('authOverlay').style.display = 'flex';
-      document.getElementById('authForm').reset();
-      document.getElementById('authMessage').textContent = '';
-      gameInitialized = false;
-      game = null;
-      isAutoClicking = false;
-    });
-    
-    // Вкладки
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', function() {
-        const tabName = this.getAttribute('data-tab');
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        this.classList.add('active');
-        document.getElementById(`${tabName}-tab`).classList.add('active');
-      });
-    });
-    
-    // Запускаем игровой цикл
-    setInterval(() => {
-      if (game) {
-        game.game_loop();
-        updateUI();
-      }
-    }, 1000);
-    
-    updateUI();
-    console.log('✅ Игровой интерфейс настроен');
-  }
-
-  // Обновление интерфейса
-  function updateUI() {
-    if (!game) return;
-    
-    try {
-      const time = game.get_current_time();
-      if (time) document.getElementById('timeDisplay').textContent = time;
-      
-      const power = game.get_computational_power();
-      document.getElementById('powerFill').style.width = power + '%';
-      document.getElementById('powerText').textContent = power + '/100';
-      
-      const clicks = game.get_click_progress();
-      document.getElementById('clickProgress').style.width = (clicks * 10) + '%';
-      document.getElementById('clickProgressText').textContent = clicks + '/10';
-      
-      // Статус автокликов
-      document.getElementById('autoClickStatus').textContent = isAutoClicking ? 'АКТИВНА' : 'ОТКЛЮЧЕНА';
-      
-      updateInventory();
-      
-    } catch (error) {
-      console.log('UI update error:', error);
-    }
-  }
-
-  function updateInventory() {
-    if (!game) return;
-    
-    try {
-      const resources = [
-        { name: 'Уголь', key: 'coal', icon: '⛏️' },
-        { name: 'Хлам', key: 'trash', icon: '🗑️' },
-        { name: 'Микросхемы', key: 'chips', icon: '🎛️' },
-        { name: 'Плазма', key: 'plasma', icon: '⚡' },
-        { name: 'Тенге', key: 'money', icon: '₸' }
-      ];
-      
-      const container = document.getElementById('resourcesContainer');
-      container.innerHTML = resources.map(resource => {
-        const amount = game.get_resource_amount(resource.key);
-        return `
-          <div class="inventory-item">
-            <div class="item-icon">${resource.icon}</div>
-            <div class="item-name">${resource.name}</div>
-            <div class="item-amount">${amount}</div>
-          </div>
-        `;
-      }).join('');
-      
-    } catch (error) {
-      console.log('Inventory update error:', error);
-    }
-  }
-
-  // Запускаем проверку при загрузке страницы
-  console.log('📄 DOM загружен, запускаем проверку пользователя...');
-  checkExistingUser();
-</script>
+        const sounds = ['clickSound', 'errorSound', 'upgradeSound'];
+        sounds.forEach(soundId => {
+            const sound = document.getElementById(soundId);
+            if (sound) {
+                sound.load();
+                console.log(`🔊 Звук ${soundId} предзагружен`);
+            }
+        });
+    };
+    </script>
 </body>
 </html>
