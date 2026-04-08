@@ -800,10 +800,8 @@ function setupLongPressHandlers() {
         floatingMineBtn.addEventListener('mouseup', clearPressTimer);
         floatingMineBtn.addEventListener('mouseleave', clearPressTimer);
 
-        floatingMineBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            startPressTimer();
-        });
+        // ИСПРАВЛЕНО: убрали e.preventDefault()
+        floatingMineBtn.addEventListener('touchstart', startPressTimer);
         floatingMineBtn.addEventListener('touchend', clearPressTimer);
         floatingMineBtn.addEventListener('touchcancel', clearPressTimer);
     }
