@@ -1,4 +1,4 @@
-// ======== game.js (ИСПРАВЛЕННАЯ ВЕРСИЯ С НОВЫМИ ФИЧАМИ) ========
+// ======== game.js (ОПТИМИЗИРОВАННАЯ ВЕРСИЯ) ========
 
 import init, { start_game, apply_config_from_admin } from './pkg/corebox_rs.js';
 import { 
@@ -32,6 +32,23 @@ let prestigeLevel = Number(localStorage.getItem('corebox_prestige_level')) || 0;
 
 // НОВАЯ ПЕРЕМЕННАЯ ДЛЯ СЛУЧАЙНЫХ СОБЫТИЙ
 let randomEventTimer = 0;
+
+// ДЕБАУНС СОХРАНЕНИЙ
+let _saveDirty = false;
+let _saveTimer = null;
+
+function scheduleSave() {
+    _saveDirty = true;
+    if (!_saveTimer) {
+        _saveTimer = setTimeout(() => {
+            _saveTimer = null;
+            if (_saveDirty) { 
+                _saveDirty = false; 
+                saveCurrentUserStatistics(); 
+            }
+        }, 5000);
+    }
+}
 
 let sounds = {
     click: null,
@@ -127,6 +144,12 @@ function triggerRandomEvent() {
     const logBox = document.getElementById('logBox');
     if (logBox) {
         logBox.appendChild(logMsg);
+        
+        // Обрезка логов до 50 записей
+        while (logBox.children.length > 50) {
+            logBox.removeChild(logBox.firstChild);
+        }
+        
         logBox.scrollTop = logBox.scrollHeight;
     }
     showFloatingText(event.name, 300, 100);
@@ -584,9 +607,9 @@ function setupLogObserver() {
         });
     });
     
+    // ПАТЧ 4: убрал subtree: true
     observer.observe(logBox, {
-        childList: true,
-        subtree: true
+        childList: true
     });
     
     console.log('👁️ Наблюдатель за логом запущен');
@@ -682,9 +705,8 @@ function updateStatsFromGame(rustStats = null) {
             
             lastRustStats = rustStats;
             
-            if (Math.random() < 0.1) {
-                saveCurrentUserStatistics();
-            }
+            // ПАТЧ 3: дебаунс вместо случайного сохранения
+            scheduleSave();
             
             if (document.getElementById('statistics-section')?.style.display !== 'none') {
                 updateStatisticsDisplay();
@@ -800,7 +822,6 @@ function setupLongPressHandlers() {
         floatingMineBtn.addEventListener('mouseup', clearPressTimer);
         floatingMineBtn.addEventListener('mouseleave', clearPressTimer);
 
-        // ИСПРАВЛЕНО: убрали e.preventDefault()
         floatingMineBtn.addEventListener('touchstart', startPressTimer);
         floatingMineBtn.addEventListener('touchend', clearPressTimer);
         floatingMineBtn.addEventListener('touchcancel', clearPressTimer);
@@ -808,8 +829,7 @@ function setupLongPressHandlers() {
 }
 
 function switchMainTab(tabName) {
-    console.log(`=== ПЕРЕКЛЮЧЕНИЕ НА ВКЛАДКУ: ${tabName} ===`);
-    
+    // ПАТЧ 6: убрал console.log
     const tabContents = [
         'inventory-tab',
         'upgrades-tab', 
@@ -867,17 +887,11 @@ function switchMainTab(tabName) {
 }
 
 function updateCraftTab() {
-    console.log('=== ОБНОВЛЕНИЕ ВКЛАДКИ КРАФТ ===');
-    if (!game) {
-        console.error('game не определен!');
-        return;
-    }
+    // ПАТЧ 6: убрал console.log
+    if (!game) return;
     
     const craftContainer = document.getElementById('craftContainer');
-    if (!craftContainer) {
-        console.error('Контейнер craftContainer не найден!');
-        return;
-    }
+    if (!craftContainer) return;
     
     try {
         const statsJson = game.get_statistics();
@@ -886,7 +900,6 @@ function updateCraftTab() {
             craftModule.syncFromStats(rustStats);
             craftContainer.innerHTML = craftModule.renderCraftUI();
             craftModule.setupEventListeners(craftContainer);
-            console.log('Вкладка Крафт успешно обновлена');
         }
     } catch (e) {
         console.error('Ошибка обновления крафта:', e);
@@ -894,42 +907,31 @@ function updateCraftTab() {
 }
 
 function updateDesignTab() {
-    console.log('=== ОБНОВЛЕНИЕ ВКЛАДКИ РАЗРАБОТКА ===');
-    if (!game) {
-        console.error('game не определен!');
-        return;
-    }
+    // ПАТЧ 6: убрал console.log
+    if (!game) return;
     
     const designContainer = document.getElementById('designContainer');
-    if (!designContainer) {
-        console.error('Контейнер designContainer не найден!');
-        return;
-    }
+    if (!designContainer) return;
     
     try {
         const power = game.get_computational_power();
         designModule.updateComputationalPower(power);
         designContainer.innerHTML = designModule.renderDesignUI();
         designModule.setupEventListeners(designContainer);
-        console.log('Вкладка Разработка успешно обновлена');
     } catch (e) {
         console.error('Ошибка обновления разработки:', e);
     }
 }
 
 function updateFleetTab() {
-    console.log('=== ОБНОВЛЕНИЕ ВКЛАДКИ ФЛОТ ===');
+    // ПАТЧ 6: убрал console.log
     
     const fleetContainer = document.getElementById('fleetContainer');
-    if (!fleetContainer) {
-        console.error('Контейнер fleetContainer не найден!');
-        return;
-    }
+    if (!fleetContainer) return;
     
     try {
         fleetContainer.innerHTML = fleetModule.renderFleetUI();
         fleetModule.setupEventListeners(fleetContainer);
-        console.log('Вкладка Флот успешно обновлена');
     } catch (e) {
         console.error('Ошибка обновления флота:', e);
     }
@@ -962,7 +964,6 @@ function setupEventListeners() {
         const button = document.getElementById(id);
         if (button) {
             button.addEventListener('click', () => {
-                console.log(`Клик по вкладке: ${tab}`);
                 switchMainTab(tab);
             });
         } else {
@@ -1208,32 +1209,7 @@ async function initializeGame() {
         console.log('Инициализация fleetModule...');
         fleetModule.init(game);
         
-        console.log('Первоначальная загрузка вкладок...');
-        
-        const craftContainer = document.getElementById('craftContainer');
-        if (craftContainer) {
-            const statsJson = game.get_statistics();
-            if (statsJson) {
-                const rustStats = JSON.parse(statsJson);
-                craftModule.syncFromStats(rustStats);
-                craftContainer.innerHTML = craftModule.renderCraftUI();
-                craftModule.setupEventListeners(craftContainer);
-            }
-        }
-        
-        const designContainer = document.getElementById('designContainer');
-        if (designContainer) {
-            const power = game.get_computational_power();
-            designModule.updateComputationalPower(power);
-            designContainer.innerHTML = designModule.renderDesignUI();
-            designModule.setupEventListeners(designContainer);
-        }
-        
-        const fleetContainer = document.getElementById('fleetContainer');
-        if (fleetContainer) {
-            fleetContainer.innerHTML = fleetModule.renderFleetUI();
-            fleetModule.setupEventListeners(fleetContainer);
-        }
+        // ПАТЧ 2: УБРАЛ init-рендер модулей - они обновятся при открытии вкладки
         
         initializeSounds();
         
@@ -1257,6 +1233,7 @@ async function initializeGame() {
             } catch(e) {}
             
             if (rustStats) {
+                // ПАТЧ 1: один JSON.parse, передаем в функции
                 updateStatsFromGame(rustStats);
                 updateNeuroStatus(rustStats);
                 
@@ -1265,8 +1242,8 @@ async function initializeGame() {
                 
                 // Обновляем бонусы ИИ
                 const evolution = rustStats.neuro_evolution || 0;
-                craftModule.aiProductionBonus = Math.min(30, evolution * 3);
-                designModule.aiResearchBonus = Math.floor((rustStats.neuro_consciousness || 0) / 10);
+                craftModule.aiProductionBonus = Math.min(30, evolution * 1.5);
+                designModule.aiResearchBonus = Math.floor((rustStats.neuro_consciousness || 0) / 20);
                 
                 // Флот — передаём бонусы в Rust
                 const fleetCombat = fleetModule.getFleetDefenseContribution();
@@ -1305,6 +1282,12 @@ async function initializeGame() {
                                 entry.className = 'log-entry attack-damage';
                                 entry.textContent = `⚔️ ${damageResult.shipName} получил ${damageResult.damage} урона! (${damageResult.newHealth}/${damageResult.maxHealth})`;
                                 logBox.appendChild(entry);
+                                
+                                // Обрезка логов до 50 записей
+                                while (logBox.children.length > 50) {
+                                    logBox.removeChild(logBox.firstChild);
+                                }
+                                
                                 logBox.scrollTop = logBox.scrollHeight;
                             }
                         }
@@ -1465,39 +1448,39 @@ document.addEventListener('gameEvent', function(e) {
         switch(e.detail.type) {
             case 'coal_mined':
                 gameStats.coalMined += e.detail.amount || 1;
-                saveCurrentUserStatistics();
+                scheduleSave();
                 break;
             case 'trash_mined':
                 gameStats.trashMined += e.detail.amount || 1;
-                saveCurrentUserStatistics();
+                scheduleSave();
                 break;
             case 'plasma_mined':
                 gameStats.plasmaMined += e.detail.amount || 1;
-                saveCurrentUserStatistics();
+                scheduleSave();
                 break;
             case 'ore_mined':
                 gameStats.oreMined = (gameStats.oreMined || 0) + (e.detail.amount || 1);
-                saveCurrentUserStatistics();
+                scheduleSave();
                 break;
             case 'coal_burned':
                 gameStats.coalBurned += e.detail.amount || 1;
-                saveCurrentUserStatistics();
+                scheduleSave();
                 break;
             case 'coal_stolen':
                 gameStats.coalStolen += e.detail.amount || 1;
-                saveCurrentUserStatistics();
+                scheduleSave();
                 break;
             case 'night_started':
                 gameStats.nightsSurvived++;
-                saveCurrentUserStatistics();
+                scheduleSave();
                 break;
             case 'rebel_attack':
                 gameStats.rebelAttacks++;
-                saveCurrentUserStatistics();
+                scheduleSave();
                 break;
             case 'attack_defended':
                 gameStats.attacksDefended++;
-                saveCurrentUserStatistics();
+                scheduleSave();
                 break;
         }
     }
@@ -1521,8 +1504,9 @@ window.addEventListener('beforeunload', function() {
     }
 });
 
+// ПАТЧ 3: сохранение раз в 30 секунд с дебаунсом
 setInterval(() => {
     if (currentUser && gameStats) {
-        saveCurrentUserStatistics();
+        scheduleSave();
     }
 }, 30000);

@@ -7,8 +7,8 @@ export const designModule = {
     aiResearchBonus: 0,  // бонус от ИИ: снижение стоимости чертежей
     
     blueprints: [
-        { id: 'cargo', name: 'Грузовой корабль', desc: 'Перевозка ресурсов между колониями', designCost: 500, icon: '🚚', unlocked: false },
-        { id: 'scout', name: 'Разведывательный корабль', desc: 'Исследование новых территорий', designCost: 10, icon: '🔭', unlocked: false },
+        { id: 'cargo', name: 'Грузовой корабль', desc: 'Перевозка ресурсов между колониями', designCost: 350, icon: '🚚', unlocked: false },
+        { id: 'scout', name: 'Разведывательный корабль', desc: 'Исследование новых территорий', designCost: 200, icon: '🔭', unlocked: false },
         { id: 'combat', name: 'Боевой корабль', desc: 'Защита флота и атака угроз', designCost: 800, icon: '⚔️', unlocked: false }
     ],
     

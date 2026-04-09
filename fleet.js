@@ -5,6 +5,8 @@ export const fleetModule = {
     maxFleetSize: 20,
     alertMultiplier: 1.0,  // множитель боевой мощи в режиме тревоги
     aiMode: 'normal',
+    lastDamageProcessedAttackId: null,  // Флаг для предотвращения множественного урона за одну атаку
+    lastProcessedAttackTime: 0,  // Время последней обработанной атаки
     
     shipTypes: {
         cargo: {
@@ -33,6 +35,8 @@ export const fleetModule = {
     init(game) {
         this.game = game;
         this.loadFleet();
+        this.lastDamageProcessedAttackId = null;
+        this.lastProcessedAttackTime = 0;
         console.log('🚀 Модуль флота инициализирован');
     },
     
@@ -204,7 +208,18 @@ export const fleetModule = {
         }
     },
     
-    damageRandomCombatShip(attackType) {
+    damageRandomCombatShip(attackType, attackId = null) {
+        // Проверяем, не обрабатывали ли мы уже эту атаку
+        if (attackId && this.lastDamageProcessedAttackId === attackId) {
+            return null;
+        }
+        
+        // Проверяем временную задержку (не чаще раза в 5 секунд)
+        const now = Date.now();
+        if (now - this.lastProcessedAttackTime < 5000) {
+            return null;
+        }
+        
         if (this.ships.length === 0) return null;
         
         const vulnerableShips = this.ships.filter(s => s.type !== 'cargo');
@@ -216,12 +231,23 @@ export const fleetModule = {
         target.health = Math.max(1, target.health - damage);
         this.saveFleet();
         
+        // Запоминаем, что обработали эту атаку
+        if (attackId) {
+            this.lastDamageProcessedAttackId = attackId;
+        }
+        this.lastProcessedAttackTime = now;
+        
         return {
             shipName: target.name,
             damage: oldHealth - target.health,
             newHealth: target.health,
             maxHealth: target.maxHealth
         };
+    },
+    
+    // Сброс флага для новой атаки (вызывается при новой волне атак)
+    resetDamageFlag() {
+        this.lastDamageProcessedAttackId = null;
     },
     
     setAlertMode(enabled) {
