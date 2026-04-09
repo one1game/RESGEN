@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ru">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>CoreBox 3.0 - Rust</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoreBox 3.0 - Rust</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
     
     <!-- Форма авторизации -->
@@ -105,13 +105,13 @@
                                 <div class="threat-level low"></div>
                             </div>
 
-                            <!-- ИНДИКАТОР ЗАМЕТНОСТИ -->
-                            <div class="visibility-container">
-                                <div class="stat-label" id="visibilityLabel">👁️ Заметность: 0%</div>
-                                <div class="visibility-bar">
-                                    <div class="visibility-fill visibility-low" id="visibilityBar" style="width: 0%"></div>
+                            <!-- ТУРБИНА (вместо заметности) -->
+                            <div class="turbine-container">
+                                <div class="stat-label" id="turbineHeatLabel">🌡️ Перегрев: 0%</div>
+                                <div class="turbine-bar">
+                                    <div class="turbine-fill turbine-cool" id="turbineHeatBar" style="width: 0%"></div>
                                 </div>
-                                <div class="visibility-hint">Меньше добываешь — меньше заметен</div>
+                                <div class="turbine-hint" id="turbineHeatHint">Чем чаще кликаешь — тем горячее турбина</div>
                             </div>
 
                             <div class="status-line">
@@ -399,6 +399,40 @@
                                     <button id="upgradeDefenseLevelBtn" class="upgrade-btn">УСИЛИТЬ</button>
                                 </div>
                             </div>
+                            
+                            <!-- НОВАЯ КАРТОЧКА ТУРБИНЫ -->
+                            <div class="upgrade-card">
+                                <div class="upgrade-header">
+                                    <div class="upgrade-title">⚙️ ТУРБИНА</div>
+                                    <div class="upgrade-level" id="turbineLevel">УР. 0/5</div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                
+                                <div class="upgrade-requirements">
+                                    <div class="requirement">
+                                        <div class="requirement-name">
+                                            <div class="requirement-icon">⛏️</div>
+                                            <span>РУДА:</span>
+                                        </div>
+                                        <div class="requirement-value" id="turbineOreReq">30</div>
+                                    </div>
+                                    <div class="requirement">
+                                        <div class="requirement-name">
+                                            <div class="requirement-icon">🎛️</div>
+                                            <span>ЧИПЫ:</span>
+                                        </div>
+                                        <div class="requirement-value" id="turbineChipsReq">5</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="upgrade-cost">
+                                    <button id="upgradeTurbineBtn" class="upgrade-btn">
+                                        УЛУЧШИТЬ (<span id="turbineCost">30⛏️ + 5🎛️</span>)
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -438,7 +472,6 @@
             
             <!-- КОМАНДНЫЙ ПУНКТ -->
             <div class="tab-content" id="command-tab">
-                <!-- 🔥 ОТДЕЛЬНЫЙ КОНТЕЙНЕР ДЛЯ ЗАЩИТЫ -->
                 <div class="panel">
                     <div class="panel-title">
                         <span>🛡️ ЗАЩИТА ОТ ПОВСТАНЦЕВ</span>
@@ -449,7 +482,6 @@
                     </div>
                 </div>
 
-                <!-- Панель фракций -->
                 <div class="panel">
                     <div class="panel-title">
                         <span>⚔️ ФРАКЦИИ ПОВСТАНЦЕВ</span>
@@ -460,7 +492,6 @@
                     </div>
                 </div>
 
-                <!-- История атак -->
                 <div class="panel">
                     <div class="panel-title">
                         <span>📋 ИСТОРИЯ АТАК</span>
@@ -479,9 +510,7 @@
                         <span class="collapse-icon">▼</span>
                     </div>
                     <div class="panel-content">
-                        <div class="craft-container" id="craftContainer">
-                            <!-- Контент крафта будет загружен через JavaScript -->
-                        </div>
+                        <div class="craft-container" id="craftContainer"></div>
                     </div>
                 </div>
             </div>
@@ -493,9 +522,7 @@
                         <span class="collapse-icon">▼</span>
                     </div>
                     <div class="panel-content">
-                        <div class="design-container" id="designContainer">
-                            <!-- Контент разработки будет загружен через JavaScript -->
-                        </div>
+                        <div class="design-container" id="designContainer"></div>
                     </div>
                 </div>
             </div>
@@ -507,9 +534,7 @@
                         <span class="collapse-icon">▼</span>
                     </div>
                     <div class="panel-content">
-                        <div class="fleet-container" id="fleetContainer">
-                            <!-- Контент флота будет загружен через JavaScript -->
-                        </div>
+                        <div class="fleet-container" id="fleetContainer"></div>
                     </div>
                 </div>
             </div>
@@ -528,7 +553,6 @@
     <script type="module" src="design.js"></script>
     <script type="module" src="fleet.js"></script>
     
-    <!-- Все звуки игры -->
     <audio id="clickSound" preload="auto" style="display: none;">
         <source src="music/click.mp3" type="audio/mpeg">
     </audio>

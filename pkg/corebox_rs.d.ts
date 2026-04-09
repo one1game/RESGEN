@@ -1,9 +1,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export function apply_config_from_admin(config_json: string): string;
+export function main(): void;
 export function start_game(): CoreGame;
 export function get_config(): string;
-export function main(): void;
 export class CoreGame {
   free(): void;
   [Symbol.dispose](): void;
@@ -23,6 +23,7 @@ export class CoreGame {
   debug_time_info(): string;
   sync_blueprints(cargo: boolean, scout: boolean, combat: boolean): void;
   upgrade_defense(): void;
+  upgrade_turbine(): boolean;
   activate_defense(): void;
   add_manual_click(): void;
   craft_cargo_ship(): string;
@@ -30,13 +31,14 @@ export class CoreGame {
   debug_power_info(): string;
   debug_rebel_info(): string;
   get_neuro_status(): string;
+  get_turbine_heat(): number;
   is_auto_clicking(): boolean;
   craft_combat_ship(): string;
-  reduce_visibility(amount: number): void;
   subtract_resource(resource: string, amount: number): void;
   apply_fleet_repair(ore_cost: number, chips_cost: number): boolean;
   debug_neuro_status(): string;
   debug_rebel_status(): string;
+  is_turbine_cooling(): boolean;
   stop_auto_clicking(): void;
   apply_fleet_upgrade(ore_cost: number, chips_cost: number, plasma_cost: number): boolean;
   get_neuro_evolution(): number;
@@ -50,6 +52,7 @@ export class CoreGame {
   get_computational_power(): number;
   set_fleet_defense_bonus(bonus: number): void;
   toggle_rebel_protection(): void;
+  get_turbine_upgrade_level(): number;
   debug_neuro_ecosystem_info(): string;
   debug_trigger_rebel_attack(): void;
   get_max_computational_power(): number;
@@ -97,10 +100,12 @@ export interface InitOutput {
   readonly coregame_get_neuro_evolution: (a: number) => number;
   readonly coregame_get_resource: (a: number, b: number, c: number) => number;
   readonly coregame_get_statistics: (a: number) => [number, number];
+  readonly coregame_get_turbine_heat: (a: number) => number;
+  readonly coregame_get_turbine_upgrade_level: (a: number) => number;
   readonly coregame_init: (a: number) => void;
   readonly coregame_is_auto_clicking: (a: number) => number;
+  readonly coregame_is_turbine_cooling: (a: number) => number;
   readonly coregame_new: () => number;
-  readonly coregame_reduce_visibility: (a: number, b: number) => void;
   readonly coregame_reload_config: (a: number) => void;
   readonly coregame_repair_systems: (a: number) => void;
   readonly coregame_reset_progress: (a: number) => void;
@@ -117,6 +122,7 @@ export interface InitOutput {
   readonly coregame_toggle_rebel_protection: (a: number) => void;
   readonly coregame_upgrade_defense: (a: number) => void;
   readonly coregame_upgrade_mining: (a: number) => void;
+  readonly coregame_upgrade_turbine: (a: number) => number;
   readonly get_config: () => [number, number];
   readonly main: () => void;
   readonly start_game: () => number;

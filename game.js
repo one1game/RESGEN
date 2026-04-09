@@ -1,4 +1,4 @@
-// ======== game.js (ОПТИМИЗИРОВАННАЯ ВЕРСИЯ) ========
+// ======== game.js (ОПТИМИЗИРОВАННАЯ ВЕРСИЯ С ТУРБИНОЙ) ========
 
 import init, { start_game, apply_config_from_admin } from './pkg/corebox_rs.js';
 import { 
@@ -23,17 +23,13 @@ let lastRustStats = null;
 let clickCounter = 0;
 let powerTracker = 0;
 
-// НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ КОМБО
 let comboCount = 0;
 let lastClickTime = 0;
 
-// НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ПРЕСТИЖА
 let prestigeLevel = Number(localStorage.getItem('corebox_prestige_level')) || 0;
 
-// НОВАЯ ПЕРЕМЕННАЯ ДЛЯ СЛУЧАЙНЫХ СОБЫТИЙ
 let randomEventTimer = 0;
 
-// ДЕБАУНС СОХРАНЕНИЙ
 let _saveDirty = false;
 let _saveTimer = null;
 
@@ -59,7 +55,6 @@ let sounds = {
 const USER_STORAGE_KEY = 'corebox_users';
 const CURRENT_USER_KEY = 'corebox_current_user';
 
-// Функция для отображения плавающего текста
 function showFloatingText(text, x, y) {
     const floatingText = document.createElement('div');
     floatingText.className = 'floating-text';
@@ -74,7 +69,6 @@ function showFloatingText(text, x, y) {
     }, 800);
 }
 
-// НОВАЯ ФУНКЦИЯ: случайные события
 function triggerRandomEvent() {
     const events = [
         { 
@@ -145,7 +139,6 @@ function triggerRandomEvent() {
     if (logBox) {
         logBox.appendChild(logMsg);
         
-        // Обрезка логов до 50 записей
         while (logBox.children.length > 50) {
             logBox.removeChild(logBox.firstChild);
         }
@@ -155,7 +148,6 @@ function triggerRandomEvent() {
     showFloatingText(event.name, 300, 100);
 }
 
-// НОВАЯ ФУНКЦИЯ: престиж
 function prestigeReset() {
     if (!game) return;
     
@@ -407,23 +399,35 @@ function updatePowerGlow() {
     }
 }
 
-function updateVisibility(visibility) {
-    const el = document.getElementById('visibilityBar');
-    const label = document.getElementById('visibilityLabel');
-    if (!el || !label) return;
-    
-    el.style.width = `${visibility}%`;
-    
-    el.className = 'visibility-fill';
-    if (visibility >= 70) {
-        el.classList.add('visibility-critical');
-        label.textContent = `⚠️ ЗАМЕТНОСТЬ: ${visibility}%`;
-    } else if (visibility >= 40) {
-        el.classList.add('visibility-high');
-        label.textContent = `👁️ Заметность: ${visibility}%`;
+function updateTurbineStatus(rustStats) {
+    const heat = rustStats?.turbine_heat ?? 0;
+    const isCooling = rustStats?.turbine_cooling ?? false;
+    const upgradeLevel = rustStats?.turbine_upgrade_level ?? 0;
+
+    const bar = document.getElementById('turbineHeatBar');
+    const label = document.getElementById('turbineHeatLabel');
+    const hint = document.getElementById('turbineHeatHint');
+    if (!bar || !label) return;
+
+    bar.style.width = `${heat}%`;
+    bar.className = 'turbine-fill';
+
+    if (isCooling || heat >= 100) {
+        bar.classList.add('turbine-critical');
+        label.textContent = `🔥 ПЕРЕГРЕВ: ${heat}% — ОСТЫВАНИЕ...`;
+        if (hint) hint.textContent = 'Добыча заблокирована до остывания';
+    } else if (heat >= 70) {
+        bar.classList.add('turbine-hot');
+        label.textContent = `🌡️ Перегрев: ${heat}%`;
+        if (hint) hint.textContent = 'Турбина сильно нагрета!';
+    } else if (heat >= 40) {
+        bar.classList.add('turbine-warm');
+        label.textContent = `🌡️ Перегрев: ${heat}%`;
+        if (hint) hint.textContent = `Уровень турбины: ${upgradeLevel}`;
     } else {
-        el.classList.add('visibility-low');
-        label.textContent = `👁️ Заметность: ${visibility}%`;
+        bar.classList.add('turbine-cool');
+        label.textContent = `🌡️ Перегрев: ${heat}%`;
+        if (hint) hint.textContent = `Уровень турбины: ${upgradeLevel}`;
     }
 }
 
@@ -515,9 +519,6 @@ function updateNeuroStatus(rustStats = null) {
             
             updateAttackHistory(rustStats.attack_history || []);
             updateFactionPanel(rustStats.rebel_factions || [], rustStats.last_attacking_faction || '');
-            
-            const visibility = rustStats.visibility || 0;
-            updateVisibility(visibility);
         }
     } catch (e) {
         console.warn('Не удалось обновить нейро-статус:', e);
@@ -607,7 +608,6 @@ function setupLogObserver() {
         });
     });
     
-    // ПАТЧ 4: убрал subtree: true
     observer.observe(logBox, {
         childList: true
     });
@@ -705,7 +705,6 @@ function updateStatsFromGame(rustStats = null) {
             
             lastRustStats = rustStats;
             
-            // ПАТЧ 3: дебаунс вместо случайного сохранения
             scheduleSave();
             
             if (document.getElementById('statistics-section')?.style.display !== 'none') {
@@ -829,7 +828,6 @@ function setupLongPressHandlers() {
 }
 
 function switchMainTab(tabName) {
-    // ПАТЧ 6: убрал console.log
     const tabContents = [
         'inventory-tab',
         'upgrades-tab', 
@@ -887,7 +885,6 @@ function switchMainTab(tabName) {
 }
 
 function updateCraftTab() {
-    // ПАТЧ 6: убрал console.log
     if (!game) return;
     
     const craftContainer = document.getElementById('craftContainer');
@@ -907,7 +904,6 @@ function updateCraftTab() {
 }
 
 function updateDesignTab() {
-    // ПАТЧ 6: убрал console.log
     if (!game) return;
     
     const designContainer = document.getElementById('designContainer');
@@ -924,8 +920,6 @@ function updateDesignTab() {
 }
 
 function updateFleetTab() {
-    // ПАТЧ 6: убрал console.log
-    
     const fleetContainer = document.getElementById('fleetContainer');
     if (!fleetContainer) return;
     
@@ -1009,6 +1003,15 @@ function setupEventListeners() {
         upgradeDefenseLevelBtn.addEventListener('click', () => {
             playSound('upgrade');
             game.upgrade_defense();
+        });
+    }
+    
+    const upgradeTurbineBtn = document.getElementById('upgradeTurbineBtn');
+    if (upgradeTurbineBtn) {
+        upgradeTurbineBtn.addEventListener('click', () => {
+            if (game.upgrade_turbine()) {
+                playSound('upgrade');
+            }
         });
     }
 
@@ -1209,8 +1212,6 @@ async function initializeGame() {
         console.log('Инициализация fleetModule...');
         fleetModule.init(game);
         
-        // ПАТЧ 2: УБРАЛ init-рендер модулей - они обновятся при открытии вкладки
-        
         initializeSounds();
         
         initStatistics();
@@ -1221,7 +1222,6 @@ async function initializeGame() {
         
         setupLogObserver();
 
-        // ОСНОВНОЙ ИГРОВОЙ ЦИКЛ - ИСПРАВЛЕННЫЙ
         setInterval(() => {
             game.game_loop();
             updatePowerGlow();
@@ -1233,19 +1233,16 @@ async function initializeGame() {
             } catch(e) {}
             
             if (rustStats) {
-                // ПАТЧ 1: один JSON.parse, передаем в функции
                 updateStatsFromGame(rustStats);
                 updateNeuroStatus(rustStats);
+                updateTurbineStatus(rustStats);
                 
-                // Крафт — синхронизируем ресурсы
                 craftModule.syncFromStats(rustStats);
                 
-                // Обновляем бонусы ИИ
                 const evolution = rustStats.neuro_evolution || 0;
                 craftModule.aiProductionBonus = Math.min(30, evolution * 1.5);
                 designModule.aiResearchBonus = Math.floor((rustStats.neuro_consciousness || 0) / 20);
                 
-                // Флот — передаём бонусы в Rust
                 const fleetCombat = fleetModule.getFleetDefenseContribution();
                 const fleetRecon = fleetModule.getScoutReconBonus();
                 const fleetCargo = fleetModule.getCargoMiningBonus();
@@ -1254,22 +1251,17 @@ async function initializeGame() {
                     if (typeof game.set_fleet_defense_bonus === 'function' && fleetCombat > 0) {
                         game.set_fleet_defense_bonus(Math.floor(fleetCombat / 50));
                     }
-                    if (typeof game.reduce_visibility === 'function' && fleetRecon > 0) {
-                        game.reduce_visibility(Math.floor(fleetRecon / 10));
-                    }
                     if (typeof game.set_fleet_cargo_bonus === 'function' && fleetCargo > 0) {
                         game.set_fleet_cargo_bonus(fleetCargo);
                     }
                 } catch(e) {}
                 
-                // Режим тревоги для флота
                 if (rustStats.current_ai_mode && rustStats.current_ai_mode.includes('Предсказание')) {
                     fleetModule.setAlertMode(true);
                 } else {
                     fleetModule.setAlertMode(false);
                 }
                 
-                // Проверяем новые атаки из истории
                 const history = rustStats.attack_history || [];
                 if (history.length > 0) {
                     const last = history[history.length - 1];
@@ -1283,7 +1275,6 @@ async function initializeGame() {
                                 entry.textContent = `⚔️ ${damageResult.shipName} получил ${damageResult.damage} урона! (${damageResult.newHealth}/${damageResult.maxHealth})`;
                                 logBox.appendChild(entry);
                                 
-                                // Обрезка логов до 50 записей
                                 while (logBox.children.length > 50) {
                                     logBox.removeChild(logBox.firstChild);
                                 }
@@ -1294,7 +1285,20 @@ async function initializeGame() {
                     }
                 }
                 
-                // Обновляем UI модулей только если вкладки открыты
+                const turbineLevel = rustStats.turbine_upgrade_level ?? 0;
+                const turbineLevelEl = document.getElementById('turbineLevel');
+                if (turbineLevelEl) turbineLevelEl.textContent = turbineLevel;
+                
+                const turbineCostEl = document.getElementById('turbineCost');
+                if (turbineCostEl) {
+                    const oreCost = 30 + turbineLevel * 20;
+                    const chipsCost = 5 + turbineLevel * 3;
+                    turbineCostEl.textContent = `${oreCost}⛏️ + ${chipsCost}🎛️`;
+                }
+                
+                const turbineBtn = document.getElementById('upgradeTurbineBtn');
+                if (turbineBtn) turbineBtn.disabled = turbineLevel >= 5;
+                
                 if (document.getElementById('craft-tab')?.classList.contains('active')) {
                     const craftContainerEl = document.getElementById('craftContainer');
                     if (craftContainerEl) craftModule.refreshUI(craftContainerEl);
@@ -1312,7 +1316,6 @@ async function initializeGame() {
                 }
             }
             
-            // Случайные события
             randomEventTimer++;
             if (randomEventTimer >= 30) {
                 randomEventTimer = 0;
@@ -1504,7 +1507,6 @@ window.addEventListener('beforeunload', function() {
     }
 });
 
-// ПАТЧ 3: сохранение раз в 30 секунд с дебаунсом
 setInterval(() => {
     if (currentUser && gameStats) {
         scheduleSave();

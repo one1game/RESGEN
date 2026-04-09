@@ -200,6 +200,10 @@ export function apply_config_from_admin(config_json) {
     }
 }
 
+export function main() {
+    wasm.main();
+}
+
 /**
  * @returns {CoreGame}
  */
@@ -222,10 +226,6 @@ export function get_config() {
     } finally {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
-}
-
-export function main() {
-    wasm.main();
 }
 
 const CoreGameFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -376,6 +376,13 @@ export class CoreGame {
     upgrade_defense() {
         wasm.coregame_upgrade_defense(this.__wbg_ptr);
     }
+    /**
+     * @returns {boolean}
+     */
+    upgrade_turbine() {
+        const ret = wasm.coregame_upgrade_turbine(this.__wbg_ptr);
+        return ret !== 0;
+    }
     activate_defense() {
         wasm.coregame_activate_defense(this.__wbg_ptr);
     }
@@ -458,6 +465,13 @@ export class CoreGame {
         }
     }
     /**
+     * @returns {number}
+     */
+    get_turbine_heat() {
+        const ret = wasm.coregame_get_turbine_heat(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
      * @returns {boolean}
      */
     is_auto_clicking() {
@@ -478,12 +492,6 @@ export class CoreGame {
         } finally {
             wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
         }
-    }
-    /**
-     * @param {number} amount
-     */
-    reduce_visibility(amount) {
-        wasm.coregame_reduce_visibility(this.__wbg_ptr, amount);
     }
     /**
      * @param {string} resource
@@ -532,6 +540,13 @@ export class CoreGame {
         } finally {
             wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
         }
+    }
+    /**
+     * @returns {boolean}
+     */
+    is_turbine_cooling() {
+        const ret = wasm.coregame_is_turbine_cooling(this.__wbg_ptr);
+        return ret !== 0;
     }
     stop_auto_clicking() {
         wasm.coregame_stop_auto_clicking(this.__wbg_ptr);
@@ -631,6 +646,13 @@ export class CoreGame {
     }
     toggle_rebel_protection() {
         wasm.coregame_toggle_rebel_protection(this.__wbg_ptr);
+    }
+    /**
+     * @returns {number}
+     */
+    get_turbine_upgrade_level() {
+        const ret = wasm.coregame_get_turbine_upgrade_level(this.__wbg_ptr);
+        return ret >>> 0;
     }
     /**
      * @returns {string}
@@ -866,6 +888,18 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_node_905d3e251edff8a2 = function(arg0) {
         const ret = arg0.node;
         return ret;
+    };
+    imports.wbg.__wbg_now_793306c526e2e3b6 = function() {
+        const ret = Date.now();
+        return ret;
+    };
+    imports.wbg.__wbg_now_f5ba683d8ce2c571 = function(arg0) {
+        const ret = arg0.now();
+        return ret;
+    };
+    imports.wbg.__wbg_performance_e8315b5ae987e93f = function(arg0) {
+        const ret = arg0.performance;
+        return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
     };
     imports.wbg.__wbg_process_dc0fbacc7c1c06f7 = function(arg0) {
         const ret = arg0.process;

@@ -44,12 +44,12 @@ body {
     min-height: 100vh;
     position: relative;
     
-    /* ИЗМЕНЕНО: ширина 40% от экрана с центрированием */
-    width: 40%;
+    /* ИЗМЕНЕНО: ширина 90% от экрана с центрированием (было 40%) */
+    width: 90%;
     margin: 0 auto;
 }
 
-/* Затемняющий оверлей */
+/* Затемняющий оверлей - оптимизирован, убран repeating-linear-gradient */
 body::before {
     content: '';
     position: fixed;
@@ -57,15 +57,7 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: 
-        repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 2px,
-            rgba(0, 255, 136, 0.03) 2px,
-            rgba(0, 255, 136, 0.03) 4px
-        ),
-        radial-gradient(circle at center, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.7) 100%);
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%);
     pointer-events: none;
     z-index: -1;
 }
@@ -88,7 +80,7 @@ body::after {
     position: relative;
     z-index: 1;
     min-height: 100vh;
-    width: 100%; /* Занимает всю ширину body */
+    width: 100%;
 }
 
 .header {
@@ -98,7 +90,7 @@ body::after {
     background: linear-gradient(135deg, rgba(10, 10, 20, 0.9), rgba(15, 15, 25, 0.9));
     border-radius: 12px;
     padding: 15px;
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
     border: 1px solid var(--panel-border);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
@@ -143,7 +135,7 @@ body::after {
     text-align: center;
     position: relative;
     overflow: hidden;
-    backdrop-filter: blur(15px);
+    backdrop-filter: none;
     box-shadow: 
         0 4px 16px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -187,7 +179,7 @@ body::after {
     border-radius: 10px;
     margin-bottom: 15px;
     overflow: hidden;
-    backdrop-filter: blur(15px);
+    backdrop-filter: none;
     box-shadow: 
         0 4px 16px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -206,7 +198,7 @@ body::after {
     text-shadow: 0 0 8px var(--primary-glow);
     transition: all 0.3s ease;
     font-size: 0.9em;
-    backdrop-filter: blur(5px);
+    backdrop-filter: none;
 }
 
 .panel-title:hover {
@@ -231,7 +223,7 @@ body::after {
     border-radius: 6px;
     border-left: 2px solid var(--primary);
     font-size: 0.85em;
-    backdrop-filter: blur(5px);
+    backdrop-filter: none;
 }
 
 .status-value, .ai-status-value {
@@ -247,7 +239,7 @@ body::after {
     border-radius: 8px 8px 0 0;
     overflow: hidden;
     border-bottom: 1px solid var(--panel-border);
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
     flex-wrap: wrap;
 }
 
@@ -326,7 +318,7 @@ body::after {
     position: relative;
     overflow: hidden;
     font-size: 0.8em;
-    backdrop-filter: blur(5px);
+    backdrop-filter: none;
 }
 
 .slot::before {
@@ -474,7 +466,7 @@ body::after {
     padding: 12px;
     border-radius: 8px;
     border: 1px solid var(--panel-border);
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
 }
 
 .power-section, .click-progress-section, .auto-click-section {
@@ -606,28 +598,26 @@ body::after {
     justify-content: center;
     font-weight: bold;
     box-shadow: 
-        0 8px 25px rgba(0, 255, 136, 0.5),
-        0 0 0 0 rgba(0, 255, 136, 0.7);
+        0 8px 25px rgba(0, 255, 136, 0.5);
     transition: all 0.3s ease;
     z-index: 1000;
     animation: pulse-glow 2s infinite;
     text-transform: uppercase;
     letter-spacing: 0.3px;
     font-size: 0.75em;
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
 }
 
+/* Оптимизированная анимация pulse-glow без box-shadow */
 @keyframes pulse-glow {
-    0% { box-shadow: 0 8px 25px rgba(0, 255, 136, 0.5), 0 0 0 0 rgba(0, 255, 136, 0.7); }
-    70% { box-shadow: 0 8px 25px rgba(0, 255, 136, 0.5), 0 0 0 15px rgba(0, 255, 136, 0); }
-    100% { box-shadow: 0 8px 25px rgba(0, 255, 136, 0.5), 0 0 0 0 rgba(0, 255, 136, 0); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
 }
 
 .floating-mine-btn:hover {
     transform: scale(1.05) rotate(5deg);
     box-shadow: 
-        0 10px 30px rgba(0, 255, 136, 0.7),
-        0 0 0 0 rgba(0, 255, 136, 0.7);
+        0 10px 30px rgba(0, 255, 136, 0.7);
 }
 
 .mining-action {
@@ -654,9 +644,9 @@ body::after {
 }
 
 @keyframes power-full-pulse {
-    0% { box-shadow: 0 8px 25px rgba(0, 255, 136, 0.5), 0 0 0 0 rgba(0, 255, 136, 0.7); }
-    70% { box-shadow: 0 8px 25px rgba(0, 255, 136, 0.5), 0 0 0 20px rgba(0, 255, 136, 0); }
-    100% { box-shadow: 0 8px 25px rgba(0, 255, 136, 0.5), 0 0 0 0 rgba(0, 255, 136, 0); }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
 }
 
 /* МОБИЛЬНЫЕ ТАЧ КОНТРОЛЫ */
@@ -684,7 +674,7 @@ body::after {
 
 .upgrade-card {
     background: rgba(20, 25, 35, 0.85);
-    backdrop-filter: blur(8px);
+    backdrop-filter: none;
     border: 1px solid rgba(0, 255, 136, 0.2);
     border-radius: 10px;
     padding: 12px;
@@ -823,7 +813,7 @@ body::after {
 
 .craft-compact {
     background: rgba(20, 25, 35, 0.85);
-    backdrop-filter: blur(8px);
+    backdrop-filter: none;
     border: 1px solid rgba(0, 255, 136, 0.2);
     border-radius: 10px;
     padding: 12px;
@@ -1095,7 +1085,7 @@ body::after {
 
 .design-compact {
     background: rgba(20, 25, 35, 0.85);
-    backdrop-filter: blur(8px);
+    backdrop-filter: none;
     border: 1px solid rgba(0, 255, 136, 0.2);
     border-radius: 10px;
     padding: 12px;
@@ -1303,7 +1293,7 @@ body::after {
 
 .fleet-container {
     background: rgba(20, 25, 35, 0.85);
-    backdrop-filter: blur(8px);
+    backdrop-filter: none;
     border: 1px solid rgba(0, 255, 136, 0.2);
     border-radius: 10px;
     padding: 12px;
@@ -1544,7 +1534,7 @@ body::after {
     border-radius: 6px;
     overflow: hidden;
     border: 1px solid var(--panel-border);
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
 }
 
 .trade-mode-btn {
@@ -1608,7 +1598,7 @@ body::after {
     position: relative;
     overflow: hidden;
     font-size: 0.8em;
-    backdrop-filter: blur(5px);
+    backdrop-filter: none;
 }
 
 .trade-item::before {
@@ -1659,7 +1649,7 @@ body::after {
     position: relative;
     overflow: hidden;
     font-size: 0.85em;
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
 }
 
 .quest-card::before {
@@ -1765,7 +1755,7 @@ body::after {
     overflow: hidden;
     border-bottom: 1px solid var(--panel-border);
     margin-bottom: 15px;
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
 }
 
 .status-tab {
@@ -1830,7 +1820,7 @@ body::after {
     border: 1px solid var(--panel-border);
     position: relative;
     overflow: hidden;
-    backdrop-filter: blur(15px);
+    backdrop-filter: none;
 }
 
 .stat-card-large::before {
@@ -1905,7 +1895,7 @@ body::after {
     display: flex;
     align-items: center;
     gap: 6px;
-    backdrop-filter: blur(5px);
+    backdrop-filter: none;
 }
 
 .stat-btn:hover {
@@ -2086,7 +2076,7 @@ body::after {
     gap: 1rem;
     color: #00ff88;
     font-weight: bold;
-    backdrop-filter: blur(5px);
+    backdrop-filter: none;
 }
 
 .logout-btn {
@@ -2125,7 +2115,7 @@ body::after {
     font-weight: bold;
     flex: 1;
     min-width: 120px;
-    backdrop-filter: blur(5px);
+    backdrop-filter: none;
 }
 
 .story-link:hover {
@@ -2258,8 +2248,36 @@ body::after {
     100% { opacity: 1; }
 }
 
-.status-line .neuro-level {
-    align-self: center;
+/* ===== ТУРБИНА — вместо заметности ===== */
+.turbine-container {
+    margin: 8px 0;
+}
+.turbine-bar {
+    height: 7px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+.turbine-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease, background 0.4s ease;
+}
+.turbine-cool     { background: #00ff88; }
+.turbine-warm     { background: #ffaa00; }
+.turbine-hot      { background: #ff6600; }
+.turbine-critical { background: #ff3c3c; animation: pulse 0.6s infinite; }
+.turbine-hint {
+    font-size: 10px;
+    color: #666;
+    margin-top: 2px;
+}
+/* Заблокированная кнопка при перегреве */
+.turbine-blocked {
+    background: linear-gradient(135deg, #ff3c3c, #cc2222) !important;
+    animation: none !important;
+    cursor: not-allowed !important;
 }
 
 /* ===== ГЛОБАЛЬНЫЕ ЭФФЕКТЫ ===== */
@@ -2285,13 +2303,13 @@ body::after {
 
 @media (max-width: 1200px) {
     body {
-        width: 60%; /* Чуть шире на средних экранах */
+        width: 85%; /* Чуть шире на средних экранах */
     }
 }
 
 @media (max-width: 768px) {
     body {
-        width: 85%; /* Ещё шире на планшетах */
+        width: 92%; /* Ещё шире на планшетах */
         padding: 10px;
     }
     
@@ -2527,7 +2545,7 @@ body::after {
 
 @media (max-width: 480px) {
     body {
-        width: 95%; /* Почти на всю ширину на телефонах */
+        width: 98%; /* Почти на всю ширину на телефонах */
         padding: 8px;
     }
     
@@ -2670,39 +2688,6 @@ body::after {
     justify-content: space-between;
     font-size: 12px;
     padding: 4px 0;
-}
-
-.visibility-container {
-    margin: 8px 0;
-}
-
-.visibility-bar {
-    height: 6px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-top: 4px;
-}
-
-.visibility-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.5s ease, background 0.5s ease;
-}
-
-.visibility-low      { background: #00ff64; }
-.visibility-high     { background: #ff9900; }
-.visibility-critical { background: #ff3c3c; animation: pulse 1s infinite; }
-
-.visibility-hint {
-    font-size: 10px;
-    color: #666;
-    margin-top: 2px;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.5; }
 }
 
 /* Плавающий текст */
