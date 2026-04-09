@@ -1,4 +1,4 @@
-// ======== src/lib.rs (ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ С ТУРБИНОЙ) ========
+// ======== src/lib.rs (ПОЛНОСТЬЮ ОБНОВЛЁННАЯ ВЕРСИЯ) ========
 
 #![recursion_limit = "256"]
 
@@ -175,6 +175,19 @@ impl CoreGame {
         self.handle_events(events);
     }
     
+    // НОВЫЕ МЕТОДЫ ДЛЯ МОДУЛЕЙ
+    #[wasm_bindgen]
+    pub fn upgrade_crit_module(&mut self) {
+        let events = self.upgrade_system.upgrade_crit_module(&mut self.state);
+        self.handle_events(events);
+    }
+    
+    #[wasm_bindgen]
+    pub fn upgrade_cooling_module(&mut self) {
+        let events = self.upgrade_system.upgrade_cooling_module(&mut self.state);
+        self.handle_events(events);
+    }
+    
     #[wasm_bindgen]
     pub fn buy_resource(&mut self, resource: String) {
         let events = self.buy_resource_internal(&resource);
@@ -282,48 +295,52 @@ impl CoreGame {
         let rebel_factions = serde_json::to_string(&self.rebel_system.get_faction_info()).unwrap_or_else(|_| "[]".to_string());
         
         format!(
-            r#"{{
-                "total_clicks": {},
-                "max_power_reached": {},
-                "nights_survived": {},
-                "rebel_attacks": {},
-                "attacks_defended": {},
-                "coal_mined": {},
-                "trash_mined": {},
-                "plasma_mined": {},
-                "ore_mined": {},
-                "ore_inventory": {},
-                "chips_inventory": {},
-                "plasma_inventory": {},
-                "coal_inventory": {},
-                "trash_inventory": {},
-                "neuro_evolution": {},
-                "neuro_consciousness": {},
-                "neuro_score": {},
-                "neuro_memory": {},
-                "neuro_next_score": {},
-                "neuro_next_memory": {},
-                "rebel_evolution": {},
-                "rebel_adaptation": {},
-                "defense_bonus": {},
-                "prediction_bonus": {},
-                "current_ai_mode": "{}",
-                "attack_warning": "{}",
-                "attack_warning_faction": "{}",
-                "last_attacking_faction": "{}",
-                "mining_debuff_remaining": {},
-                "autoclick_debuff_remaining": {},
-                "defense_debuff_remaining": {},
-                "rebel_factions": {},
-                "attack_history": {},
-                "is_day": {},
-                "coal_enabled": {},
-                "game_time": {},
-                "blueprints_unlocked": {},
-                "blueprint_research_progress": {},
-                "turbine_heat": {},
-                "turbine_upgrade_level": {},
-                "turbine_cooling": {}
+            r#"{{"total_clicks":{},
+                "max_power_reached":{},
+                "nights_survived":{},
+                "rebel_attacks":{},
+                "attacks_defended":{},
+                "coal_mined":{},
+                "trash_mined":{},
+                "plasma_mined":{},
+                "ore_mined":{},
+                "ore_inventory":{},
+                "chips_inventory":{},
+                "plasma_inventory":{},
+                "coal_inventory":{},
+                "trash_inventory":{},
+                "neuro_evolution":{},
+                "neuro_consciousness":{},
+                "neuro_score":{},
+                "neuro_memory":{},
+                "neuro_next_score":{},
+                "neuro_next_memory":{},
+                "rebel_evolution":{},
+                "rebel_adaptation":{},
+                "defense_bonus":{},
+                "prediction_bonus":{},
+                "current_ai_mode":"{}",
+                "attack_warning":"{}",
+                "attack_warning_faction":"{}",
+                "last_attacking_faction":"{}",
+                "mining_debuff_remaining":{},
+                "autoclick_debuff_remaining":{},
+                "defense_debuff_remaining":{},
+                "rebel_factions":{},
+                "attack_history":{},
+                "is_day":{},
+                "coal_enabled":{},
+                "game_time":{},
+                "blueprints_unlocked":{},
+                "blueprint_research_progress":{},
+                "turbine_heat":{},
+                "turbine_upgrade_level":{},
+                "turbine_cooling":{},
+                "coal_burned":{},
+                "coal_stolen":{},
+                "crit_level":{},
+                "cooling_level":{},
+                "power_tier":{}
             }}"#,
             self.state.manual_clicks,
             self.state.max_computational_power,
@@ -365,7 +382,12 @@ impl CoreGame {
             self.state.blueprint_research_progress,
             self.state.turbine_heat,
             self.state.turbine_upgrade_level,
-            self.state.turbine_cooling
+            self.state.turbine_cooling,
+            self.state.total_coal_burned,
+            self.state.total_coal_stolen,
+            self.state.upgrades.crit_level,
+            self.state.upgrades.cooling_level,
+            self.state.power_tier
         )
     }
     
@@ -848,7 +870,8 @@ impl CoreGame {
         let clicks_per_power = config_guard.auto_click_config.clicks_per_power;
         
         if self.state.manual_clicks >= clicks_per_power {
-            let power_to_add = config_guard.auto_click_config.power_per_manual_click;
+            let base_power = config_guard.auto_click_config.power_per_manual_click;
+            let power_to_add = base_power + self.state.power_tier;
             self.state.manual_clicks = 0;
             self.state.computational_power = (self.state.computational_power + power_to_add)
                 .min(self.state.max_computational_power);
@@ -857,6 +880,10 @@ impl CoreGame {
                 amount: power_to_add, 
                 total: self.state.computational_power 
             });
+            
+            // Проверяем повышение тира мощности
+            let tier_events = self.check_power_tier();
+            events.extend(tier_events);
         }
         
         let mining_events = self.mine_resources_internal();
@@ -925,7 +952,7 @@ impl CoreGame {
             return vec![GameEvent::LogMessage("❌ Система неактивна! Включите ТЭЦ или дождитесь дня".to_string())];
         }
         
-        self.mining_system.mine_resources(&mut self.state)
+        self.mining_system.mine_resources(&mut self.state, &self.neuro_ecosystem)
     }
     
     fn upgrade_mining_internal(&mut self) -> Vec<GameEvent> {
@@ -946,6 +973,56 @@ impl CoreGame {
     
     fn sell_resource_internal(&mut self, resource: &str) -> Vec<GameEvent> {
         self.economy_system.sell_resource(&mut self.state, resource)
+    }
+    
+    // ========== НОВЫЙ МЕТОД: ПРОВЕРКА ПАССИВНОГО ИИ ПО УГЛЮ ==========
+    
+    fn check_ai_coal_passive(&mut self) -> Vec<GameEvent> {
+        let mut events = Vec::new();
+        
+        // «Сохранённый» уголь = добыто минус сожжено
+        let saved_coal = self.state.total_coal_mined
+            .saturating_sub(self.state.total_coal_burned);
+        
+        // Пороги и очки
+        let thresholds: &[(u32, u32)] = &[
+            (100, 15),
+            (300, 25),
+            (600, 40),
+            (1000, 60),
+        ];
+        
+        for &(threshold, points) in thresholds {
+            if saved_coal >= threshold && self.state.last_ai_coal_threshold < threshold {
+                self.state.last_ai_coal_threshold = threshold;
+                self.neuro_ecosystem.evolution_score += points;
+                self.state.neuro_score = self.neuro_ecosystem.get_evolution_score();
+                events.push(GameEvent::LogMessage(format!(
+                    "🧠 ИИ-пассив: {} угля сохранено → +{} очков эволюции",
+                    threshold, points
+                )));
+            }
+        }
+        
+        events
+    }
+    
+    // ========== НОВЫЙ МЕТОД: ПРОВЕРКА ПОВЫШЕНИЯ ТИРА МОЩНОСТИ ==========
+    
+    fn check_power_tier(&mut self) -> Vec<GameEvent> {
+        let mut events = Vec::new();
+        
+        if self.state.computational_power >= self.state.max_computational_power {
+            self.state.power_tier += 1;
+            self.state.max_computational_power = 1000 * (self.state.power_tier + 1);
+            events.push(GameEvent::LogMessage(format!(
+                "⚡ Порог мощности! Лимит расширен до {} | Мощность/клик: {}",
+                self.state.max_computational_power,
+                self.state.power_tier + 1
+            )));
+        }
+        
+        events
     }
     
     // ========== ИГРОВОЙ ЦИКЛ ==========
@@ -990,17 +1067,9 @@ impl CoreGame {
             self.state.neuro_prediction_bonus = self.neuro_ecosystem.get_prediction_bonus();
         }
         
-        if self.state.is_ai_active() {
-            self.state.neuro_passive_timer += 1;
-            if self.state.neuro_passive_timer >= 30 {
-                self.state.neuro_passive_timer = 0;
-                
-                let passive_gain = 10 + (self.neuro_ecosystem.evolution_level * 3);
-                self.neuro_ecosystem.evolution_score += passive_gain;
-                
-                // Спам-сообщение убрано — фильтруется в ui.rs
-            }
-        }
+        // НОВАЯ СИСТЕМА: пассивный ИИ по порогу угля (вместо таймера)
+        let ai_passive_events = self.check_ai_coal_passive();
+        events.extend(ai_passive_events);
         
         if self.state.is_ai_active() {
             self.state.neuro_evolution_timer += 1;
@@ -1023,7 +1092,7 @@ impl CoreGame {
             events.extend(neuro_events);
         }
         
-        events.extend(self.mining_system.passive_mining(&mut self.state));
+        events.extend(self.mining_system.passive_mining(&mut self.state, &self.neuro_ecosystem));
         
         if self.state.auto_clicking {
             self.state.last_auto_click_time += 1;
@@ -1037,14 +1106,20 @@ impl CoreGame {
             };
             
             if self.state.last_auto_click_time >= effective_interval {
-                let power_per_auto_click = config_guard.auto_click_config.power_per_auto_click;
+                let base_power = config_guard.auto_click_config.power_per_auto_click;
+                let power_cost = base_power + self.state.power_tier;
                 
-                if self.state.computational_power >= power_per_auto_click {
-                    self.state.computational_power -= power_per_auto_click;
+                if self.state.computational_power >= power_cost {
+                    self.state.computational_power -= power_cost;
                     self.state.last_auto_click_time = 0;
                     
-                    let mining_events = self.mining_system.auto_mine_resources(&mut self.state);
+                    // ДОБЫЧА ПРИ АВТОКЛИКЕ
+                    let mining_events = self.mining_system.auto_mine_resources(&mut self.state, &self.neuro_ecosystem);
                     events.extend(mining_events);
+                    
+                    // Проверяем повышение тира мощности
+                    let tier_events = self.check_power_tier();
+                    events.extend(tier_events);
                 } else {
                     self.state.auto_clicking = false;
                     events.push(GameEvent::ComputationalPowerDepleted);

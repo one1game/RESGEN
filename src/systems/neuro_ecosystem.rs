@@ -1,4 +1,4 @@
-// ======== src/systems/neuro_ecosystem.rs (ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ) ========
+// ======== src/systems/neuro_ecosystem.rs (ПОЛНАЯ ВЕРСИЯ С БОНУСАМИ СОЗНАНИЯ) ========
 
 use crate::game::{GameState, GameEvent};
 use crate::game::config::GameConfig;
@@ -97,6 +97,20 @@ struct ThreatAnalysis {
     risk_level: f64,
 }
 
+// ========== СТРУКТУРА БОНУСОВ СОЗНАНИЯ ==========
+
+pub struct ConsciousnessBonus {
+    pub mining_chance_bonus: f64,      // +% к шансу добычи
+    pub heat_reduction: f64,           // % снижения нагрева
+    pub crit_bonus: f64,               // +% к крит-шансу
+    pub autoclick_speed: f64,          // множитель интервала (<1 = быстрее)
+    pub defense_bonus: u32,            // плоский бонус к защите
+    pub passive_multiplier: f64,       // ×N к пассивным шансам
+    pub trade_discount_chance: f64,    // шанс ночной скидки
+    pub power_bonus: u32,              // +N мощности за клик
+    pub global_multiplier: f64,        // финальный множитель
+}
+
 impl NeuroEcosystem {
     pub fn new() -> Self {
         Self {
@@ -125,6 +139,26 @@ impl NeuroEcosystem {
                 evolutions: 0,
                 consciousness_gains: Vec::new(),
             },
+        }
+    }
+    
+    // ========== НОВЫЙ МЕТОД: БОНУСЫ СОЗНАНИЯ ==========
+    
+    pub fn get_consciousness_bonuses(&self) -> ConsciousnessBonus {
+        let c = self.system_consciousness; // 0.0--1.0
+        let lvl = self.evolution_level;
+        let global = if lvl >= 10 { 1.25 } else if lvl >= 9 { 1.2 } else { 1.0 };
+        
+        ConsciousnessBonus {
+            mining_chance_bonus: if lvl >= 1 { c * 0.05 } else { 0.0 },
+            heat_reduction: if lvl >= 2 { c * 0.10 } else { 0.0 },
+            crit_bonus: if lvl >= 3 { c * 0.03 } else { 0.0 },
+            autoclick_speed: if lvl >= 4 { 1.0 - c * 0.10 } else { 1.0 },
+            defense_bonus: if lvl >= 5 { (c * 10.0) as u32 } else { 0 },
+            passive_multiplier: if lvl >= 6 { 1.0 + c * 0.5 } else { 1.0 },
+            trade_discount_chance: if lvl >= 7 { 0.25 + c * 0.05 } else { 0.25 },
+            power_bonus: if lvl >= 8 { 1 } else { 0 },
+            global_multiplier: global,
         }
     }
     
@@ -205,7 +239,7 @@ impl NeuroEcosystem {
         let ai_decision = self.make_ai_decision(state, rebel_system, had_real_attack);
         self.last_ai_decision = ai_decision.clone();
         
-        // 7. ПРИМЕНЕНИЕ РЕШЕНИЯ (с записью в state)
+        // 7. ПРИМЕНЕНИЕ РЕШЕНИЯ
         let decision_events = self.apply_ai_decision(state, rebel_system, config, ai_decision);
         events.extend(decision_events);
         
@@ -525,8 +559,6 @@ impl NeuroEcosystem {
         AIDecision::Normal
     }
     
-    // ========== 🔥 ИСПРАВЛЕННЫЙ МЕТОД apply_ai_decision ==========
-    
     fn apply_ai_decision(
         &mut self, 
         state: &mut GameState, 
@@ -546,7 +578,6 @@ impl NeuroEcosystem {
                 ));
                 rebel_system.on_ai_evolution(self.evolution_level, "predictive");
                 
-                // 🔥 Предупреждение об атаке
                 if let Some((confidence, attack_type)) = self.get_attack_prediction() {
                     if confidence > 0.6 {
                         state.attack_warning = format!("⚠️ Вероятность атаки: {:.0}%", confidence * 100.0);

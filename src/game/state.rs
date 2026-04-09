@@ -1,4 +1,4 @@
-// ======== src/game/state.rs (ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ С ТУРБИНОЙ, ТИПАМИ НОЧЕЙ И last_click_time) ========
+// ======== src/game/state.rs (ПОЛНАЯ ВЕРСИЯ СО ВСЕМИ ИСПРАВЛЕНИЯМИ) ========
 
 use serde::{Serialize, Deserialize};
 use super::config::GameConfig;
@@ -116,7 +116,7 @@ pub struct GameState {
     pub longest_defense_streak: u32,
     pub total_evolution_points_earned: u32,
     
-    // Таймеры для пассивного роста нейро-системы
+    // Таймеры
     pub neuro_passive_timer: i32,
     pub neuro_evolution_timer: i32,
     
@@ -149,6 +149,12 @@ pub struct GameState {
     // Типы ночей и блокировка торговли
     pub current_night_type: String,
     pub trade_blocked: bool,
+    
+    // НОВЫЕ ПОЛЯ ДЛЯ МОДУЛЕЙ
+    pub power_tier: u32,  // тир мощности (0,1,2,3...)
+    
+    // Пассивный ИИ по углю
+    pub last_ai_coal_threshold: u32,  // последний достигнутый порог
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -165,6 +171,9 @@ pub struct Upgrades {
     pub mining: u32,
     pub defense: bool,
     pub defense_level: u32,
+    // НОВЫЕ ПОЛЯ ДЛЯ МОДУЛЕЙ
+    pub crit_level: u32,     // уровень крит-модуля (макс. 10)
+    pub cooling_level: u32,  // уровень охлаждения (макс. 10)
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -190,6 +199,18 @@ pub enum QuestType {
     SurviveAttack,
     ReachEvolutionLevel,
     CollectResource(String),
+}
+
+impl Default for Upgrades {
+    fn default() -> Self {
+        Self {
+            mining: 0,
+            defense: false,
+            defense_level: 0,
+            crit_level: 0,
+            cooling_level: 0,
+        }
+    }
 }
 
 impl Default for GameState {
@@ -219,11 +240,7 @@ impl Default for GameState {
                 plasma: 0,
                 ore: 0,
             },
-            upgrades: Upgrades {
-                mining: 0,
-                defense: false,
-                defense_level: 0,
-            },
+            upgrades: Upgrades::default(),
             quests: Vec::new(),
             total_coal_burned: 0,
             plasma_from_coal: 0,
@@ -277,6 +294,8 @@ impl Default for GameState {
             blueprint_research_progress: 0,
             current_night_type: String::new(),
             trade_blocked: false,
+            power_tier: 0,
+            last_ai_coal_threshold: 0,
         }
     }
 }
@@ -451,10 +470,11 @@ impl GameState {
                 }
             }
     
+            // ✅ ИСПРАВЛЕНИЕ БАГА №4: убраны дублирующиеся LogMessage
             if !self.is_day && was_day {
                 self.nights_survived += 1;
                 events.push(GameEvent::NightStarted);
-                events.push(GameEvent::LogMessage("🌙 Наступила ночь".to_string()));
+                // ❌ УБРАНО: events.push(GameEvent::LogMessage("🌙 Наступила ночь".to_string()));
                 
                 if self.rebel_protection_active && self.rebel_protection_nights > 0 {
                     self.rebel_protection_nights -= 1;
@@ -472,7 +492,8 @@ impl GameState {
                 
             } else if self.is_day && !was_day {
                 events.push(GameEvent::DayStarted);
-                events.push(GameEvent::LogMessage("☀️ Наступил день".to_string()));
+                // ❌ УБРАНО: events.push(GameEvent::LogMessage("☀️ Наступил день".to_string()));
+                
                 // Сброс блокировки торговли
                 self.trade_blocked = false;
                 if self.current_night_type == "siege" {

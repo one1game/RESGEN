@@ -1,7 +1,8 @@
-// ======== src/systems/mining.rs (ИСПРАВЛЕННАЯ ВЕРСИЯ - ДЛЯ WASM) ========
+// ======== src/systems/mining.rs (С БОНУСАМИ СОЗНАНИЯ) ========
 
 use rand::Rng;
 use crate::game::{GameState, GameEvent};
+use crate::systems::neuro_ecosystem::NeuroEcosystem;
 
 #[derive(Clone)]
 pub struct MiningSystem {
@@ -12,138 +13,122 @@ impl MiningSystem {
     pub fn new(config: crate::game::config::MiningConfig) -> Self {
         Self { config }
     }
-    
-    fn get_current_time_ms() -> u64 {
-        // Используем performance.now() через web_sys для WASM
-        if let Some(window) = web_sys::window() {
-            if let Some(performance) = window.performance() {
-                return performance.now() as u64;
-            }
-        }
-        // Fallback: используем Date.now()
-        js_sys::Date::now() as u64
-    }
-    
-    fn mine_resources_common(&self, state: &mut GameState, is_auto: bool) -> Vec<GameEvent> {
+
+    fn mine_resources_common(
+        &self, 
+        state: &mut GameState, 
+        neuro: &NeuroEcosystem,
+        is_auto: bool
+    ) -> Vec<GameEvent> {
         let mut events = Vec::new();
-    
+
         if !state.is_ai_active() {
             if !is_auto {
-                events.push(GameEvent::LogMessage("❌ Система неактивна! Включите ТЭЦ или дождитесь дня".to_string()));
-            }
-            return events;
-        }
-        
-        // ========== ОБНОВЛЯЕМ ВРЕМЯ ПОСЛЕДНЕГО КЛИКА ==========
-        let now = Self::get_current_time_ms();
-        let time_since_last_click = if state.last_click_time == 0 {
-            1000 // Если первый клик, считаем как 1 секунду
-        } else {
-            let diff = now.saturating_sub(state.last_click_time);
-            if diff == 0 { 100 } else { diff } // Минимум 100 мс
-        };
-        state.last_click_time = now;
-        
-        // ========== ПРОВЕРКА: ЕСЛИ ТУРБИНА ПЕРЕГРЕТА НА 100% - ДОБЫЧА НЕВОЗМОЖНА ==========
-        if state.turbine_heat >= 100 {
-            if !is_auto {
                 events.push(GameEvent::LogMessage(
-                    "🔥 Турбина перегрета! Дождитесь остывания...".to_string()
+                    "❌ Система неактивна! Включите ТЭЦ или дождитесь дня".to_string(),
                 ));
             }
             return events;
         }
-        
-        // ========== РАСЧЕТ НАГРЕВА В ЗАВИСИМОСТИ ОТ ЧАСТОТЫ КЛИКОВ ==========
-        // Базовый нагрев
-        let base_heat = if is_auto { 1u32 } else { 2u32 };
-        let heat_reduction = state.turbine_upgrade_level;
-        
-        // РАСЧЕТ БОНУСА ЗА БЫСТРЫЕ КЛИКИ
-        let frequency_bonus = if !is_auto && time_since_last_click < 500 {
-            // Клики чаще чем 0.5 сек - бонус к нагреву
-            let bonus = ((500 - time_since_last_click) / 50) as u32;
-            bonus.min(5) // Максимум +5 к нагреву
-        } else {
-            0
-        };
-        
-        // Штраф за медленные клики (больше 2 секунд) - меньше нагрев
-        let frequency_penalty = if !is_auto && time_since_last_click > 2000 {
-            let penalty = ((time_since_last_click - 2000) / 500) as u32;
-            penalty.min(3) // Максимум -3 к нагреву
-        } else {
-            0
-        };
-        
-        let mut actual_heat = base_heat.saturating_sub(heat_reduction).max(1);
-        actual_heat = actual_heat + frequency_bonus;
-        actual_heat = actual_heat.saturating_sub(frequency_penalty);
-        actual_heat = actual_heat.max(1);
-        
-        let old_heat = state.turbine_heat;
-        let new_heat = (state.turbine_heat + actual_heat).min(100);
-        state.turbine_heat = new_heat;
-        
-        // ТОЛЬКО ОДНО УВЕДОМЛЕНИЕ - когда достигли 100%
-        if new_heat >= 100 && old_heat < 100 {
-            state.turbine_cooling = true;
-            events.push(GameEvent::LogMessage(
-                "⚠️ ТУРБИНА ПЕРЕГРЕТА! Дождитесь остывания...".to_string()
-            ));
+
+        if state.turbine_heat >= 100 {
+            return events;
         }
-        
-        // Сбрасываем флаг остывания (мы снова греем)
-        if state.turbine_cooling && new_heat < 100 {
+
+        if state.turbine_cooling {
             state.turbine_cooling = false;
         }
-        
-        // ========== ДОБЫЧА РЕСУРСОВ ==========
+
         let mut rng = rand::thread_rng();
         
-        // Базовые шансы с учётом улучшений
-        let mut coal_chance = self.config.base_chances.coal + 
-            if state.coal_enabled { self.config.coal_bonus } else { 0.0 } +
-            (state.upgrades.mining as f64 * self.config.upgrade_bonus);
+        // Бонусы от сознания ИИ
+        let bonuses = neuro.get_consciousness_bonuses();
+
+        // Расчёт нагрева
+        let base_heat: f64 = if is_auto { 0.8 } else { 1.8 };
+        let overheat_multiplier = 1.0 + (state.turbine_heat as f64 / 120.0);
+        let upgrade_reduction = 1.0 - (state.turbine_upgrade_level as f64 * 0.10).min(0.50);
         
-        let mut trash_chance = self.config.base_chances.trash +
-            (state.upgrades.mining as f64 * 0.005);
+        // Бонус охлаждения от модуля
+        let cooling_module_reduction = 1.0 - (state.upgrades.cooling_level as f64 * 0.15).min(0.75);
+        // Бонус охлаждения от сознания ИИ
+        let consciousness_cooling = 1.0 - bonuses.heat_reduction;
         
-        let mut ore_chance = self.config.base_chances.ore + 
-            (state.upgrades.mining as f64 * 0.003);
+        let jitter = 0.88 + rng.gen::<f64>() * 0.24;
         
-        // Применяем дебафф от технологического саботажа
-        let debuff = if state.mining_debuff_remaining > 0 {
+        let heat_increase = base_heat 
+            * overheat_multiplier 
+            * upgrade_reduction 
+            * cooling_module_reduction
+            * consciousness_cooling
+            * jitter;
+
+        let old_heat = state.turbine_heat;
+        let new_heat = ((state.turbine_heat as f64 + heat_increase).min(100.0)) as u32;
+        state.turbine_heat = new_heat;
+
+        if new_heat >= 100 && old_heat < 100 {
+            state.turbine_cooling = true;
+        }
+
+        let heat_penalty = if new_heat > 80 {
+            1.0 - ((new_heat - 80) as f64 / 20.0).min(1.0)
+        } else {
+            1.0
+        };
+
+        let mining_lvl = state.upgrades.mining as f64;
+
+        let mut coal_chance = (self.config.base_chances.coal
+            + if state.coal_enabled { self.config.coal_bonus } else { 0.0 }
+            + mining_lvl * self.config.upgrade_bonus)
+            * heat_penalty;
+
+        let mut trash_chance =
+            (self.config.base_chances.trash + mining_lvl * 0.005) * heat_penalty;
+
+        let mut ore_chance =
+            (self.config.base_chances.ore + mining_lvl * 0.003) * heat_penalty;
+
+        // Применяем бонус сознания к шансам добычи
+        coal_chance = (coal_chance + bonuses.mining_chance_bonus) * bonuses.global_multiplier;
+        trash_chance = (trash_chance + bonuses.mining_chance_bonus) * bonuses.global_multiplier;
+        ore_chance = (ore_chance + bonuses.mining_chance_bonus) * bonuses.global_multiplier;
+
+        let mining_debuff = if state.mining_debuff_remaining > 0 {
             1.0 - state.mining_debuff_percent as f64
         } else {
             1.0
         };
-        
-        coal_chance = coal_chance * debuff;
-        trash_chance = trash_chance * debuff;
-        ore_chance = ore_chance * debuff;
-        
-        // Дополнительный дебафф для автокликера (психологическая атака)
+
         let auto_debuff = if is_auto && state.autoclick_debuff_remaining > 0 {
             1.0 - state.autoclick_debuff_percent as f64
         } else {
             1.0
         };
+
+        coal_chance *= mining_debuff * auto_debuff;
+        trash_chance *= mining_debuff * auto_debuff;
+        ore_chance *= mining_debuff * auto_debuff;
+
+        // Крит-шанс с бонусами
+        let crit_module_bonus = state.upgrades.crit_level as f64 * 0.02;
+        let consciousness_crit_bonus = bonuses.crit_bonus;
+        let critical_chance = (self.config.critical_chance 
+            + crit_module_bonus 
+            + consciousness_crit_bonus) 
+            * (1.0 - new_heat as f64 / 200.0);
         
-        let final_coal_chance = coal_chance * auto_debuff;
-        let final_trash_chance = trash_chance * auto_debuff;
-        let final_ore_chance = ore_chance * auto_debuff;
-        
-        let is_critical = rng.gen::<f64>() < self.config.critical_chance;
+        let is_critical = rng.gen::<f64>() < critical_chance;
         let multiplier = if is_critical { self.config.critical_multiplier } else { 1 };
-        
-        // Добыча угля
-        if rng.gen::<f64>() < final_coal_chance {
+
+        if rng.gen::<f64>() < coal_chance {
             let amount = multiplier;
-            state.inventory.coal += amount;
-            state.total_mined += amount;
+            state.inventory.coal   += amount;
+            state.total_mined      += amount;
             state.total_coal_mined += amount;
-            
+            state.coal_unlocked     = true;
+
             if !is_auto {
                 events.push(GameEvent::ResourceMined {
                     resource: "coal".to_string(),
@@ -151,19 +136,15 @@ impl MiningSystem {
                     critical: is_critical,
                 });
             }
-            
-            if !state.coal_unlocked {
-                state.coal_unlocked = true;
-            }
         }
-        
-        // Добыча мусора
-        if rng.gen::<f64>() < final_trash_chance {
+
+        if rng.gen::<f64>() < trash_chance {
             let amount = multiplier;
-            state.inventory.trash += amount;
-            state.total_mined += amount;
+            state.inventory.trash   += amount;
+            state.total_mined       += amount;
             state.total_trash_mined += amount;
-            
+            state.trash_unlocked     = true;
+
             if !is_auto {
                 events.push(GameEvent::ResourceMined {
                     resource: "trash".to_string(),
@@ -171,19 +152,14 @@ impl MiningSystem {
                     critical: is_critical,
                 });
             }
-            
-            if !state.trash_unlocked {
-                state.trash_unlocked = true;
-            }
         }
-        
-        // Добыча руды
-        if rng.gen::<f64>() < final_ore_chance {
+
+        if rng.gen::<f64>() < ore_chance {
             let amount = multiplier;
-            state.inventory.ore += amount;
-            state.total_mined += amount;
-            state.total_ore_mined += amount;
-            
+            state.inventory.ore    += amount;
+            state.total_mined      += amount;
+            state.total_ore_mined  += amount;
+
             if !is_auto {
                 events.push(GameEvent::ResourceMined {
                     resource: "ore".to_string(),
@@ -192,81 +168,55 @@ impl MiningSystem {
                 });
             }
         }
-        
+
         events
     }
-    
-    pub fn mine_resources(&self, state: &mut GameState) -> Vec<GameEvent> {
-        self.mine_resources_common(state, false)
+
+    pub fn mine_resources(&self, state: &mut GameState, neuro: &NeuroEcosystem) -> Vec<GameEvent> {
+        self.mine_resources_common(state, neuro, false)
     }
-    
-    pub fn auto_mine_resources(&self, state: &mut GameState) -> Vec<GameEvent> {
-        self.mine_resources_common(state, true)
+
+    pub fn auto_mine_resources(&self, state: &mut GameState, neuro: &NeuroEcosystem) -> Vec<GameEvent> {
+        self.mine_resources_common(state, neuro, true)
     }
-    
-    pub fn passive_mining(&self, state: &mut GameState) -> Vec<GameEvent> {
-        let mut events = Vec::new();
-        
+
+    pub fn passive_mining(&self, state: &mut GameState, neuro: &NeuroEcosystem) -> Vec<GameEvent> {
         if !state.is_passive_mining_active() {
-            return events;
+            return Vec::new();
         }
-        
+
         let mut rng = rand::thread_rng();
         
+        // Бонус от сознания ИИ для пассивной добычи
+        let bonuses = neuro.get_consciousness_bonuses();
+        let passive_multiplier = bonuses.passive_multiplier;
+
         let debuff = if state.mining_debuff_remaining > 0 {
             1.0 - state.mining_debuff_percent as f64
         } else {
             1.0
         };
-        
-        let coal_chance = self.config.passive_chances.coal * debuff;
-        let trash_chance = self.config.passive_chances.trash * debuff;
-        let ore_chance = self.config.passive_chances.ore * debuff;
-        
-        if rng.gen::<f64>() < coal_chance {
-            state.inventory.coal += 1;
-            state.total_mined += 1;
+
+        if rng.gen::<f64>() < self.config.passive_chances.coal * debuff * passive_multiplier {
+            state.inventory.coal   += 1;
+            state.total_mined      += 1;
             state.total_coal_mined += 1;
-            
-            events.push(GameEvent::ResourceMined {
-                resource: "coal".to_string(),
-                amount: 1,
-                critical: false,
-            });
-            
-            if !state.coal_unlocked {
-                state.coal_unlocked = true;
-            }
+            state.coal_unlocked     = true;
         }
-        
-        if rng.gen::<f64>() < trash_chance {
-            state.inventory.trash += 1;
-            state.total_mined += 1;
+
+        if rng.gen::<f64>() < self.config.passive_chances.trash * debuff * passive_multiplier {
+            state.inventory.trash   += 1;
+            state.total_mined       += 1;
             state.total_trash_mined += 1;
-            
-            events.push(GameEvent::ResourceMined {
-                resource: "trash".to_string(),
-                amount: 1,
-                critical: false,
-            });
-            
-            if !state.trash_unlocked {
-                state.trash_unlocked = true;
-            }
+            state.trash_unlocked     = true;
         }
-        
-        if rng.gen::<f64>() < ore_chance {
-            state.inventory.ore += 1;
-            state.total_mined += 1;
-            state.total_ore_mined += 1;
-            
-            events.push(GameEvent::ResourceMined {
-                resource: "ore".to_string(),
-                amount: 1,
-                critical: false,
-            });
+
+        if rng.gen::<f64>() < self.config.passive_chances.ore * debuff * passive_multiplier {
+            state.inventory.ore    += 1;
+            state.total_mined      += 1;
+            state.total_ore_mined  += 1;
         }
-        
-        events
+
+        Vec::new()
     }
 }
