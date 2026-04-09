@@ -43,12 +43,14 @@ export class CoreGame {
   apply_fleet_upgrade(ore_cost: number, chips_cost: number, plasma_cost: number): boolean;
   get_neuro_evolution(): number;
   start_auto_clicking(): void;
+  upgrade_crit_module(): void;
   buy_rebel_protection(): void;
   craft_chips_from_ore(): string;
   get_blueprint_status(): string;
   set_fleet_cargo_bonus(bonus: number): void;
   craft_plasma_from_coal(): string;
   debug_add_neuro_points(points: number): void;
+  upgrade_cooling_module(): void;
   get_computational_power(): number;
   set_fleet_defense_bonus(bonus: number): void;
   toggle_rebel_protection(): void;
@@ -120,6 +122,8 @@ export interface InitOutput {
   readonly coregame_sync_blueprints: (a: number, b: number, c: number, d: number) => void;
   readonly coregame_toggle_coal: (a: number) => void;
   readonly coregame_toggle_rebel_protection: (a: number) => void;
+  readonly coregame_upgrade_cooling_module: (a: number) => void;
+  readonly coregame_upgrade_crit_module: (a: number) => void;
   readonly coregame_upgrade_defense: (a: number) => void;
   readonly coregame_upgrade_mining: (a: number) => void;
   readonly coregame_upgrade_turbine: (a: number) => number;

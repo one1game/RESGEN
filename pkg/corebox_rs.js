@@ -571,6 +571,9 @@ export class CoreGame {
     start_auto_clicking() {
         wasm.coregame_start_auto_clicking(this.__wbg_ptr);
     }
+    upgrade_crit_module() {
+        wasm.coregame_upgrade_crit_module(this.__wbg_ptr);
+    }
     buy_rebel_protection() {
         wasm.coregame_buy_rebel_protection(this.__wbg_ptr);
     }
@@ -630,6 +633,9 @@ export class CoreGame {
      */
     debug_add_neuro_points(points) {
         wasm.coregame_debug_add_neuro_points(this.__wbg_ptr, points);
+    }
+    upgrade_cooling_module() {
+        wasm.coregame_upgrade_cooling_module(this.__wbg_ptr);
     }
     /**
      * @returns {number}
@@ -888,18 +894,6 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_node_905d3e251edff8a2 = function(arg0) {
         const ret = arg0.node;
         return ret;
-    };
-    imports.wbg.__wbg_now_793306c526e2e3b6 = function() {
-        const ret = Date.now();
-        return ret;
-    };
-    imports.wbg.__wbg_now_f5ba683d8ce2c571 = function(arg0) {
-        const ret = arg0.now();
-        return ret;
-    };
-    imports.wbg.__wbg_performance_e8315b5ae987e93f = function(arg0) {
-        const ret = arg0.performance;
-        return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
     };
     imports.wbg.__wbg_process_dc0fbacc7c1c06f7 = function(arg0) {
         const ret = arg0.process;

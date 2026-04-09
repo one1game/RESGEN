@@ -1,4 +1,4 @@
-// ======== game.js (ОПТИМИЗИРОВАННАЯ ВЕРСИЯ С ТУРБИНОЙ) ========
+// ======== game.js (ПОЛНОСТЬЮ ОБНОВЛЁННАЯ ВЕРСИЯ) ========
 
 import init, { start_game, apply_config_from_admin } from './pkg/corebox_rs.js';
 import { 
@@ -67,6 +67,19 @@ function showFloatingText(text, x, y) {
         floatingText.classList.add('fade-out');
         setTimeout(() => floatingText.remove(), 500);
     }, 800);
+}
+
+function addToLog(message) {
+    const logBox = document.getElementById('logBox');
+    if (!logBox) return;
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.textContent = message;
+    logBox.appendChild(entry);
+    while (logBox.children.length > 50) {
+        logBox.removeChild(logBox.firstChild);
+    }
+    logBox.scrollTop = logBox.scrollHeight;
 }
 
 function triggerRandomEvent() {
@@ -519,10 +532,38 @@ function updateNeuroStatus(rustStats = null) {
             
             updateAttackHistory(rustStats.attack_history || []);
             updateFactionPanel(rustStats.rebel_factions || [], rustStats.last_attacking_faction || '');
+            
+            // Обновляем отображение новых модулей
+            updateUpgradeDisplay(rustStats);
         }
     } catch (e) {
         console.warn('Не удалось обновить нейро-статус:', e);
     }
+}
+
+function updateUpgradeDisplay(rustStats) {
+    if (!rustStats) return;
+    
+    const critLevel = rustStats.crit_level || 0;
+    const coolingLevel = rustStats.cooling_level || 0;
+    const powerTier = rustStats.power_tier || 0;
+    
+    const critLevelEl = document.getElementById('critLevel');
+    if (critLevelEl) critLevelEl.textContent = `Ур. ${critLevel}/10 (+${critLevel * 2}% крит)`;
+    
+    const coolingLevelEl = document.getElementById('coolingLevel');
+    if (coolingLevelEl) coolingLevelEl.textContent = `Ур. ${coolingLevel}/10 (-${coolingLevel * 15}% нагрев)`;
+    
+    const powerTierEl = document.getElementById('powerTier');
+    if (powerTierEl) powerTierEl.textContent = `Тир ${powerTier} | +${powerTier + 1} мощности/клик`;
+    
+    const critCost = (critLevel + 1) * 2 + 4;
+    const critCostEl = document.getElementById('critCost');
+    if (critCostEl) critCostEl.textContent = `Стоимость: по ${critCost} каждого ресурса`;
+    
+    const coolingCost = 500 * (coolingLevel + 1);
+    const coolingCostEl = document.getElementById('coolingCost');
+    if (coolingCostEl) coolingCostEl.textContent = `Стоимость: ${coolingCost} угля`;
 }
 
 function updateAttackHistory(history) {
@@ -638,8 +679,9 @@ function getCritChance(rustStats) {
     const evolution = rustStats?.neuro_evolution || 0;
     const evolutionBonus = Math.min(evolution / 500, 0.1);
     const prestigeBonus = getPrestigeBonus().critBonus;
+    const critModuleBonus = (rustStats?.crit_level || 0) * 0.02;
     
-    return baseCrit + evolutionBonus + prestigeBonus;
+    return baseCrit + evolutionBonus + prestigeBonus + critModuleBonus;
 }
 
 function getComboMultiplier() {
@@ -689,8 +731,8 @@ function updateStatsFromGame(rustStats = null) {
                 trash_mined: Math.max(0, rustStats.trash_mined - (lastRustStats.trash_mined || 0)),
                 plasma_mined: Math.max(0, rustStats.plasma_mined - (lastRustStats.plasma_mined || 0)),
                 ore_mined: Math.max(0, (rustStats.ore_mined || 0) - (lastRustStats.ore_mined || 0)),
-                coal_burned: Math.max(0, rustStats.coal_burned - (lastRustStats.coal_burned || 0)),
-                coal_stolen: Math.max(0, rustStats.coal_stolen - (lastRustStats.coal_stolen || 0))
+                coal_burned: Math.max(0, (rustStats.coal_burned || 0) - (lastRustStats.coal_burned || 0)),
+                coal_stolen: Math.max(0, (rustStats.coal_stolen || 0) - (lastRustStats.coal_stolen || 0))
             };
             
             gameStats.nightsSurvived += diff.nights_survived;
@@ -716,11 +758,31 @@ function updateStatsFromGame(rustStats = null) {
     }
 }
 
+// ✅ ИСПРАВЛЕННЫЙ handleClick - комбо показывается ТОЛЬКО когда добыча возможна
 function handleClick() {
     if (!game) return;
     
     const now = Date.now();
     
+    // Получаем статистику ДО всего
+    let rustStats = null;
+    try {
+        const statsJson = game.get_statistics();
+        if (statsJson) rustStats = JSON.parse(statsJson);
+    } catch(e) {}
+    
+    // Проверяем: система активна И турбина не перегрета
+    const isSystemActive = rustStats && (rustStats.coal_enabled || rustStats.is_day);
+    const isOverheated = rustStats && rustStats.turbine_heat >= 100;
+    const canMine = isSystemActive && !isOverheated;
+    
+    // Если добыча невозможна — выполняем клик без визуальных эффектов
+    if (!canMine) {
+        game.add_manual_click();
+        return; // иксы и крит НЕ показываем
+    }
+    
+    // Только теперь считаем комбо и показываем иксы
     if (now - lastClickTime < 1000) {
         comboCount++;
     } else {
@@ -730,12 +792,6 @@ function handleClick() {
     
     if (comboCount > 1) {
         showFloatingText(`x${comboCount}`, window.innerWidth / 2 + 50, window.innerHeight / 2 - 30);
-    }
-    
-    const statsJson = game.get_statistics();
-    let rustStats = null;
-    if (statsJson) {
-        rustStats = JSON.parse(statsJson);
     }
     
     const critChance = getCritChance(rustStats);
@@ -881,6 +937,8 @@ function switchMainTab(tabName) {
         updateDesignTab();
     } else if (tabName === 'fleet') {
         updateFleetTab();
+    } else if (tabName === 'trade') {
+        renderTradeTab();
     }
 }
 
@@ -930,6 +988,101 @@ function updateFleetTab() {
         console.error('Ошибка обновления флота:', e);
     }
 }
+
+// ========== НОВАЯ СИСТЕМА ТОРГОВЛИ ==========
+
+const BASE_TRADES = [
+    { id: 'coal_to_ore', from: 'coal', fromAmt: 3, to: 'ore', toAmt: 1 },
+    { id: 'ore_to_coal', from: 'ore', fromAmt: 1, to: 'coal', toAmt: 2 },
+    { id: 'ore_to_chips', from: 'ore', fromAmt: 50, to: 'chips', toAmt: 1 },
+    { id: 'chips_to_ore', from: 'chips', fromAmt: 1, to: 'ore', toAmt: 30 },
+    { id: 'coal_to_plasma', from: 'coal', fromAmt: 80, to: 'plasma', toAmt: 1 },
+    { id: 'plasma_to_coal', from: 'plasma', fromAmt: 1, to: 'coal', toAmt: 60 },
+    { id: 'chips_to_plasma', from: 'chips', fromAmt: 5, to: 'plasma', toAmt: 1 },
+    { id: 'plasma_to_chips', from: 'plasma', fromAmt: 1, to: 'chips', toAmt: 4 },
+];
+
+const RES_ICON = { coal: '🪨', ore: '⛏️', chips: '🎛️', plasma: '⚡', trash: '🗑️' };
+const RES_NAME = { coal: 'уголь', ore: 'руда', chips: 'чип', plasma: 'плазма' };
+
+let activeDiscount = null;
+let lastDiscountNight = -1;
+
+function rollNightDiscount(nightIndex) {
+    if (nightIndex === lastDiscountNight) return;
+    lastDiscountNight = nightIndex;
+    activeDiscount = null;
+    
+    // Шанс 1 из 4 (25%)
+    if (Math.random() < 0.25) {
+        const idx = Math.floor(Math.random() * BASE_TRADES.length);
+        activeDiscount = { tradeId: BASE_TRADES[idx].id, nightIndex };
+        const t = BASE_TRADES[idx];
+        addToLog(`🏷️ Ночная скидка 50%: ${RES_ICON[t.from]}→${RES_ICON[t.to]}`);
+        renderTradeTab();
+    }
+}
+
+function onDayStarted() {
+    if (activeDiscount) {
+        activeDiscount = null;
+        renderTradeTab();
+    }
+}
+
+function renderTradeTab() {
+    const container = document.getElementById('buyItemsContainer');
+    if (!container || !game) return;
+    
+    let rustStats = null;
+    try {
+        const j = game.get_statistics();
+        if (j) rustStats = JSON.parse(j);
+    } catch(e) {}
+    
+    const inv = {
+        coal: rustStats?.coal_inventory || 0,
+        ore: rustStats?.ore_inventory || 0,
+        chips: rustStats?.chips_inventory || 0,
+        plasma: rustStats?.plasma_inventory || 0,
+    };
+    
+    container.innerHTML = BASE_TRADES.map(t => {
+        const hasDisc = activeDiscount?.tradeId === t.id;
+        const cost = hasDisc ? Math.max(1, Math.ceil(t.fromAmt * 0.5)) : t.fromAmt;
+        const canAfford = inv[t.from] >= cost;
+        const discBadge = hasDisc ? `<span class='disc-badge'>-50% 🏷️</span>` : '';
+        
+        return `<div class='trade-card ${canAfford ? '' : 'trade-disabled'}'>
+            ${discBadge}
+            <div class='trade-from'>${RES_ICON[t.from]} ${cost} <small>${RES_NAME[t.from]}</small></div>
+            <div class='trade-arr'>→</div>
+            <div class='trade-to'>${RES_ICON[t.to]} ${t.toAmt} <small>${RES_NAME[t.to]}</small></div>
+            <div class='trade-have'>Есть: ${inv[t.from]}</div>
+            <button onclick='window.executeTrade && window.executeTrade("${t.id}")' ${canAfford ? '' : 'disabled'}>ОБМЕНЯТЬ</button>
+        </div>`;
+    }).join('');
+}
+
+window.executeTrade = function(tradeId) {
+    if (!game) return;
+    const t = BASE_TRADES.find(x => x.id === tradeId);
+    if (!t) return;
+    const hasDisc = activeDiscount?.tradeId === tradeId;
+    const cost = hasDisc ? Math.max(1, Math.ceil(t.fromAmt * 0.5)) : t.fromAmt;
+    
+    try {
+        game.subtract_resource(t.from, cost);
+        game.add_resource(t.to, t.toAmt);
+        addToLog(`🔄 Обмен: -${cost} ${RES_ICON[t.from]} → +${t.toAmt} ${RES_ICON[t.to]}`);
+        playSound('upgrade');
+        renderTradeTab();
+    } catch(e) {
+        addToLog('❌ Недостаточно ресурсов');
+    }
+};
+
+// ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
 
 function setupEventListeners() {
     console.log('=== НАСТРОЙКА ОБРАБОТЧИКОВ СОБЫТИЙ ===');
@@ -1014,6 +1167,27 @@ function setupEventListeners() {
             }
         });
     }
+    
+    // НОВЫЕ КНОПКИ ДЛЯ МОДУЛЕЙ
+    const upgradeCritBtn = document.getElementById('upgradeCritBtn');
+    if (upgradeCritBtn) {
+        upgradeCritBtn.addEventListener('click', () => {
+            if (game.upgrade_crit_module) {
+                game.upgrade_crit_module();
+                playSound('upgrade');
+            }
+        });
+    }
+    
+    const upgradeCoolingBtn = document.getElementById('upgradeCoolingBtn');
+    if (upgradeCoolingBtn) {
+        upgradeCoolingBtn.addEventListener('click', () => {
+            if (game.upgrade_cooling_module) {
+                game.upgrade_cooling_module();
+                playSound('upgrade');
+            }
+        });
+    }
 
     const buyModeBtn = document.getElementById('buyModeBtn');
     if (buyModeBtn) {
@@ -1022,6 +1196,7 @@ function setupEventListeners() {
             document.getElementById('sellItemsContainer').style.display = 'none';
             document.getElementById('buyModeBtn').classList.add('active');
             document.getElementById('sellModeBtn').classList.remove('active');
+            renderTradeTab();
             playSound('click');
         });
     }
@@ -1033,6 +1208,8 @@ function setupEventListeners() {
             document.getElementById('sellItemsContainer').style.display = 'grid';
             document.getElementById('buyModeBtn').classList.remove('active');
             document.getElementById('sellModeBtn').classList.add('active');
+            const sellContainer = document.getElementById('sellItemsContainer');
+            if (sellContainer) sellContainer.innerHTML = '<div class="trade-info">Продажа временно недоступна</div>';
             playSound('click');
         });
     }
@@ -1236,6 +1413,7 @@ async function initializeGame() {
                 updateStatsFromGame(rustStats);
                 updateNeuroStatus(rustStats);
                 updateTurbineStatus(rustStats);
+                updateUpgradeDisplay(rustStats);
                 
                 craftModule.syncFromStats(rustStats);
                 
@@ -1313,6 +1491,11 @@ async function initializeGame() {
                         fleetContainerEl.innerHTML = fleetModule.renderFleetUI();
                         fleetModule.setupEventListeners(fleetContainerEl);
                     }
+                }
+                
+                // Ночные скидки для торговли
+                if (rustStats.nights_survived !== undefined) {
+                    rollNightDiscount(rustStats.nights_survived);
                 }
             }
             
@@ -1484,6 +1667,9 @@ document.addEventListener('gameEvent', function(e) {
             case 'attack_defended':
                 gameStats.attacksDefended++;
                 scheduleSave();
+                break;
+            case 'day_started':
+                onDayStarted();
                 break;
         }
     }

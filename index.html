@@ -105,7 +105,7 @@
                                 <div class="threat-level low"></div>
                             </div>
 
-                            <!-- ТУРБИНА (вместо заметности) -->
+                            <!-- ТУРБИНА -->
                             <div class="turbine-container">
                                 <div class="stat-label" id="turbineHeatLabel">🌡️ Перегрев: 0%</div>
                                 <div class="turbine-bar">
@@ -144,10 +144,15 @@
                         <div class="power-section">
                             <div class="power-label">
                                 <span>ВЫЧИСЛИТЕЛЬНАЯ МОЩНОСТЬ:</span>
-                                <span id="powerText">0/100</span>
+                                <span id="powerText">0/1000</span>
                             </div>
                             <div class="progress-container">
                                 <div class="progress-fill" id="powerFill" style="width: 0%"></div>
+                            </div>
+                            <!-- ТИР МОЩНОСТИ -->
+                            <div class="power-tier-info">
+                                <span>⚡ ТИР МОЩНОСТИ:</span>
+                                <span id="powerTier">Тир 0 | +1 мощности/клик</span>
                             </div>
                         </div>
                         
@@ -400,7 +405,7 @@
                                 </div>
                             </div>
                             
-                            <!-- НОВАЯ КАРТОЧКА ТУРБИНЫ -->
+                            <!-- ТУРБИНА -->
                             <div class="upgrade-card">
                                 <div class="upgrade-header">
                                     <div class="upgrade-title">⚙️ ТУРБИНА</div>
@@ -433,6 +438,52 @@
                                     </button>
                                 </div>
                             </div>
+                            
+                            <!-- НОВЫЙ МОДУЛЬ: КРИТ-МОДУЛЬ -->
+                            <div class="upgrade-card">
+                                <div class="upgrade-header">
+                                    <div class="upgrade-title">💥 КРИТ-МОДУЛЬ</div>
+                                    <div class="upgrade-level" id="critLevel">Ур. 0/10</div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                <div class="upgrade-requirements">
+                                    <div class="requirement">
+                                        <div class="requirement-name">
+                                            <div class="requirement-icon">💰</div>
+                                            <span>СТОИМОСТЬ:</span>
+                                        </div>
+                                        <div class="requirement-value" id="critCost">по 5 каждого</div>
+                                    </div>
+                                </div>
+                                <div class="upgrade-cost">
+                                    <button id="upgradeCritBtn" class="upgrade-btn">ПРОКАЧАТЬ КРИТ</button>
+                                </div>
+                            </div>
+                            
+                            <!-- НОВЫЙ МОДУЛЬ: ОХЛАЖДЕНИЕ -->
+                            <div class="upgrade-card">
+                                <div class="upgrade-header">
+                                    <div class="upgrade-title">❄️ ОХЛАЖДЕНИЕ</div>
+                                    <div class="upgrade-level" id="coolingLevel">Ур. 0/10</div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                <div class="upgrade-requirements">
+                                    <div class="requirement">
+                                        <div class="requirement-name">
+                                            <div class="requirement-icon">🪨</div>
+                                            <span>СТОИМОСТЬ:</span>
+                                        </div>
+                                        <div class="requirement-value" id="coolingCost">500 угля</div>
+                                    </div>
+                                </div>
+                                <div class="upgrade-cost">
+                                    <button id="upgradeCoolingBtn" class="upgrade-btn">ПРОКАЧАТЬ ОХЛАЖДЕНИЕ</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -447,7 +498,7 @@
                     <div class="panel-content">
                         <div class="trade-container">
                             <div class="trade-mode-toggle">
-                                <button id="buyModeBtn" class="trade-mode-btn active">ЗАКУПКА</button>
+                                <button id="buyModeBtn" class="trade-mode-btn active">ОБМЕН</button>
                                 <button id="sellModeBtn" class="trade-mode-btn">ПРОДАЖА</button>
                             </div>
                             
