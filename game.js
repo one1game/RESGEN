@@ -1,4 +1,4 @@
-// ======== game.js (ПОЛНАЯ ОБНОВЛЁННАЯ ВЕРСИЯ) ========
+// ======== game.js (ПОЛНАЯ ОБНОВЛЁННАЯ ВЕРСИЯ С ИСПРАВЛЕНИЯМИ) ========
 
 import init, { start_game, apply_config_from_admin } from './pkg/corebox_rs.js';
 import { 
@@ -15,10 +15,11 @@ import {
 import { craftModule } from './craft.js';
 import { designModule } from './design.js';
 import { fleetModule } from './fleet.js';
+import { Sounds } from './sounds.js';
 
 // ========== ИМПОРТЫ SUPABASE ==========
 import { initAuth, logout, getCurrentUser, login, register } from './auth.js';
-import { saveGameToCloud, loadGameFromCloud, updateLeaderboard, getLeaderboard } from './save.js';
+import { saveGameToCloud, loadGameFromCloud, updateLeaderboard } from './save.js';
 
 let game;
 window.getCurrentGameState = () => getCurrentGameState();
@@ -44,10 +45,14 @@ let _cloudSaveTimer = null;
 // Флаг для отслеживания инициализации игры
 let isGameInitialized = false;
 
-// Восстанавливаем состояние автокликера
-if (localStorage.getItem('corebox_autoclicking') === 'true') {
-    isAutoClicking = true;
-}
+// Флаг для отслеживания обработанных атак флота
+let lastProcessedAttackHash = null;
+
+// Глобальный интервал для игрового цикла
+let _gameLoopInterval = null;
+
+// ✅ ИСПРАВЛЕНИЕ БАГА 3: флаг для офлайн-прогресса
+let offlineProgressShown = false;
 
 function scheduleSave() {
     _saveDirty = true;
@@ -62,24 +67,17 @@ function scheduleSave() {
     }
 }
 
-// Сохранение в облако с дебаунсом
-function scheduleCloudSave(gameState) {
+// Сохранение в облако с дебаунсом - ИСПРАВЛЕНИЕ БАГА 6
+function scheduleCloudSave() {
     if (!currentUser) return;
     
     if (_cloudSaveTimer) clearTimeout(_cloudSaveTimer);
     _cloudSaveTimer = setTimeout(async () => {
-        if (gameState) {
-            await saveGameToCloud(gameState);
-        }
+        const freshState = getCurrentGameState();
+        if (freshState) await saveGameToCloud(freshState);
         _cloudSaveTimer = null;
     }, 2000);
 }
-
-let sounds = {
-    click: null,
-    error: null,
-    upgrade: null
-};
 
 function showFloatingText(text, x, y) {
     const floatingText = document.createElement('div');
@@ -169,7 +167,7 @@ function triggerRandomEvent() {
     
     const event = events[Math.floor(Math.random() * events.length)];
     const result = event.effect();
-    playSound('upgrade');
+    Sounds.upgrade();
     
     const logMsg = document.createElement('div');
     logMsg.className = 'log-entry event-log';
@@ -205,8 +203,7 @@ function prestigeReset() {
         const event = new CustomEvent('prestigeComplete', { detail: { level: prestigeLevel } });
         document.dispatchEvent(event);
         
-        // Сохраняем в облако после престижа
-        scheduleCloudSave(getCurrentGameState());
+        scheduleCloudSave();
     }
 }
 
@@ -307,20 +304,27 @@ async function loadLeaderboard() {
     container.innerHTML = '<div class="leaderboard-loading">⏳ Загрузка...</div>';
     
     try {
+        const { getLeaderboard } = await import('./save.js');
         const leaders = await getLeaderboard();
+        
         if (!leaders || leaders.length === 0) {
-            container.innerHTML = '<div class="leaderboard-empty">Данных пока нет</div>';
+            container.innerHTML = '<div class="leaderboard-empty">📋 Данных пока нет. Играйте, чтобы попасть в топ!</div>';
             return;
         }
+        
         container.innerHTML = leaders.map((entry, i) => `
             <div class="leaderboard-row ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">
-                <span class="lb-rank">${['🥇','🥈','🥉'][i] || (i+1)+'.'}</span>
-                <span class="lb-name">${escapeHtml(entry.username || entry.email?.split('@')[0] || 'Игрок')}</span>
-                <span class="lb-score">⛏️ ${entry.total_mined || 0}</span>
-                <span class="lb-nights">🌙 ${entry.nights_survived || 0}</span>
+                <span class="lb-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)+'.'}</span>
+                <span class="lb-name">${escapeHtml(entry.username || 'Игрок')}</span>
+                <span class="lb-score">⛏️ ${(entry.total_mined || 0).toLocaleString()}</span>
+                <span class="lb-nights">🌙 ${entry.nights || 0}</span>
             </div>
         `).join('');
+        
+        console.log("✅ Лидерборд загружен, записей:", leaders.length);
+        
     } catch(e) {
+        console.error("❌ Ошибка загрузки лидерборда:", e);
         container.innerHTML = '<div class="leaderboard-error">❌ Ошибка загрузки</div>';
     }
 }
@@ -341,7 +345,11 @@ function getCurrentGameState() {
     try {
         const statsJson = game.get_statistics();
         if (statsJson) {
-            return JSON.parse(statsJson);
+            const parsed = JSON.parse(statsJson);
+            parsed.mining_level = parsed.upgrades?.mining || 0;
+            parsed.defense_active = parsed.upgrades?.defense || false;
+            parsed.defense_level = parsed.upgrades?.defense_level || 0;
+            return parsed;
         }
     } catch (e) {
         console.warn("Не удалось получить состояние игры:", e);
@@ -369,15 +377,15 @@ async function loadGameStateIntoSave(cloudSave) {
     }
     
     try {
-        // Сохраняем timestamp до загрузки для офлайн расчёта
         const offlineProgress = calculateOfflineProgress(cloudSave);
         
         if (typeof game.load_game_state === 'function') {
             game.load_game_state(JSON.stringify(cloudSave));
             console.log("✅ Состояние загружено из облака через Rust");
             
-            // Применяем офлайн прогресс
-            if (offlineProgress && offlineProgress.elapsedSeconds > 10) {
+            // ✅ ИСПРАВЛЕНИЕ БАГА 3: офлайн-прогресс показываем только один раз
+            if (offlineProgress && offlineProgress.elapsedSeconds > 10 && !offlineProgressShown) {
+                offlineProgressShown = true;
                 try {
                     if (offlineProgress.coalGained > 0) game.add_resource('coal', offlineProgress.coalGained);
                     if (offlineProgress.trashGained > 0) game.add_resource('trash', offlineProgress.trashGained);
@@ -392,15 +400,19 @@ async function loadGameStateIntoSave(cloudSave) {
                     console.warn("Ошибка применения офлайн прогресса:", e);
                 }
                 showOfflineRewardPopup(offlineProgress);
+                Sounds.online();
+                
+                setTimeout(() => {
+                    const freshState = getCurrentGameState();
+                    if (freshState) saveGameToCloud(freshState);
+                }, 3000);
             }
             
-            // Восстанавливаем чертежи
             if (cloudSave._blueprints && cloudSave._blueprints.length > 0) {
                 localStorage.setItem('corebox_ship_blueprints', JSON.stringify(cloudSave._blueprints));
                 console.log("📐 Чертежи восстановлены из облака");
             }
             
-            // Восстанавливаем статистику
             if (cloudSave._statistics && currentUser) {
                 const users = JSON.parse(localStorage.getItem('corebox_users') || '{}');
                 if (!users[currentUser.email]) users[currentUser.email] = {};
@@ -642,6 +654,7 @@ function showUserInfo() {
     }
 }
 
+// ИСПРАВЛЕНИЕ БАГА 1: защита от двойной инициализации панелей
 function initializeCollapsiblePanels() {
     setTimeout(() => {
         const panelTitles = document.querySelectorAll('.panel-title');
@@ -651,6 +664,9 @@ function initializeCollapsiblePanels() {
             if (panel && !panel.id) {
                 panel.id = `panel-${index}`;
             }
+            
+            if (panelTitle.dataset.collapseInit === '1') return;
+            panelTitle.dataset.collapseInit = '1';
             
             panelTitle.addEventListener('click', (e) => {
                 if (e.target.closest('button')) {
@@ -671,6 +687,18 @@ function initializeCollapsiblePanels() {
                 
                 savePanelStates();
             });
+            
+            panelTitle.addEventListener('touchend', (e) => {
+                if (e.target.closest('button')) return;
+                e.preventDefault();
+                const pnl = panelTitle.closest('.panel');
+                pnl.classList.toggle('collapsed');
+                const icon = panelTitle.querySelector('.collapse-icon');
+                if (icon) {
+                    icon.textContent = pnl.classList.contains('collapsed') ? '▶' : '▼';
+                }
+                savePanelStates();
+            }, { passive: false });
         });
         
         restorePanelStates();
@@ -813,7 +841,7 @@ function updateNeuroStatus(rustStats = null) {
                 if (rustStats.attack_warning) {
                     const wasHidden = warningElement.style.display === 'none';
                     warningElement.style.display = 'block';
-                    if (wasHidden) playSound('error');
+                    if (wasHidden) Sounds.error();
                     if (rustStats.attack_warning_faction) {
                         warningElement.innerHTML = `⚠️ ${rustStats.attack_warning} от ${rustStats.attack_warning_faction}`;
                     } else {
@@ -922,30 +950,6 @@ function updateFactionPanel(factions, lastAttacker) {
     }).join('');
 }
 
-function initializeSounds() {
-    sounds.click = new Audio('music/click.mp3');
-    sounds.error = new Audio('music/error.mp3');
-    sounds.upgrade = new Audio('music/upgrade.mp3');
-    
-    Object.values(sounds).forEach(sound => {
-        if (sound) {
-            sound.preload = 'auto';
-            sound.volume = 0.3;
-        }
-    });
-    
-    console.log('🔊 Звуки загружены');
-}
-
-function playSound(soundName) {
-    if (sounds[soundName]) {
-        sounds[soundName].currentTime = 0;
-        sounds[soundName].play().catch(e => {
-            console.warn(`Не удалось воспроизвести звук ${soundName}:`, e);
-        });
-    }
-}
-
 function setupLogObserver() {
     const logBox = document.getElementById('logBox');
     if (!logBox) return;
@@ -956,6 +960,37 @@ function setupLogObserver() {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === 1 && node.classList.contains('log-entry')) {
                         checkLogMessage(node);
+                        const message = node.textContent || '';
+                        if (message.includes('НЕЙРО-ЭВОЛЮЦИЯ') || message.includes('ИИ-пассив')) {
+                            Sounds.evolution();
+                        }
+                        if (message.includes('Атака') && message.includes('повстанцев') && !message.includes('отражена')) {
+                            Sounds.rebelAttack();
+                        }
+                        if (message.includes('Предупреждение') || message.includes('высокая вероятность')) {
+                            Sounds.warning();
+                        }
+                        if (message.includes('Квест') && message.includes('выполнен')) {
+                            Sounds.questDone();
+                        }
+                        if (message.includes('ТЭЦ активирована')) {
+                            Sounds.coalOn();
+                        }
+                        if (message.includes('ТЭЦ деактивирована')) {
+                            Sounds.coalOff();
+                        }
+                        if (message.includes('Обмен') || message.includes('Торговля')) {
+                            Sounds.trade();
+                        }
+                        if (message.includes('Улучшена') || message.includes('апгрейд')) {
+                            Sounds.upgrade();
+                        }
+                        if (message.includes('добыт') && message.includes('чип')) {
+                            Sounds.chips();
+                        }
+                        if (message.includes('добыт') && message.includes('плазма')) {
+                            Sounds.plasma();
+                        }
                     }
                 });
             }
@@ -975,7 +1010,7 @@ function checkLogMessage(logEntry) {
     const message = logEntry.textContent || '';
     
     if (message.includes('❌ Система неактивна!')) {
-        playSound('error');
+        Sounds.error();
         
         const floatingBtn = document.getElementById('floatingMineBtn');
         if (floatingBtn && !floatingBtn.classList.contains('error-shake')) {
@@ -1093,6 +1128,7 @@ function handleClick() {
     
     if (now - lastClickTime < 1000) {
         comboCount++;
+        Sounds.combo();
     } else {
         comboCount = 1;
     }
@@ -1109,12 +1145,10 @@ function handleClick() {
     
     const isCrit = Math.random() < critChance;
     
-    playSound('click');
-    
-    clickCounter++;
-    gameStats.totalClicks = (gameStats.totalClicks || 0) + actualClicks;
+    Sounds.mine();
     
     if (isCrit) {
+        Sounds.critical();
         showFloatingText('💥 CRIT!', window.innerWidth / 2, window.innerHeight / 2 - 50);
         for (let i = 0; i < actualClicks * 2; i++) {
             game.add_manual_click();
@@ -1144,6 +1178,7 @@ function toggleAutoClicking() {
         document.getElementById('autoClickStatus').textContent = 'ОТКЛЮЧЕНА';
         document.getElementById('autoClickStatus').classList.remove('auto-clicking-status');
         localStorage.setItem('corebox_autoclicking', 'false');
+        Sounds.autoStop();
     } else {
         if (game.get_computational_power() > 0) {
             game.start_auto_clicking();
@@ -1152,11 +1187,11 @@ function toggleAutoClicking() {
             document.getElementById('autoClickStatus').textContent = 'АКТИВНА';
             document.getElementById('autoClickStatus').classList.add('auto-clicking-status');
             localStorage.setItem('corebox_autoclicking', 'true');
-            playSound('click');
+            Sounds.autoStart();
         } else {
             const floatingBtn = document.getElementById('floatingMineBtn');
             floatingBtn.classList.add('no-power');
-            playSound('error');
+            Sounds.error();
             setTimeout(() => {
                 floatingBtn.classList.remove('no-power');
             }, 800);
@@ -1384,12 +1419,13 @@ window.executeTrade = function(tradeId) {
         game.subtract_resource(t.from, cost);
         game.add_resource(t.to, t.toAmt);
         addToLog(`🔄 Обмен: -${cost} ${RES_ICON[t.from]} → +${t.toAmt} ${RES_ICON[t.to]}`);
-        playSound('upgrade');
+        Sounds.trade();
         renderTradeTab();
         
-        scheduleCloudSave(getCurrentGameState());
+        scheduleCloudSave();
     } catch(e) {
         addToLog('❌ Недостаточно ресурсов');
+        Sounds.error();
     }
 };
 
@@ -1438,7 +1474,7 @@ function setupEventListeners() {
         const resource = target.getAttribute('data-resource');
 
         if (action === 'buy' || action === 'sell' || action === 'toggle-coal') {
-            playSound('click');
+            Sounds.click();
         }
 
         if (action === 'buy' && resource) game.buy_resource(resource);
@@ -1449,27 +1485,27 @@ function setupEventListeners() {
     const upgradeMiningBtn = document.getElementById('upgradeMiningBtn');
     if (upgradeMiningBtn) {
         upgradeMiningBtn.addEventListener('click', () => {
-            playSound('upgrade');
+            Sounds.upgrade();
             game.upgrade_mining();
-            scheduleCloudSave(getCurrentGameState());
+            scheduleCloudSave();
         });
     }
     
     const upgradeDefenseBtn = document.getElementById('upgradeDefenseBtn');
     if (upgradeDefenseBtn) {
         upgradeDefenseBtn.addEventListener('click', () => {
-            playSound('upgrade');
+            Sounds.upgrade();
             game.activate_defense();
-            scheduleCloudSave(getCurrentGameState());
+            scheduleCloudSave();
         });
     }
     
     const upgradeDefenseLevelBtn = document.getElementById('upgradeDefenseLevelBtn');
     if (upgradeDefenseLevelBtn) {
         upgradeDefenseLevelBtn.addEventListener('click', () => {
-            playSound('upgrade');
+            Sounds.upgrade();
             game.upgrade_defense();
-            scheduleCloudSave(getCurrentGameState());
+            scheduleCloudSave();
         });
     }
     
@@ -1477,8 +1513,8 @@ function setupEventListeners() {
     if (upgradeTurbineBtn) {
         upgradeTurbineBtn.addEventListener('click', () => {
             if (game.upgrade_turbine()) {
-                playSound('upgrade');
-                scheduleCloudSave(getCurrentGameState());
+                Sounds.upgrade();
+                scheduleCloudSave();
             }
         });
     }
@@ -1488,8 +1524,8 @@ function setupEventListeners() {
         upgradeCritBtn.addEventListener('click', () => {
             if (game.upgrade_crit_module) {
                 game.upgrade_crit_module();
-                playSound('upgrade');
-                scheduleCloudSave(getCurrentGameState());
+                Sounds.upgrade();
+                scheduleCloudSave();
             }
         });
     }
@@ -1499,8 +1535,8 @@ function setupEventListeners() {
         upgradeCoolingBtn.addEventListener('click', () => {
             if (game.upgrade_cooling_module) {
                 game.upgrade_cooling_module();
-                playSound('upgrade');
-                scheduleCloudSave(getCurrentGameState());
+                Sounds.upgrade();
+                scheduleCloudSave();
             }
         });
     }
@@ -1513,7 +1549,7 @@ function setupEventListeners() {
             document.getElementById('buyModeBtn').classList.add('active');
             document.getElementById('sellModeBtn').classList.remove('active');
             renderTradeTab();
-            playSound('click');
+            Sounds.click();
         });
     }
     
@@ -1526,7 +1562,7 @@ function setupEventListeners() {
             document.getElementById('sellModeBtn').classList.add('active');
             const sellContainer = document.getElementById('sellItemsContainer');
             if (sellContainer) sellContainer.innerHTML = '<div class="trade-info">Продажа временно недоступна</div>';
-            playSound('click');
+            Sounds.click();
         });
     }
 
@@ -1536,7 +1572,7 @@ function setupEventListeners() {
             if (game && typeof game.clear_log === 'function') {
                 game.clear_log();
             }
-            playSound('click');
+            Sounds.click();
         });
     }
 
@@ -1544,7 +1580,7 @@ function setupEventListeners() {
     if (systemStatusTab) {
         systemStatusTab.addEventListener('click', () => {
             switchStatusTab('system-status');
-            playSound('click');
+            Sounds.click();
         });
     }
 
@@ -1554,7 +1590,7 @@ function setupEventListeners() {
             switchStatusTab('statistics');
             updateStatsFromGame();
             updateNeuroStatus();
-            playSound('click');
+            Sounds.click();
         });
     }
     
@@ -1563,7 +1599,7 @@ function setupEventListeners() {
         leaderboardTab.addEventListener('click', () => {
             switchStatusTab('leaderboard');
             loadLeaderboard();
-            playSound('click');
+            Sounds.click();
         });
     }
     
@@ -1571,7 +1607,7 @@ function setupEventListeners() {
     if (refreshLeaderboardBtn) {
         refreshLeaderboardBtn.addEventListener('click', () => {
             loadLeaderboard();
-            playSound('click');
+            Sounds.click();
         });
     }
 
@@ -1579,7 +1615,7 @@ function setupEventListeners() {
     if (refreshStatsBtn) {
         refreshStatsBtn.addEventListener('click', () => {
             updateStatisticsDisplay();
-            playSound('click');
+            Sounds.click();
         });
     }
     
@@ -1588,11 +1624,11 @@ function setupEventListeners() {
         resetStatsBtn.addEventListener('click', () => {
             const confirmed = confirm('Вы уверены, что хотите сбросить статистику? Это действие нельзя отменить.');
             if (confirmed) {
-                playSound('error');
+                Sounds.error();
                 const event = new CustomEvent('resetUserStats', { detail: { stats: gameStats } });
                 document.dispatchEvent(event);
             } else {
-                playSound('click');
+                Sounds.click();
             }
         });
     }
@@ -1601,14 +1637,14 @@ function setupEventListeners() {
     if (prestigeBtn) {
         prestigeBtn.addEventListener('click', () => {
             prestigeReset();
-            playSound('click');
+            Sounds.click();
         });
     }
 
     const autoScrollBtn = document.getElementById('autoScrollBtn');
     if (autoScrollBtn) {
         autoScrollBtn.addEventListener('click', () => {
-            playSound('click');
+            Sounds.click();
             const logBox = document.getElementById('logBox');
             if (logBox) {
                 logBox.scrollTop = logBox.scrollHeight;
@@ -1642,7 +1678,7 @@ function setupEventListeners() {
             
             if (e.detail.success && e.detail.recipe && e.detail.recipe.result && e.detail.recipe.result.type === 'ship') {
                 fleetModule.addShip(e.detail.recipe.result.subtype);
-                scheduleCloudSave(getCurrentGameState());
+                scheduleCloudSave();
             }
         }
     });
@@ -1650,14 +1686,14 @@ function setupEventListeners() {
     document.addEventListener('designResult', function(e) {
         if (e.detail) {
             showNotification(e.detail.success ? e.detail.message : e.detail.error, e.detail.success ? 'success' : 'error', 2000);
-            if (e.detail.success) scheduleCloudSave(getCurrentGameState());
+            if (e.detail.success) scheduleCloudSave();
         }
     });
     
     document.addEventListener('fleetAction', function(e) {
         if (e.detail) {
             showNotification(e.detail.success ? e.detail.message : e.detail.error, e.detail.success ? 'success' : 'error', 2000);
-            if (e.detail.success) scheduleCloudSave(getCurrentGameState());
+            if (e.detail.success) scheduleCloudSave();
         }
     });
 }
@@ -1700,6 +1736,27 @@ async function initializeGame() {
         game = start_game();
         window.game = game;
 
+        // ✅ ИСПРАВЛЕНИЕ БАГА 2: восстановление автокликера ПОСЛЕ инициализации game
+        if (localStorage.getItem('corebox_autoclicking') === 'true') {
+            isAutoClicking = true;
+            setTimeout(() => {
+                if (isAutoClicking && game && game.get_computational_power() > 0) {
+                    game.start_auto_clicking();
+                    const floatingBtn = document.getElementById('floatingMineBtn');
+                    if (floatingBtn) floatingBtn.classList.add('auto-clicking');
+                    const statusEl = document.getElementById('autoClickStatus');
+                    if (statusEl) {
+                        statusEl.textContent = 'АКТИВНА';
+                        statusEl.classList.add('auto-clicking-status');
+                    }
+                    Sounds.autoStart();
+                } else {
+                    isAutoClicking = false;
+                    localStorage.setItem('corebox_autoclicking', 'false');
+                }
+            }, 2000);
+        }
+
         if (!gameStats.startTime) {
             gameStats.startTime = Date.now();
         }
@@ -1716,8 +1773,6 @@ async function initializeGame() {
         console.log('Инициализация fleetModule...');
         fleetModule.init(game);
         
-        initializeSounds();
-        
         initStatistics();
         
         setupEventListeners();
@@ -1728,23 +1783,61 @@ async function initializeGame() {
 
         isGameInitialized = true;
 
-        setInterval(() => {
+        if (_gameLoopInterval) {
+            clearInterval(_gameLoopInterval);
+        }
+        
+        _gameLoopInterval = setInterval(() => {
             if (!game) return;
             
             game.game_loop();
             updatePowerGlow();
             
             let rustStats = null;
+            let prevAttackCount = lastRustStats?.rebel_attacks_count || 0;
+            let prevIsDay = lastRustStats?.is_day;
+            
             try {
                 const statsJson = game.get_statistics();
                 if (statsJson) rustStats = JSON.parse(statsJson);
             } catch(e) {}
             
             if (rustStats) {
+                if (rustStats.rebel_attacks_count > prevAttackCount) {
+                    const lastAttack = rustStats.attack_history?.[rustStats.attack_history.length - 1];
+                    if (lastAttack?.was_defended) {
+                        Sounds.defended();
+                    } else {
+                        Sounds.hit();
+                    }
+                }
+                
+                if (rustStats.is_day !== prevIsDay) {
+                    if (rustStats.is_day) {
+                        Sounds.dayStart();
+                    } else {
+                        Sounds.nightStart();
+                    }
+                }
+                
                 updateStatsFromGame(rustStats);
                 updateNeuroStatus(rustStats);
                 updateTurbineStatus(rustStats);
                 updateUpgradeDisplay(rustStats);
+                
+                const turbineLevel = rustStats.turbine_upgrade_level ?? 0;
+                const turbineLevelEl = document.getElementById('turbineLevel');
+                if (turbineLevelEl) turbineLevelEl.textContent = `УР. ${turbineLevel}/5`;
+                
+                const turbineCostEl = document.getElementById('turbineCost');
+                if (turbineCostEl) {
+                    const oreCost = 30 + turbineLevel * 20;
+                    const chipsCost = 5 + turbineLevel * 3;
+                    turbineCostEl.textContent = `${oreCost}⛏️ + ${chipsCost}🎛️`;
+                }
+                
+                const turbineBtn = document.getElementById('upgradeTurbineBtn');
+                if (turbineBtn) turbineBtn.disabled = turbineLevel >= 5;
                 
                 craftModule.syncFromStats(rustStats);
                 
@@ -1753,7 +1846,6 @@ async function initializeGame() {
                 designModule.aiResearchBonus = Math.floor((rustStats.neuro_consciousness || 0) / 20);
                 
                 const fleetCombat = fleetModule.getFleetDefenseContribution();
-                const fleetRecon = fleetModule.getScoutReconBonus();
                 const fleetCargo = fleetModule.getCargoMiningBonus();
                 
                 try {
@@ -1765,12 +1857,10 @@ async function initializeGame() {
                     }
                 } catch(e) {}
                 
-                // Применяем бонус от стратегического режима ИИ
                 if (rustStats.current_ai_mode) {
                     const mode = rustStats.current_ai_mode;
                     
                     if (mode.includes('Стратегическое отступление') || mode.includes('консервирует')) {
-                        // Режим отступления: усиление защиты
                         if (typeof game.set_temporary_defense_bonus === 'function') {
                             game.set_temporary_defense_bonus(40);
                         }
@@ -1789,7 +1879,9 @@ async function initializeGame() {
                 const history = rustStats.attack_history || [];
                 if (history.length > 0) {
                     const last = history[history.length - 1];
-                    if (last && !last.was_defended) {
+                    const attackKey = `${last.game_time}_${last.faction}_${last.was_defended}`;
+                    if (last && !last.was_defended && attackKey !== lastProcessedAttackHash) {
+                        lastProcessedAttackHash = attackKey;
                         const damageResult = fleetModule.damageRandomCombatShip(last.attack_type);
                         if (damageResult) {
                             const logBox = document.getElementById('logBox');
@@ -1808,20 +1900,6 @@ async function initializeGame() {
                         }
                     }
                 }
-                
-                const turbineLevel = rustStats.turbine_upgrade_level ?? 0;
-                const turbineLevelEl = document.getElementById('turbineLevel');
-                if (turbineLevelEl) turbineLevelEl.textContent = turbineLevel;
-                
-                const turbineCostEl = document.getElementById('turbineCost');
-                if (turbineCostEl) {
-                    const oreCost = 30 + turbineLevel * 20;
-                    const chipsCost = 5 + turbineLevel * 3;
-                    turbineCostEl.textContent = `${oreCost}⛏️ + ${chipsCost}🎛️`;
-                }
-                
-                const turbineBtn = document.getElementById('upgradeTurbineBtn');
-                if (turbineBtn) turbineBtn.disabled = turbineLevel >= 5;
                 
                 if (document.getElementById('craft-tab')?.classList.contains('active')) {
                     const craftContainerEl = document.getElementById('craftContainer');
@@ -1843,17 +1921,6 @@ async function initializeGame() {
                     rollNightDiscount(rustStats.nights_survived);
                 }
                 
-                // Дополнительный тик для автокликера если Rust не делает сам
-                if (isAutoClicking && game.get_computational_power() > 0 && rustStats && rustStats.is_ai_active) {
-                    const power = game.get_computational_power();
-                    const powerPerAuto = 1;
-                    if (power >= powerPerAuto) {
-                        game.subtract_power(powerPerAuto);
-                        // Принудительная добыча (используем ручной клик как fallback)
-                        game.add_manual_click();
-                    }
-                }
-                
                 if (currentUser && rustStats) {
                     _autoSaveCounter = (_autoSaveCounter || 0) + 1;
                     if (_autoSaveCounter >= 30) {
@@ -1861,6 +1928,8 @@ async function initializeGame() {
                         saveGameToCloud(rustStats);
                     }
                 }
+                
+                lastRustStats = rustStats;
             }
             
             randomEventTimer++;
@@ -1992,3 +2061,9 @@ document.addEventListener('gameEvent', function(e) {
         }
     }
 });
+
+setTimeout(() => {
+    if (document.getElementById('leaderboardContainer')) {
+        loadLeaderboard();
+    }
+}, 3000);

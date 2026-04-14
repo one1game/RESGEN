@@ -658,33 +658,32 @@
     </audio>
 
     <!-- Инициализация музыки -->
-    <script>
-    window.onload = function() {
-        const bgMusic = document.getElementById('bgMusic');
-        if (bgMusic) {
-            bgMusic.volume = 0.025;
-            
-            function forcePlay() {
-                bgMusic.play()
-                    .then(() => console.log('🎵 Музыка на 2.5% громкости'))
-                    .catch(e => {
-                        console.log('🎵 Автовоспроизведение заблокировано, ждем...');
-                        setTimeout(forcePlay, 100);
-                    });
-            }
-            
-            forcePlay();
+<script>
+window.onload = function() {
+    const bgMusic = document.getElementById('bgMusic');
+    if (bgMusic) {
+        bgMusic.volume = 0.025;
+        
+        // ИСПРАВЛЕНИЕ БАГА 9: музыку запускаем по первому клику, а не в бесконечном цикле
+        function forcePlay() {
+            document.addEventListener('click', function playOnce() {
+                bgMusic.play().catch(() => {});
+                document.removeEventListener('click', playOnce);
+            }, { once: true });
         }
         
-        const sounds = ['clickSound', 'errorSound', 'upgradeSound'];
-        sounds.forEach(soundId => {
-            const sound = document.getElementById(soundId);
-            if (sound) {
-                sound.load();
-                console.log(`🔊 Звук ${soundId} предзагружен`);
-            }
-        });
-    };
-    </script>
+        forcePlay();
+    }
+    
+    const sounds = ['clickSound', 'errorSound', 'upgradeSound'];
+    sounds.forEach(soundId => {
+        const sound = document.getElementById(soundId);
+        if (sound) {
+            sound.load();
+            console.log(`🔊 Звук ${soundId} предзагружен`);
+        }
+    });
+};
+</script>
 </body>
 </html>

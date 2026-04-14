@@ -12,47 +12,47 @@
 
   "mining_config": {
     "base_chances": {
-      "coal": 0.28,
-      "trash": 0.35,
-      "ore": 0.18
+      "coal": 0.32,
+      "trash": 0.30,
+      "ore": 0.22
     },
     "upgrade_bonus": 0.015,
     "coal_bonus": 0.025,
-    "critical_chance": 0.07,
-    "critical_multiplier": 2,
+    "critical_chance": 0.09,
+    "critical_multiplier": 2.5,
     "passive_chances": {
-      "coal": 0.004,
-      "trash": 0.008,
-      "ore": 0.003
+      "coal": 0.008,
+      "trash": 0.006,
+      "ore": 0.005
     }
   },
 
   "economy_config": {
-    "trash_base_price": 3,
+    "trash_base_price": 2,
     "trade_prices": {
-      "coal_buy": 14,
-      "coal_sell": 9,
-      "chips_buy": 55,
-      "chips_sell": 35,
-      "plasma_buy": 160,
-      "plasma_sell": 110,
-      "ore_buy": 28,
-      "ore_sell": 20
+      "coal_buy": 12,
+      "coal_sell": 10,
+      "chips_buy": 50,
+      "chips_sell": 38,
+      "plasma_buy": 140,
+      "plasma_sell": 120,
+      "ore_buy": 25,
+      "ore_sell": 18
     }
   },
 
   "upgrade_config": {
-    "mining_base_cost": 12,
-    "mining_cost_multiplier": 2,
+    "mining_base_cost": 10,
+    "mining_cost_multiplier": 1.8,
     "mining_max_level": 10,
     "defense_activation_cost": 1,
-    "defense_base_power": 35,
-    "defense_level_bonus": 12,
+    "defense_base_power": 40,
+    "defense_level_bonus": 14,
     "defense_max_level": 5
   },
 
   "rebels": {
-    "base_attack_chance": 0.04,
+    "base_attack_chance": 0.035,
     "activity_increase": 2,
     "activity_decrease": 1,
     "max_activity": 15,
@@ -61,10 +61,10 @@
     "defense_base_power": 45,
     "defense_level_bonus": 14,
     "steal_rates": {
-      "low_activity_trash": 0.08,
-      "medium_activity_coal": 0.04,
-      "high_activity_chips": 0.025,
-      "very_high_activity_ore": 0.03
+      "low_activity_trash": 0.06,
+      "medium_activity_coal": 0.03,
+      "high_activity_chips": 0.02,
+      "very_high_activity_ore": 0.025
     },
     "disable_chances": {
       "coal_plant_disable": 0.08,
@@ -143,10 +143,10 @@
   "auto_click_config": {
     "enabled": true,
     "max_computational_power": 1000,
-    "clicks_per_power": 12,
-    "power_per_manual_click": 3,
-    "auto_click_interval": 11,
-    "power_per_auto_click": 2,
+    "clicks_per_power": 8,
+    "power_per_manual_click": 4,
+    "auto_click_interval": 8,
+    "power_per_auto_click": 3,
     "use_same_chances_as_manual": true,
     "auto_click_chance_multiplier": 1.0,
     "long_press_duration": 600,

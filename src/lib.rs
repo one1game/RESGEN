@@ -1,4 +1,4 @@
-// ======== src/lib.rs (ПОЛНАЯ ВЕРСИЯ С SUPABASE ИНТЕГРАЦИЕЙ) ========
+// ======== src/lib.rs (ПОЛНАЯ ВЕРСИЯ С SUPABASE ИНТЕГРАЦИЕЙ И ИСПРАВЛЕНИЯМИ) ========
 
 #![recursion_limit = "256"]
 
@@ -118,7 +118,7 @@ impl CoreGame {
         let _ = self.ui.render(&self.state);
     }
     
-    // ========== НОВЫЙ МЕТОД: ЗАГРУЗКА СОСТОЯНИЯ ИЗ ОБЛАКА ==========
+    // ========== ЗАГРУЗКА СОСТОЯНИЯ ИЗ ОБЛАКА ==========
     #[wasm_bindgen]
     pub fn load_game_state(&mut self, state_json: String) -> Result<(), JsValue> {
         match serde_json::from_str::<GameState>(&state_json) {
@@ -131,6 +131,18 @@ impl CoreGame {
                 
                 // Загружаем новое состояние
                 self.state = loaded_state;
+                
+                // ✅ ИСПРАВЛЕНИЕ БАГА 1: восстанавливаем last_ai_coal_threshold
+                if self.state.last_ai_coal_threshold == 0 {
+                    let saved_coal = self.state.total_coal_mined
+                        .saturating_sub(self.state.total_coal_burned);
+                    let max_passed = [1000u32, 600, 300, 100]
+                        .iter()
+                        .find(|&&t| saved_coal >= t)
+                        .copied()
+                        .unwrap_or(0);
+                    self.state.last_ai_coal_threshold = max_passed;
+                }
                 
                 // Восстанавливаем важные параметры
                 self.state.max_computational_power = old_max_power;
@@ -151,9 +163,10 @@ impl CoreGame {
                 let _ = self.ui.render(&self.state);
                 self.ui.add_log_entry("💾 Состояние игры загружено из облака");
                 
-                log(&format!("✅ Загружено состояние: ночей={}, угля={}", 
+                log(&format!("✅ Загружено состояние: ночей={}, угля={}, last_ai_coal_threshold={}", 
                     self.state.nights_survived, 
-                    self.state.inventory.coal));
+                    self.state.inventory.coal,
+                    self.state.last_ai_coal_threshold));
                 
                 Ok(())
             },
@@ -388,7 +401,8 @@ impl CoreGame {
                 "crit_level":{},
                 "cooling_level":{},
                 "power_tier":{},
-                "prestige_level":{}
+                "prestige_level":{},
+                "last_ai_coal_threshold":{}
             }}"#,
             self.state.manual_clicks,
             self.state.max_computational_power,
@@ -436,7 +450,8 @@ impl CoreGame {
             self.state.upgrades.crit_level,
             self.state.upgrades.cooling_level,
             self.state.power_tier,
-            self.state.prestige_level
+            self.state.prestige_level,
+            self.state.last_ai_coal_threshold
         )
     }
     
@@ -752,7 +767,6 @@ impl CoreGame {
         
         let mut new_state = GameState::new(&config);
         
-        // Сохраняем чертежи и престиж
         new_state.blueprint_cargo_unlocked = self.state.blueprint_cargo_unlocked;
         new_state.blueprint_scout_unlocked = self.state.blueprint_scout_unlocked;
         new_state.blueprint_combat_unlocked = self.state.blueprint_combat_unlocked;

@@ -16,7 +16,6 @@ fn should_log_message(msg: &str) -> bool {
     if msg.contains("+0 мощности") { return false; }
     if msg.contains("добыта 1 плазмы") { return false; }
     if msg.contains("🪨 Сожжено") && msg.contains("угля для работы ТЭЦ") { return false; }
-    // НОВЫЕ ФИЛЬТРЫ ДЛЯ ВЫЧИСЛИТЕЛЬНОЙ МОЩНОСТИ
     if msg.contains("вычислительной мощности") { return false; }
     if msg.contains("мощности +") { return false; }
     true
@@ -186,11 +185,12 @@ impl GameUI {
             GameEvent::CoalDepleted => {
                 self.add_log_entry("🔋 Уголь закончился! ТЭЦ отключена")?;
             }
+            // ✅ ИСПРАВЛЕНИЕ БАГА 2: убираем дублирование логов автокликера
             GameEvent::AutoClickingStarted => {
-                self.add_log_entry("🚀 Автоклики активированы!")?;
+                // Сообщение уже идёт через LogMessage в start_auto_clicking_internal
             }
             GameEvent::AutoClickingStopped => {
-                self.add_log_entry("⏹️ Автоклики остановлены")?;
+                // Сообщение уже идёт через LogMessage в stop_auto_clicking_internal
             }
             GameEvent::DayStarted => {
                 self.add_log_entry("☀️ Наступил день")?;
@@ -205,10 +205,7 @@ impl GameUI {
                 self.add_log_entry("⏸️ ТЭЦ деактивирована")?;
             }
             GameEvent::ComputationalPowerAdded { amount, total: _ } => {
-                if *amount > 0 {
-                    // Пропускаем сообщения о добавлении мощности (спам)
-                    // self.add_log_entry(&format!("⚡ +{} вычислительной мощности", amount))?;
-                }
+                // Пропускаем сообщения о добавлении мощности (спам)
             }
             GameEvent::ComputationalPowerDepleted => {
                 self.add_log_entry("⚠️ Вычислительная мощность истощена!")?;

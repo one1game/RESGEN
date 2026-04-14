@@ -105,12 +105,22 @@ export async function getCurrentUser() {
 
 // ─────────────────────────────────────────────
 // 🔄 ИНИЦИАЛИЗАЦИЯ АВТОРИЗАЦИИ (слушаем изменения)
+// ✅ ИСПРАВЛЕНИЕ БАГА 3: игнорируем повторные INITIAL_SESSION
 // ─────────────────────────────────────────────
 export function initAuth(onLogin, onLogout) {
-    // Только onAuthStateChange — он сам стреляет INITIAL_SESSION при старте
-    // getSession() отдельно НЕ нужен — это и вызывало двойной запуск
+    let initialSessionHandled = false;  // ← новый флаг для предотвращения дублей
+    
     supabase.auth.onAuthStateChange((event, session) => {
         console.log("🔔 Auth state changed:", event);
+        
+        // ✅ ИСПРАВЛЕНИЕ: обрабатываем INITIAL_SESSION только один раз
+        if (event === 'INITIAL_SESSION') {
+            if (initialSessionHandled) {
+                console.log("⏭️ Пропускаем повторный INITIAL_SESSION");
+                return;
+            }
+            initialSessionHandled = true;
+        }
         
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
             if (session?.user) {
@@ -119,6 +129,7 @@ export function initAuth(onLogin, onLogout) {
                 onLogout();
             }
         } else if (event === 'SIGNED_OUT') {
+            initialSessionHandled = false;  // Сбрасываем при выходе
             onLogout();
         }
     });

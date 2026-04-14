@@ -1,8 +1,6 @@
 // ============================================================
-// ФАЙЛ: proect/statistics.js
-// ПРОБЛЕМА: отображается только 12 полей из 30+ доступных
-// ============================================================
-// Заменить ВЕСЬ файл statistics.js на содержимое ниже:
+// ФАЙЛ: statistics.js
+// ИСПРАВЛЕНИЕ БАГА 12: убрана авто-инициализация
 // ============================================================
 
 export let gameStats = {
@@ -254,8 +252,10 @@ export function switchTab(tabName) {
     }
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initStatistics);
-} else {
-    setTimeout(initStatistics, 100);
-}
+// ИСПРАВЛЕНИЕ БАГА 12: УБРАНА АВТО-ИНИЦИАЛИЗАЦИЯ
+// Инициализация теперь происходит только из game.js
+// if (document.readyState === 'loading') {
+//     document.addEventListener('DOMContentLoaded', initStatistics);
+// } else {
+//     setTimeout(initStatistics, 100);
+// }

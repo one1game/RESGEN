@@ -186,7 +186,7 @@ export async function saveGameToCloud(gameState) {
 
             // ───── Прочее ─────
             power_tier:             gameState.power_tier    || 0,
-            last_ai_coal_threshold: 0,
+            last_ai_coal_threshold: gameState.last_ai_coal_threshold || 0,  // ✅ ИСПРАВЛЕНИЕ БАГА 1
             prestige_level:         gameState.prestige_level || 0,
 
             // ─────────────────────────────────────────────────────
@@ -239,6 +239,7 @@ export async function saveGameToCloud(gameState) {
             full_state:       fullState,
             game_time:        fullState.game_time,
             is_day:           fullState.is_day,
+            last_ai_coal_threshold: fullState.last_ai_coal_threshold,  // ✅ ИСПРАВЛЕНИЕ БАГА 1
             updated_at:       new Date().toISOString(),
         };
 
@@ -248,6 +249,7 @@ export async function saveGameToCloud(gameState) {
             nights:   saveData.nights_survived,
             neuro:    saveData.neuro_evolution,
             savedAt:  new Date(fullState._savedAt).toLocaleTimeString(),
+            last_ai_coal_threshold: fullState.last_ai_coal_threshold,
         });
 
         const { error } = await supabase
@@ -255,6 +257,30 @@ export async function saveGameToCloud(gameState) {
             .upsert(saveData, { onConflict: 'user_id' });
 
         if (error) throw error;
+
+        // ========== ОБНОВЛЕНИЕ ЛИДЕРБОРДА ==========
+        const leaderboardUsername = user.user_metadata?.username 
+            || user.email?.split('@')[0] 
+            || 'Игрок';
+        
+        console.log("🏆 Обновляем лидерборд для:", leaderboardUsername);
+        
+        const { error: lbError } = await supabase
+            .from('leaderboard')
+            .upsert({
+                user_id: user.id,
+                username: leaderboardUsername,
+                total_mined: fullState.total_mined || 0,
+                neuro_score: fullState.neuro_score || 0,
+                nights: fullState.nights_survived || 0,
+                updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_id' });
+        
+        if (lbError) {
+            console.error("❌ Ошибка обновления лидерборда:", lbError);
+        } else {
+            console.log("🏆 Лидерборд обновлен успешно");
+        }
 
         console.log("✅ Игра сохранена в облако");
         return { success: true };
