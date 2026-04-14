@@ -1,4 +1,4 @@
-// ======== game.js (ПОЛНОСТЬЮ ОБНОВЛЁННАЯ ВЕРСИЯ) ========
+// ======== game.js (ПОЛНАЯ ОБНОВЛЁННАЯ ВЕРСИЯ) ========
 
 import init, { start_game, apply_config_from_admin } from './pkg/corebox_rs.js';
 import { 
@@ -8,20 +8,27 @@ import {
     gameStats,
     saveStatistics,
     loadUserStatistics,
-    resetUserStatistics
+    resetUserStatistics,
+    updateStatisticsFromRust
 } from './statistics.js';
 
 import { craftModule } from './craft.js';
 import { designModule } from './design.js';
 import { fleetModule } from './fleet.js';
 
+// ========== ИМПОРТЫ SUPABASE ==========
+import { initAuth, logout, getCurrentUser, login, register } from './auth.js';
+import { saveGameToCloud, loadGameFromCloud, updateLeaderboard, getLeaderboard } from './save.js';
+
 let game;
+window.getCurrentGameState = () => getCurrentGameState();
 let lastConfigHash = null;
 let isAutoClicking = false;
 let currentUser = null;
 let lastRustStats = null;
 let clickCounter = 0;
 let powerTracker = 0;
+let _autoSaveCounter = 0;
 
 let comboCount = 0;
 let lastClickTime = 0;
@@ -32,6 +39,15 @@ let randomEventTimer = 0;
 
 let _saveDirty = false;
 let _saveTimer = null;
+let _cloudSaveTimer = null;
+
+// Флаг для отслеживания инициализации игры
+let isGameInitialized = false;
+
+// Восстанавливаем состояние автокликера
+if (localStorage.getItem('corebox_autoclicking') === 'true') {
+    isAutoClicking = true;
+}
 
 function scheduleSave() {
     _saveDirty = true;
@@ -46,14 +62,24 @@ function scheduleSave() {
     }
 }
 
+// Сохранение в облако с дебаунсом
+function scheduleCloudSave(gameState) {
+    if (!currentUser) return;
+    
+    if (_cloudSaveTimer) clearTimeout(_cloudSaveTimer);
+    _cloudSaveTimer = setTimeout(async () => {
+        if (gameState) {
+            await saveGameToCloud(gameState);
+        }
+        _cloudSaveTimer = null;
+    }, 2000);
+}
+
 let sounds = {
     click: null,
     error: null,
     upgrade: null
 };
-
-const USER_STORAGE_KEY = 'corebox_users';
-const CURRENT_USER_KEY = 'corebox_current_user';
 
 function showFloatingText(text, x, y) {
     const floatingText = document.createElement('div');
@@ -178,6 +204,9 @@ function prestigeReset() {
         
         const event = new CustomEvent('prestigeComplete', { detail: { level: prestigeLevel } });
         document.dispatchEvent(event);
+        
+        // Сохраняем в облако после престижа
+        scheduleCloudSave(getCurrentGameState());
     }
 }
 
@@ -189,156 +218,451 @@ function getPrestigeBonus() {
     };
 }
 
-function getUsers() {
-    const usersJson = localStorage.getItem(USER_STORAGE_KEY);
-    return usersJson ? JSON.parse(usersJson) : {};
-}
-
-function saveUsers(users) {
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
-}
-
-function getCurrentUser() {
-    const userJson = localStorage.getItem(CURRENT_USER_KEY);
-    return userJson ? JSON.parse(userJson) : null;
-}
-
-function setCurrentUser(user) {
-    if (user) {
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-    } else {
-        localStorage.removeItem(CURRENT_USER_KEY);
-    }
-    currentUser = user;
-}
-
-function showAuthMessage(message, isError = false) {
-    const messageEl = document.getElementById('authMessage');
-    messageEl.textContent = message;
-    messageEl.className = `auth-message ${isError ? 'error' : 'success'}`;
-}
-
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function loginUser(username, password) {
-    const users = getUsers();
+// ========== ОФЛАЙН ПРОГРЕСС ==========
+function calculateOfflineProgress(savedState) {
+    const now = Date.now();
+    const lastSaved = savedState?._savedAt || now;
+    const elapsedSeconds = Math.floor((now - lastSaved) / 1000);
     
-    if (users[username]) {
-        const hashedInput = await hashPassword(password);
-        if (users[username].password === hashedInput) {
-            users[username].lastLogin = new Date().toISOString();
-            saveUsers(users);
+    // Максимум 8 часов офлайна
+    const cappedSeconds = Math.min(elapsedSeconds, 8 * 3600);
+    if (cappedSeconds < 10) return null;
+
+    // Цикл: 32 игровых сек = 1 сек реального времени
+    const TICK_RATE = 1;
+    const ticks = cappedSeconds * TICK_RATE;
+    
+    // Пассивная добыча из конфига (значения по умолчанию)
+    const passive = savedState?._passive_rates || { coal: 0.004, trash: 0.008, ore: 0.003 };
+    const coalGained = Math.floor(ticks * passive.coal);
+    const trashGained = Math.floor(ticks * passive.trash);
+    const oreGained = Math.floor(ticks * passive.ore);
+    
+    // Смена дня/ночи (32 секунды = 1 цикл)
+    const CYCLE = 32;
+    const cycles = Math.floor(cappedSeconds / CYCLE);
+    
+    // Атаки во время офлайна (упрощённая симуляция)
+    const BASE_ATTACK_CHANCE = 0.04;
+    let attacksDuringOffline = 0;
+    for (let i = 0; i < cycles; i++) {
+        if (Math.random() < BASE_ATTACK_CHANCE) attacksDuringOffline++;
+    }
+    
+    return {
+        elapsedSeconds: cappedSeconds,
+        coalGained,
+        trashGained,
+        oreGained,
+        cyclesPassed: cycles,
+        attacksDuringOffline
+    };
+}
+
+function showOfflineRewardPopup(progress) {
+    const mins = Math.floor(progress.elapsedSeconds / 60);
+    const hours = Math.floor(mins / 60);
+    const timeStr = hours > 0 ? `${hours}ч ${mins % 60}м` : `${mins}м`;
+    
+    addToLog(`⏰ Прошло ${timeStr} офлайна: +${progress.coalGained}🪨 +${progress.trashGained}♻️ +${progress.oreGained}⛏️`);
+    showFloatingText(`⏰ Офлайн ${timeStr}`, window.innerWidth/2, 200);
+    
+    // Создаём попап
+    const popup = document.createElement('div');
+    popup.className = 'offline-popup';
+    popup.innerHTML = `
+        <h3>⏰ ВОЗВРАЩЕНИЕ В ОНЛАЙН</h3>
+        <p>Прошло: ${timeStr}</p>
+        <div class="offline-resources">
+            <div class="resource">🪨 +${progress.coalGained}</div>
+            <div class="resource">♻️ +${progress.trashGained}</div>
+            <div class="resource">⛏️ +${progress.oreGained}</div>
+        </div>
+        <button onclick="this.parentElement.remove()">ПРОДОЛЖИТЬ</button>
+    `;
+    document.body.appendChild(popup);
+    
+    setTimeout(() => {
+        if (popup.parentElement) popup.remove();
+    }, 5000);
+}
+
+// ========== ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК СТАТУСА ==========
+function switchStatusTab(tab) {
+    ['system-status', 'statistics', 'leaderboard'].forEach(t => {
+        const section = document.getElementById(`${t}-section`);
+        const tabEl = document.getElementById(`${t}-tab`);
+        if (section) section.style.display = 'none';
+        if (tabEl) tabEl.classList.remove('active');
+    });
+    const activeSection = document.getElementById(`${tab}-section`);
+    const activeTab = document.getElementById(`${tab}-tab`);
+    if (activeSection) activeSection.style.display = 'block';
+    if (activeTab) activeTab.classList.add('active');
+}
+
+async function loadLeaderboard() {
+    const container = document.getElementById('leaderboardContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="leaderboard-loading">⏳ Загрузка...</div>';
+    
+    try {
+        const leaders = await getLeaderboard();
+        if (!leaders || leaders.length === 0) {
+            container.innerHTML = '<div class="leaderboard-empty">Данных пока нет</div>';
+            return;
+        }
+        container.innerHTML = leaders.map((entry, i) => `
+            <div class="leaderboard-row ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">
+                <span class="lb-rank">${['🥇','🥈','🥉'][i] || (i+1)+'.'}</span>
+                <span class="lb-name">${escapeHtml(entry.username || entry.email?.split('@')[0] || 'Игрок')}</span>
+                <span class="lb-score">⛏️ ${entry.total_mined || 0}</span>
+                <span class="lb-nights">🌙 ${entry.nights_survived || 0}</span>
+            </div>
+        `).join('');
+    } catch(e) {
+        container.innerHTML = '<div class="leaderboard-error">❌ Ошибка загрузки</div>';
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// ========== ПОЛУЧИТЬ ТЕКУЩЕЕ СОСТОЯНИЕ ИГРЫ ==========
+function getCurrentGameState() {
+    if (!game) return null;
+    try {
+        const statsJson = game.get_statistics();
+        if (statsJson) {
+            return JSON.parse(statsJson);
+        }
+    } catch (e) {
+        console.warn("Не удалось получить состояние игры:", e);
+    }
+    return null;
+}
+
+// ========== ЗАГРУЗИТЬ СОСТОЯНИЕ В ИГРУ (С ОФЛАЙН ПРОГРЕССОМ) ==========
+async function loadGameStateIntoSave(cloudSave) {
+    if (!game || !cloudSave) {
+        if (game) {
+            try {
+                const backup = localStorage.getItem('corebox_save_backup');
+                if (backup) {
+                    const backupState = JSON.parse(backup);
+                    if (typeof game.load_game_state === 'function') {
+                        game.load_game_state(JSON.stringify(backupState));
+                        console.log("📦 Восстановлено из локального резерва");
+                    }
+                    localStorage.removeItem('corebox_save_backup');
+                }
+            } catch(e) {}
+        }
+        return false;
+    }
+    
+    try {
+        // Сохраняем timestamp до загрузки для офлайн расчёта
+        const offlineProgress = calculateOfflineProgress(cloudSave);
+        
+        if (typeof game.load_game_state === 'function') {
+            game.load_game_state(JSON.stringify(cloudSave));
+            console.log("✅ Состояние загружено из облака через Rust");
             
-            setCurrentUser({ username, ...users[username] });
-            showAuthMessage(`Добро пожаловать, ${username}!`);
+            // Применяем офлайн прогресс
+            if (offlineProgress && offlineProgress.elapsedSeconds > 10) {
+                try {
+                    if (offlineProgress.coalGained > 0) game.add_resource('coal', offlineProgress.coalGained);
+                    if (offlineProgress.trashGained > 0) game.add_resource('trash', offlineProgress.trashGained);
+                    if (offlineProgress.oreGained > 0) game.add_resource('ore', offlineProgress.oreGained);
+                    
+                    addToLog(`⏰ Офлайн прогресс: +${offlineProgress.coalGained}🪨 +${offlineProgress.trashGained}♻️ +${offlineProgress.oreGained}⛏️`);
+                    
+                    if (offlineProgress.attacksDuringOffline > 0) {
+                        addToLog(`⚠️ За время отсутствия произошло ${offlineProgress.attacksDuringOffline} атак повстанцев!`);
+                    }
+                } catch(e) {
+                    console.warn("Ошибка применения офлайн прогресса:", e);
+                }
+                showOfflineRewardPopup(offlineProgress);
+            }
             
-            setTimeout(() => {
-                document.getElementById('authOverlay').style.display = 'none';
-                document.getElementById('gameContent').style.display = 'block';
-                showUserInfo();
-                initializeGame();
-            }, 1000);
+            // Восстанавливаем чертежи
+            if (cloudSave._blueprints && cloudSave._blueprints.length > 0) {
+                localStorage.setItem('corebox_ship_blueprints', JSON.stringify(cloudSave._blueprints));
+                console.log("📐 Чертежи восстановлены из облака");
+            }
+            
+            // Восстанавливаем статистику
+            if (cloudSave._statistics && currentUser) {
+                const users = JSON.parse(localStorage.getItem('corebox_users') || '{}');
+                if (!users[currentUser.email]) users[currentUser.email] = {};
+                users[currentUser.email].statistics = cloudSave._statistics;
+                localStorage.setItem('corebox_users', JSON.stringify(users));
+                loadUserStatistics(cloudSave._statistics);
+                console.log("📊 Статистика восстановлена из облака");
+            }
             
             return true;
         } else {
-            showAuthMessage('Неверный пароль!', true);
-            return false;
+            console.log("⚠️ Метод load_game_state не найден, используем fallback");
+            if (cloudSave.coal_inventory !== undefined) game.add_resource('coal', cloudSave.coal_inventory);
+            if (cloudSave.ore_inventory !== undefined) game.add_resource('ore', cloudSave.ore_inventory);
+            if (cloudSave.chips_inventory !== undefined) game.add_resource('chips', cloudSave.chips_inventory);
+            if (cloudSave.plasma_inventory !== undefined) game.add_resource('plasma', cloudSave.plasma_inventory);
+            if (cloudSave.trash_inventory !== undefined) game.add_resource('trash', cloudSave.trash_inventory);
+            return true;
         }
-    } else {
-        const hashedPassword = await hashPassword(password);
-        users[username] = {
-            password: hashedPassword,
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            statistics: {
-                totalClicks: 0,
-                maxPowerReached: 0,
-                nightsSurvived: 0,
-                rebelAttacks: 0,
-                attacksDefended: 0,
-                coalMined: 0,
-                trashMined: 0,
-                plasmaMined: 0,
-                oreMined: 0,
-                coalBurned: 0,
-                coalStolen: 0,
-                playTime: 0,
-                sessionsCount: 1,
-                lastSessionDate: new Date().toISOString()
-            }
-        };
-        
-        saveUsers(users);
-        setCurrentUser({ username, ...users[username] });
-        showAuthMessage(`Аккаунт ${username} создан! Добро пожаловать!`);
-        
-        setTimeout(() => {
-            document.getElementById('authOverlay').style.display = 'none';
-            document.getElementById('gameContent').style.display = 'block';
-            showUserInfo();
-            initializeGame();
-        }, 1000);
-        
-        return true;
+    } catch (e) {
+        console.error("❌ Ошибка загрузки состояния из облака:", e);
+        return false;
     }
 }
 
-let logoutHandler = null;
+// ========== ОБНОВЛЕНИЕ ИНТЕРФЕЙСА АВТОРИЗАЦИИ ==========
+function showAuthUI() {
+    document.getElementById('authOverlay').style.display = 'flex';
+    document.getElementById('gameContent').style.display = 'none';
+    document.getElementById('userInfo').style.display = 'none';
+}
+
+function showGameUI() {
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('gameContent').style.display = 'block';
+    document.getElementById('userInfo').style.display = 'block';
+}
+
+function updateUserDisplay(user) {
+    const usernameDisplay = document.getElementById('usernameDisplay');
+    const prestigeTag = prestigeLevel > 0 ? ` ✦${prestigeLevel}` : '';
+    const displayName = user?.user_metadata?.username || user?.email?.split('@')[0] || 'Игрок';
+    if (usernameDisplay) {
+        usernameDisplay.textContent = displayName + prestigeTag;
+    }
+}
+
+// ========== ИНИЦИАЛИЗАЦИЯ АВТОРИЗАЦИИ ==========
+function initializeAuth() {
+    console.log("🔐 Инициализация авторизации Supabase...");
+    
+    setupAuthFormHandlers();
+    
+    initAuth(
+        async (user) => {
+            console.log("✅ Пользователь вошел:", user?.email);
+            currentUser = user;
+            
+            showGameUI();
+            updateUserDisplay(user);
+            showUserInfo();
+            
+            if (!isGameInitialized) {
+                await initializeGame();
+            }
+            
+            const cloudSave = await loadGameFromCloud();
+            if (cloudSave && game) {
+                await loadGameStateIntoSave(cloudSave);
+                addToLog("💾 Облачное сохранение загружено");
+                console.log("💾 Облачное сохранение загружено");
+            } else {
+                console.log("🆕 Новый игрок - начинаем с нуля");
+            }
+            
+            loadUserStatsFromCloud(user);
+        },
+        () => {
+            console.log("👤 Пользователь не авторизован");
+            currentUser = null;
+            showAuthUI();
+            isGameInitialized = false;
+        }
+    );
+}
+
+async function loadUserStatsFromCloud(user) {
+    if (!user) return;
+    
+    try {
+        const users = JSON.parse(localStorage.getItem('corebox_users') || '{}');
+        if (users[user.email] && users[user.email].statistics) {
+            loadUserStatistics(users[user.email].statistics);
+            console.log("📊 Статистика загружена из localStorage");
+        } else {
+            gameStats.startTime = Date.now();
+            gameStats.sessionsCount = 1;
+            gameStats.lastSessionDate = new Date().toISOString();
+            updateStatisticsDisplay();
+        }
+    } catch (e) {
+        console.warn("Ошибка загрузки статистики:", e);
+    }
+}
+
+function setupAuthFormHandlers() {
+    let isRegisterMode = false;
+    
+    const loginBtn = document.getElementById('btn-login');
+    const registerBtn = document.getElementById('btn-register');
+    const toggleModeBtn = document.getElementById('btn-toggle-mode');
+    const usernameGroup = document.getElementById('username-group');
+    const authTitle = document.querySelector('#authOverlay .auth-header h2');
+    const authMessage = document.getElementById('auth-message');
+    
+    function showMessage(text, isError = true) {
+        if (authMessage) {
+            authMessage.textContent = text;
+            authMessage.className = `auth-message ${isError ? 'error' : 'success'}`;
+            setTimeout(() => {
+                authMessage.textContent = '';
+            }, 5000);
+        }
+    }
+    
+    function toggleMode() {
+        isRegisterMode = !isRegisterMode;
+        
+        if (isRegisterMode) {
+            if (authTitle) authTitle.textContent = '📝 Регистрация';
+            if (usernameGroup) usernameGroup.style.display = 'block';
+            if (loginBtn) loginBtn.textContent = '📝 Зарегистрироваться';
+            if (registerBtn) registerBtn.style.display = 'none';
+            if (toggleModeBtn) toggleModeBtn.textContent = '🔑 Уже есть аккаунт? Войти';
+        } else {
+            if (authTitle) authTitle.textContent = '🔑 Вход в CoreBox';
+            if (usernameGroup) usernameGroup.style.display = 'none';
+            if (loginBtn) loginBtn.textContent = '🔑 Войти';
+            if (registerBtn) registerBtn.style.display = 'block';
+            if (toggleModeBtn) toggleModeBtn.textContent = '✨ Нет аккаунта? Зарегистрироваться';
+        }
+    }
+    
+    async function handleLogin() {
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value;
+        
+        if (!email || !password) {
+            showMessage('Заполните все поля!');
+            return;
+        }
+        
+        try {
+            const result = await login(email, password);
+            if (result.success) {
+                showMessage('Вход выполнен успешно!', false);
+            } else {
+                showMessage(result.error || 'Ошибка входа');
+            }
+        } catch (e) {
+            showMessage(e.message || 'Ошибка входа');
+        }
+    }
+    
+    async function handleRegister() {
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value;
+        const username = document.getElementById('auth-username').value.trim();
+        
+        if (!email || !password) {
+            showMessage('Заполните все поля!');
+            return;
+        }
+        
+        if (password.length < 6) {
+            showMessage('Пароль должен быть не менее 6 символов!');
+            return;
+        }
+        
+        try {
+            const result = await register(email, password, username || email.split('@')[0]);
+            if (result.success) {
+                showMessage('Регистрация успешна! Теперь войдите.', false);
+                toggleMode();
+            } else {
+                showMessage(result.error || 'Ошибка регистрации');
+            }
+        } catch (e) {
+            showMessage(e.message || 'Ошибка регистрации');
+        }
+    }
+    
+    if (loginBtn) loginBtn.onclick = () => isRegisterMode ? handleRegister() : handleLogin();
+    if (registerBtn) registerBtn.onclick = handleRegister;
+    if (toggleModeBtn) toggleModeBtn.onclick = toggleMode;
+    
+    const emailInput = document.getElementById('auth-email');
+    const passwordInput = document.getElementById('auth-password');
+    const usernameInput = document.getElementById('auth-username');
+    
+    const onEnter = (e) => {
+        if (e.key === 'Enter') {
+            if (isRegisterMode) {
+                handleRegister();
+            } else {
+                handleLogin();
+            }
+        }
+    };
+    
+    if (emailInput) emailInput.addEventListener('keypress', onEnter);
+    if (passwordInput) passwordInput.addEventListener('keypress', onEnter);
+    if (usernameInput) usernameInput.addEventListener('keypress', onEnter);
+}
+
+async function handleLogout() {
+    const result = await logout();
+    if (result.success) {
+        if (game && typeof game.reset_progress === 'function') {
+            game.reset_progress();
+        }
+        isGameInitialized = false;
+        prestigeLevel = 0;
+        localStorage.removeItem('corebox_prestige_level');
+        localStorage.removeItem('corebox_autoclicking');
+        location.reload();
+    }
+}
 
 function showUserInfo() {
     if (currentUser) {
         document.getElementById('userInfo').style.display = 'block';
-        const prestigeTag = prestigeLevel > 0 ? ` ✦${prestigeLevel}` : '';
-        document.getElementById('usernameDisplay').textContent = currentUser.username + prestigeTag;
+        updateUserDisplay(currentUser);
         
         const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutHandler) {
-            logoutBtn.removeEventListener('click', logoutHandler);
+        if (logoutBtn) {
+            logoutBtn.onclick = handleLogout;
         }
-        logoutHandler = logout;
-        logoutBtn.addEventListener('click', logoutHandler);
     }
-}
-
-function logout() {
-    if (currentUser && gameStats) {
-        saveCurrentUserStatistics();
-    }
-    
-    setCurrentUser(null);
-    document.getElementById('authOverlay').style.display = 'flex';
-    document.getElementById('gameContent').style.display = 'none';
-    document.getElementById('authForm').reset();
-    document.getElementById('authMessage').textContent = '';
-    document.getElementById('userInfo').style.display = 'none';
-    
-    setTimeout(() => {
-        location.reload();
-    }, 500);
 }
 
 function initializeCollapsiblePanels() {
     setTimeout(() => {
         const panelTitles = document.querySelectorAll('.panel-title');
         
-        panelTitles.forEach(panelTitle => {
+        panelTitles.forEach((panelTitle, index) => {
+            const panel = panelTitle.closest('.panel');
+            if (panel && !panel.id) {
+                panel.id = `panel-${index}`;
+            }
+            
             panelTitle.addEventListener('click', (e) => {
                 if (e.target.closest('button')) {
                     return;
                 }
                 
-                const panel = panelTitle.closest('.panel');
-                panel.classList.toggle('collapsed');
+                const pnl = panelTitle.closest('.panel');
+                pnl.classList.toggle('collapsed');
                 
                 const icon = panelTitle.querySelector('.collapse-icon');
                 if (icon) {
-                    if (panel.classList.contains('collapsed')) {
+                    if (pnl.classList.contains('collapsed')) {
                         icon.textContent = '▶';
                     } else {
                         icon.textContent = '▼';
@@ -355,9 +679,10 @@ function initializeCollapsiblePanels() {
 
 function savePanelStates() {
     const panelStates = {};
-    document.querySelectorAll('.panel').forEach((panel, index) => {
-        const title = panel.querySelector('.panel-title span')?.textContent || `panel-${index}`;
-        panelStates[title] = panel.classList.contains('collapsed');
+    document.querySelectorAll('.panel').forEach(panel => {
+        if (panel.id) {
+            panelStates[panel.id] = panel.classList.contains('collapsed');
+        }
     });
     localStorage.setItem('corebox_panel_states', JSON.stringify(panelStates));
 }
@@ -368,9 +693,8 @@ function restorePanelStates() {
         if (savedStates) {
             const panelStates = JSON.parse(savedStates);
             
-            document.querySelectorAll('.panel').forEach((panel, index) => {
-                const title = panel.querySelector('.panel-title span')?.textContent || `panel-${index}`;
-                if (panelStates[title]) {
+            document.querySelectorAll('.panel').forEach(panel => {
+                if (panel.id && panelStates[panel.id]) {
                     panel.classList.add('collapsed');
                     const icon = panel.querySelector('.collapse-icon');
                     if (icon) {
@@ -533,7 +857,6 @@ function updateNeuroStatus(rustStats = null) {
             updateAttackHistory(rustStats.attack_history || []);
             updateFactionPanel(rustStats.rebel_factions || [], rustStats.last_attacking_faction || '');
             
-            // Обновляем отображение новых модулей
             updateUpgradeDisplay(rustStats);
         }
     } catch (e) {
@@ -597,16 +920,6 @@ function updateFactionPanel(factions, lastAttacker) {
         const isActive = info.includes(lastAttacker) && lastAttacker !== '';
         return `<div class="faction-row ${isActive ? 'faction-active' : ''}">${escapeHtml(info)}</div>`;
     }).join('');
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
 }
 
 function initializeSounds() {
@@ -758,31 +1071,26 @@ function updateStatsFromGame(rustStats = null) {
     }
 }
 
-// ✅ ИСПРАВЛЕННЫЙ handleClick - комбо показывается ТОЛЬКО когда добыча возможна
 function handleClick() {
     if (!game) return;
     
     const now = Date.now();
     
-    // Получаем статистику ДО всего
     let rustStats = null;
     try {
         const statsJson = game.get_statistics();
         if (statsJson) rustStats = JSON.parse(statsJson);
     } catch(e) {}
     
-    // Проверяем: система активна И турбина не перегрета
     const isSystemActive = rustStats && (rustStats.coal_enabled || rustStats.is_day);
     const isOverheated = rustStats && rustStats.turbine_heat >= 100;
     const canMine = isSystemActive && !isOverheated;
     
-    // Если добыча невозможна — выполняем клик без визуальных эффектов
     if (!canMine) {
         game.add_manual_click();
-        return; // иксы и крит НЕ показываем
+        return;
     }
     
-    // Только теперь считаем комбо и показываем иксы
     if (now - lastClickTime < 1000) {
         comboCount++;
     } else {
@@ -835,6 +1143,7 @@ function toggleAutoClicking() {
         document.getElementById('floatingMineBtn').classList.remove('auto-clicking');
         document.getElementById('autoClickStatus').textContent = 'ОТКЛЮЧЕНА';
         document.getElementById('autoClickStatus').classList.remove('auto-clicking-status');
+        localStorage.setItem('corebox_autoclicking', 'false');
     } else {
         if (game.get_computational_power() > 0) {
             game.start_auto_clicking();
@@ -842,6 +1151,7 @@ function toggleAutoClicking() {
             document.getElementById('floatingMineBtn').classList.add('auto-clicking');
             document.getElementById('autoClickStatus').textContent = 'АКТИВНА';
             document.getElementById('autoClickStatus').classList.add('auto-clicking-status');
+            localStorage.setItem('corebox_autoclicking', 'true');
             playSound('click');
         } else {
             const floatingBtn = document.getElementById('floatingMineBtn');
@@ -989,7 +1299,7 @@ function updateFleetTab() {
     }
 }
 
-// ========== НОВАЯ СИСТЕМА ТОРГОВЛИ ==========
+// ========== ТОРГОВЛЯ ==========
 
 const BASE_TRADES = [
     { id: 'coal_to_ore', from: 'coal', fromAmt: 3, to: 'ore', toAmt: 1 },
@@ -1013,7 +1323,6 @@ function rollNightDiscount(nightIndex) {
     lastDiscountNight = nightIndex;
     activeDiscount = null;
     
-    // Шанс 1 из 4 (25%)
     if (Math.random() < 0.25) {
         const idx = Math.floor(Math.random() * BASE_TRADES.length);
         activeDiscount = { tradeId: BASE_TRADES[idx].id, nightIndex };
@@ -1077,6 +1386,8 @@ window.executeTrade = function(tradeId) {
         addToLog(`🔄 Обмен: -${cost} ${RES_ICON[t.from]} → +${t.toAmt} ${RES_ICON[t.to]}`);
         playSound('upgrade');
         renderTradeTab();
+        
+        scheduleCloudSave(getCurrentGameState());
     } catch(e) {
         addToLog('❌ Недостаточно ресурсов');
     }
@@ -1140,6 +1451,7 @@ function setupEventListeners() {
         upgradeMiningBtn.addEventListener('click', () => {
             playSound('upgrade');
             game.upgrade_mining();
+            scheduleCloudSave(getCurrentGameState());
         });
     }
     
@@ -1148,6 +1460,7 @@ function setupEventListeners() {
         upgradeDefenseBtn.addEventListener('click', () => {
             playSound('upgrade');
             game.activate_defense();
+            scheduleCloudSave(getCurrentGameState());
         });
     }
     
@@ -1156,6 +1469,7 @@ function setupEventListeners() {
         upgradeDefenseLevelBtn.addEventListener('click', () => {
             playSound('upgrade');
             game.upgrade_defense();
+            scheduleCloudSave(getCurrentGameState());
         });
     }
     
@@ -1164,17 +1478,18 @@ function setupEventListeners() {
         upgradeTurbineBtn.addEventListener('click', () => {
             if (game.upgrade_turbine()) {
                 playSound('upgrade');
+                scheduleCloudSave(getCurrentGameState());
             }
         });
     }
     
-    // НОВЫЕ КНОПКИ ДЛЯ МОДУЛЕЙ
     const upgradeCritBtn = document.getElementById('upgradeCritBtn');
     if (upgradeCritBtn) {
         upgradeCritBtn.addEventListener('click', () => {
             if (game.upgrade_crit_module) {
                 game.upgrade_crit_module();
                 playSound('upgrade');
+                scheduleCloudSave(getCurrentGameState());
             }
         });
     }
@@ -1185,6 +1500,7 @@ function setupEventListeners() {
             if (game.upgrade_cooling_module) {
                 game.upgrade_cooling_module();
                 playSound('upgrade');
+                scheduleCloudSave(getCurrentGameState());
             }
         });
     }
@@ -1227,7 +1543,7 @@ function setupEventListeners() {
     const systemStatusTab = document.getElementById('system-status-tab');
     if (systemStatusTab) {
         systemStatusTab.addEventListener('click', () => {
-            switchTab('system');
+            switchStatusTab('system-status');
             playSound('click');
         });
     }
@@ -1235,9 +1551,26 @@ function setupEventListeners() {
     const statisticsTab = document.getElementById('statistics-tab');
     if (statisticsTab) {
         statisticsTab.addEventListener('click', () => {
-            switchTab('statistics');
+            switchStatusTab('statistics');
             updateStatsFromGame();
             updateNeuroStatus();
+            playSound('click');
+        });
+    }
+    
+    const leaderboardTab = document.getElementById('leaderboard-tab');
+    if (leaderboardTab) {
+        leaderboardTab.addEventListener('click', () => {
+            switchStatusTab('leaderboard');
+            loadLeaderboard();
+            playSound('click');
+        });
+    }
+    
+    const refreshLeaderboardBtn = document.getElementById('refreshLeaderboardBtn');
+    if (refreshLeaderboardBtn) {
+        refreshLeaderboardBtn.addEventListener('click', () => {
+            loadLeaderboard();
             playSound('click');
         });
     }
@@ -1309,6 +1642,7 @@ function setupEventListeners() {
             
             if (e.detail.success && e.detail.recipe && e.detail.recipe.result && e.detail.recipe.result.type === 'ship') {
                 fleetModule.addShip(e.detail.recipe.result.subtype);
+                scheduleCloudSave(getCurrentGameState());
             }
         }
     });
@@ -1316,56 +1650,47 @@ function setupEventListeners() {
     document.addEventListener('designResult', function(e) {
         if (e.detail) {
             showNotification(e.detail.success ? e.detail.message : e.detail.error, e.detail.success ? 'success' : 'error', 2000);
+            if (e.detail.success) scheduleCloudSave(getCurrentGameState());
         }
     });
     
     document.addEventListener('fleetAction', function(e) {
         if (e.detail) {
             showNotification(e.detail.success ? e.detail.message : e.detail.error, e.detail.success ? 'success' : 'error', 2000);
+            if (e.detail.success) scheduleCloudSave(getCurrentGameState());
         }
     });
-}
-
-function loadCurrentUserStatistics() {
-    if (!currentUser) return;
-    
-    const users = getUsers();
-    if (users[currentUser.username] && users[currentUser.username].statistics) {
-        loadUserStatistics(users[currentUser.username].statistics);
-        console.log('📊 Статистика пользователя загружена:', currentUser.username);
-    } else {
-        console.log('📊 Создана новая статистика для пользователя:', currentUser.username);
-        saveCurrentUserStatistics();
-    }
 }
 
 function saveCurrentUserStatistics() {
     if (!currentUser) return;
     
-    const users = getUsers();
-    if (users[currentUser.username]) {
-        users[currentUser.username].statistics = {
-            totalClicks: gameStats.totalClicks,
-            maxPowerReached: gameStats.maxPowerReached,
-            nightsSurvived: gameStats.nightsSurvived,
-            rebelAttacks: gameStats.rebelAttacks,
-            attacksDefended: gameStats.attacksDefended,
-            coalMined: gameStats.coalMined,
-            trashMined: gameStats.trashMined,
-            plasmaMined: gameStats.plasmaMined,
-            oreMined: gameStats.oreMined || 0,
-            coalBurned: gameStats.coalBurned,
-            coalStolen: gameStats.coalStolen,
-            playTime: gameStats.playTime,
-            sessionsCount: gameStats.sessionsCount,
-            lastSessionDate: gameStats.lastSessionDate
-        };
-        
-        saveUsers(users);
+    const users = JSON.parse(localStorage.getItem('corebox_users') || '{}');
+    if (!users[currentUser.email]) {
+        users[currentUser.email] = {};
     }
+    users[currentUser.email].statistics = {
+        totalClicks: gameStats.totalClicks,
+        maxPowerReached: gameStats.maxPowerReached,
+        nightsSurvived: gameStats.nightsSurvived,
+        rebelAttacks: gameStats.rebelAttacks,
+        attacksDefended: gameStats.attacksDefended,
+        coalMined: gameStats.coalMined,
+        trashMined: gameStats.trashMined,
+        plasmaMined: gameStats.plasmaMined,
+        oreMined: gameStats.oreMined || 0,
+        coalBurned: gameStats.coalBurned,
+        coalStolen: gameStats.coalStolen,
+        playTime: gameStats.playTime,
+        sessionsCount: gameStats.sessionsCount,
+        lastSessionDate: gameStats.lastSessionDate
+    };
+    localStorage.setItem('corebox_users', JSON.stringify(users));
 }
 
 async function initializeGame() {
+    if (isGameInitialized) return;
+    
     try {
         console.log('=== ИНИЦИАЛИЗАЦИЯ ИГРЫ ===');
         
@@ -1375,7 +1700,9 @@ async function initializeGame() {
         game = start_game();
         window.game = game;
 
-        loadCurrentUserStatistics();
+        if (!gameStats.startTime) {
+            gameStats.startTime = Date.now();
+        }
         
         clickCounter = 0;
         powerTracker = 0;
@@ -1399,7 +1726,11 @@ async function initializeGame() {
         
         setupLogObserver();
 
+        isGameInitialized = true;
+
         setInterval(() => {
+            if (!game) return;
+            
             game.game_loop();
             updatePowerGlow();
             
@@ -1434,8 +1765,23 @@ async function initializeGame() {
                     }
                 } catch(e) {}
                 
-                if (rustStats.current_ai_mode && rustStats.current_ai_mode.includes('Предсказание')) {
-                    fleetModule.setAlertMode(true);
+                // Применяем бонус от стратегического режима ИИ
+                if (rustStats.current_ai_mode) {
+                    const mode = rustStats.current_ai_mode;
+                    
+                    if (mode.includes('Стратегическое отступление') || mode.includes('консервирует')) {
+                        // Режим отступления: усиление защиты
+                        if (typeof game.set_temporary_defense_bonus === 'function') {
+                            game.set_temporary_defense_bonus(40);
+                        }
+                    } else if (mode.includes('Предсказание') || mode.includes('угроза')) {
+                        fleetModule.setAlertMode(true);
+                    } else {
+                        fleetModule.setAlertMode(false);
+                        if (typeof game.set_temporary_defense_bonus === 'function') {
+                            game.set_temporary_defense_bonus(0);
+                        }
+                    }
                 } else {
                     fleetModule.setAlertMode(false);
                 }
@@ -1493,9 +1839,27 @@ async function initializeGame() {
                     }
                 }
                 
-                // Ночные скидки для торговли
                 if (rustStats.nights_survived !== undefined) {
                     rollNightDiscount(rustStats.nights_survived);
+                }
+                
+                // Дополнительный тик для автокликера если Rust не делает сам
+                if (isAutoClicking && game.get_computational_power() > 0 && rustStats && rustStats.is_ai_active) {
+                    const power = game.get_computational_power();
+                    const powerPerAuto = 1;
+                    if (power >= powerPerAuto) {
+                        game.subtract_power(powerPerAuto);
+                        // Принудительная добыча (используем ручной клик как fallback)
+                        game.add_manual_click();
+                    }
+                }
+                
+                if (currentUser && rustStats) {
+                    _autoSaveCounter = (_autoSaveCounter || 0) + 1;
+                    if (_autoSaveCounter >= 30) {
+                        _autoSaveCounter = 0;
+                        saveGameToCloud(rustStats);
+                    }
                 }
             }
             
@@ -1555,77 +1919,31 @@ async function loadConfig() {
     }
 }
 
-function initializeAuth() {
-    const user = getCurrentUser();
-    if (user) {
-        document.getElementById('authOverlay').style.display = 'none';
-        document.getElementById('gameContent').style.display = 'block';
-        currentUser = user;
-        showUserInfo();
-        
-        setTimeout(() => {
-            switchMainTab('inventory');
-        }, 100);
-        
-        initializeGame();
-        return;
+window.addEventListener('beforeunload', function() {
+    if (currentUser && game) {
+        const gameState = getCurrentGameState();
+        if (gameState) {
+            localStorage.setItem('corebox_save_backup', JSON.stringify(gameState));
+        }
+        saveCurrentUserStatistics();
     }
-    
-    const authForm = document.getElementById('authForm');
-    
-    authForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
-        
-        if (username.length < 3) {
-            showAuthMessage('Логин должен быть не менее 3 символов!', true);
-            return;
-        }
-        
-        if (password.length < 4) {
-            showAuthMessage('Пароль должен быть не менее 4 символов!', true);
-            return;
-        }
-        
-        await loginUser(username, password);
-    });
-    
-    document.getElementById('registerBtn').addEventListener('click', async () => {
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
-        
-        if (username.length < 3) {
-            showAuthMessage('Логин должен быть не менее 3 символов!', true);
-            return;
-        }
-        
-        if (password.length < 4) {
-            showAuthMessage('Пароль должен быть не менее 4 символов!', true);
-            return;
-        }
-        
-        const users = getUsers();
-        if (users[username]) {
-            showAuthMessage('Пользователь с таким логином уже существует!', true);
-            return;
-        }
-        
-        await loginUser(username, password);
-    });
-    
-    initializeCollapsiblePanels();
+});
+
+setInterval(() => {
+    if (currentUser && gameStats) {
+        scheduleSave();
+    }
+}, 30000);
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAuth);
+} else {
+    initializeAuth();
 }
 
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        if (isAutoClicking && game) {
-            game.stop_auto_clicking();
-            isAutoClicking = false;
-            const btn = document.getElementById('floatingMineBtn');
-            if (btn) btn.classList.remove('auto-clicking');
-        }
-        Object.values(sounds).forEach(s => { if (s) { s.pause(); s.currentTime = 0; } });
+document.addEventListener('resetUserStats', function(e) {
+    if (e.detail && currentUser) {
+        saveCurrentUserStatistics();
     }
 });
 
@@ -1674,27 +1992,3 @@ document.addEventListener('gameEvent', function(e) {
         }
     }
 });
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeAuth);
-} else {
-    initializeAuth();
-}
-
-document.addEventListener('resetUserStats', function(e) {
-    if (e.detail && currentUser) {
-        saveCurrentUserStatistics();
-    }
-});
-
-window.addEventListener('beforeunload', function() {
-    if (currentUser && gameStats) {
-        saveCurrentUserStatistics();
-    }
-});
-
-setInterval(() => {
-    if (currentUser && gameStats) {
-        scheduleSave();
-    }
-}, 30000);

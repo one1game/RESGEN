@@ -2772,3 +2772,134 @@ body::after {
     transform: scale(1.02);
 }
 
+/* ===== СТИЛИ ДЛЯ СВОРАЧИВАНИЯ ПАНЕЛЕЙ ===== */
+.panel.collapsed .panel-content {
+    display: none;
+}
+
+.panel-title {
+    cursor: pointer;
+    user-select: none;
+}
+
+.panel-title .collapse-icon {
+    cursor: pointer;
+    margin-left: auto;
+}
+
+/* ===== СТИЛИ ДЛЯ ЛИДЕРБОРДА ===== */
+.leaderboard-loading,
+.leaderboard-empty,
+.leaderboard-error {
+    text-align: center;
+    padding: 20px;
+    color: #aaa;
+}
+
+.leaderboard-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 15px;
+    margin: 5px 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.leaderboard-row.gold {
+    background: rgba(255, 215, 0, 0.2);
+    border-left: 3px solid gold;
+}
+.leaderboard-row.silver {
+    background: rgba(192, 192, 192, 0.2);
+    border-left: 3px solid silver;
+}
+.leaderboard-row.bronze {
+    background: rgba(205, 127, 50, 0.2);
+    border-left: 3px solid #cd7f32;
+}
+
+.lb-rank {
+    font-size: 1.3em;
+    min-width: 45px;
+    font-weight: bold;
+}
+
+.lb-name {
+    flex: 1;
+    font-weight: 500;
+    color: #ddd;
+}
+
+.lb-score {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.lb-nights {
+    color: #7b68ee;
+    font-weight: bold;
+    min-width: 80px;
+    text-align: right;
+}
+
+/* ===== ОФЛАЙН ПОПАП СТИЛИ ===== */
+.offline-popup {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid #ffd700;
+    border-radius: 15px;
+    padding: 20px 30px;
+    z-index: 10000;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    animation: popupSlide 0.3s ease-out;
+}
+
+@keyframes popupSlide {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -70%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.offline-popup h3 {
+    margin: 0 0 10px 0;
+    color: #ffd700;
+}
+
+.offline-popup .offline-resources {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 15px 0;
+}
+
+.offline-popup .resource {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 1.2em;
+}
+
+.offline-popup button {
+    background: #ffd700;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.offline-popup button:hover {
+    background: #ffed4a;
+}

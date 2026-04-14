@@ -1,4 +1,4 @@
-// ======== src/lib.rs (ПОЛНОСТЬЮ ОБНОВЛЁННАЯ ВЕРСИЯ) ========
+// ======== src/lib.rs (ПОЛНАЯ ВЕРСИЯ С SUPABASE ИНТЕГРАЦИЕЙ) ========
 
 #![recursion_limit = "256"]
 
@@ -118,6 +118,54 @@ impl CoreGame {
         let _ = self.ui.render(&self.state);
     }
     
+    // ========== НОВЫЙ МЕТОД: ЗАГРУЗКА СОСТОЯНИЯ ИЗ ОБЛАКА ==========
+    #[wasm_bindgen]
+    pub fn load_game_state(&mut self, state_json: String) -> Result<(), JsValue> {
+        match serde_json::from_str::<GameState>(&state_json) {
+            Ok(loaded_state) => {
+                // Сохраняем важные параметры, которые не должны перезаписываться
+                let old_max_power = self.state.max_computational_power;
+                let old_prestige = self.state.prestige_level;
+                let old_neuro = self.neuro_ecosystem.clone();
+                let old_rebel = self.rebel_system.clone();
+                
+                // Загружаем новое состояние
+                self.state = loaded_state;
+                
+                // Восстанавливаем важные параметры
+                self.state.max_computational_power = old_max_power;
+                self.state.prestige_level = old_prestige;
+                
+                // Восстанавливаем нейро-систему из загруженного состояния
+                self.neuro_ecosystem.load_from_state(
+                    self.state.neuro_evolution,
+                    self.state.neuro_consciousness,
+                    self.state.neuro_score
+                );
+                
+                // Обновляем бонусы
+                self.state.neuro_defense_bonus = self.neuro_ecosystem.get_defense_bonus();
+                self.state.neuro_prediction_bonus = self.neuro_ecosystem.get_prediction_bonus();
+                
+                // Обновляем отображение
+                let _ = self.ui.render(&self.state);
+                self.ui.add_log_entry("💾 Состояние игры загружено из облака");
+                
+                log(&format!("✅ Загружено состояние: ночей={}, угля={}", 
+                    self.state.nights_survived, 
+                    self.state.inventory.coal));
+                
+                Ok(())
+            },
+            Err(e) => {
+                let err_msg = format!("❌ Ошибка загрузки состояния: {}", e);
+                self.ui.add_log_entry(&err_msg);
+                log(&err_msg);
+                Err(JsValue::from_str(&err_msg))
+            }
+        }
+    }
+    
     #[wasm_bindgen]
     pub fn add_manual_click(&mut self) {
         let events = self.add_manual_click_internal();
@@ -175,7 +223,6 @@ impl CoreGame {
         self.handle_events(events);
     }
     
-    // НОВЫЕ МЕТОДЫ ДЛЯ МОДУЛЕЙ
     #[wasm_bindgen]
     pub fn upgrade_crit_module(&mut self) {
         let events = self.upgrade_system.upgrade_crit_module(&mut self.state);
@@ -340,7 +387,8 @@ impl CoreGame {
                 "coal_stolen":{},
                 "crit_level":{},
                 "cooling_level":{},
-                "power_tier":{}
+                "power_tier":{},
+                "prestige_level":{}
             }}"#,
             self.state.manual_clicks,
             self.state.max_computational_power,
@@ -387,7 +435,8 @@ impl CoreGame {
             self.state.total_coal_stolen,
             self.state.upgrades.crit_level,
             self.state.upgrades.cooling_level,
-            self.state.power_tier
+            self.state.power_tier,
+            self.state.prestige_level
         )
     }
     
@@ -606,7 +655,7 @@ impl CoreGame {
         self.state.turbine_cooling
     }
     
-    // ========== НОВЫЕ МЕТОДЫ ДЛЯ JS ФИЧ ==========
+    // ========== МЕТОДЫ ДЛЯ JS ФИЧ ==========
     
     #[wasm_bindgen]
     pub fn add_resource(&mut self, resource: String, amount: u32) {
@@ -703,9 +752,11 @@ impl CoreGame {
         
         let mut new_state = GameState::new(&config);
         
+        // Сохраняем чертежи и престиж
         new_state.blueprint_cargo_unlocked = self.state.blueprint_cargo_unlocked;
         new_state.blueprint_scout_unlocked = self.state.blueprint_scout_unlocked;
         new_state.blueprint_combat_unlocked = self.state.blueprint_combat_unlocked;
+        new_state.prestige_level = self.state.prestige_level;
         
         self.state = new_state;
         
@@ -881,7 +932,6 @@ impl CoreGame {
                 total: self.state.computational_power 
             });
             
-            // Проверяем повышение тира мощности
             let tier_events = self.check_power_tier();
             events.extend(tier_events);
         }
@@ -975,16 +1025,12 @@ impl CoreGame {
         self.economy_system.sell_resource(&mut self.state, resource)
     }
     
-    // ========== НОВЫЙ МЕТОД: ПРОВЕРКА ПАССИВНОГО ИИ ПО УГЛЮ ==========
-    
     fn check_ai_coal_passive(&mut self) -> Vec<GameEvent> {
         let mut events = Vec::new();
         
-        // «Сохранённый» уголь = добыто минус сожжено
         let saved_coal = self.state.total_coal_mined
             .saturating_sub(self.state.total_coal_burned);
         
-        // Пороги и очки
         let thresholds: &[(u32, u32)] = &[
             (100, 15),
             (300, 25),
@@ -1007,8 +1053,6 @@ impl CoreGame {
         events
     }
     
-    // ========== НОВЫЙ МЕТОД: ПРОВЕРКА ПОВЫШЕНИЯ ТИРА МОЩНОСТИ ==========
-    
     fn check_power_tier(&mut self) -> Vec<GameEvent> {
         let mut events = Vec::new();
         
@@ -1024,8 +1068,6 @@ impl CoreGame {
         
         events
     }
-    
-    // ========== ИГРОВОЙ ЦИКЛ ==========
     
     fn game_loop_internal(&mut self) -> Vec<GameEvent> {
         let mut events = Vec::new();
@@ -1067,7 +1109,6 @@ impl CoreGame {
             self.state.neuro_prediction_bonus = self.neuro_ecosystem.get_prediction_bonus();
         }
         
-        // НОВАЯ СИСТЕМА: пассивный ИИ по порогу угля (вместо таймера)
         let ai_passive_events = self.check_ai_coal_passive();
         events.extend(ai_passive_events);
         
@@ -1113,11 +1154,9 @@ impl CoreGame {
                     self.state.computational_power -= power_cost;
                     self.state.last_auto_click_time = 0;
                     
-                    // ДОБЫЧА ПРИ АВТОКЛИКЕ
                     let mining_events = self.mining_system.auto_mine_resources(&mut self.state, &self.neuro_ecosystem);
                     events.extend(mining_events);
                     
-                    // Проверяем повышение тира мощности
                     let tier_events = self.check_power_tier();
                     events.extend(tier_events);
                 } else {

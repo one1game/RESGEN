@@ -1,4 +1,4 @@
-// ======== src/game/state.rs (ПОЛНАЯ ВЕРСИЯ СО ВСЕМИ ИСПРАВЛЕНИЯМИ) ========
+// ======== src/game/state.rs (ПОЛНАЯ ВЕРСИЯ СО ВСЕМИ default) ========
 
 use serde::{Serialize, Deserialize};
 use super::config::GameConfig;
@@ -21,16 +21,22 @@ pub struct GameState {
     // Время и циклы
     pub game_time: i32,
     pub is_day: bool,
+    #[serde(default)] 
     pub time_changed: bool,
     
     // Системы
     pub coal_enabled: bool,
     
     // Разблокировки
+    #[serde(default = "default_true")]
     pub coal_unlocked: bool,
+    #[serde(default = "default_true")]
     pub trash_unlocked: bool,
+    #[serde(default = "default_false")]
     pub chips_unlocked: bool,
+    #[serde(default)]
     pub plasma_unlocked: bool,
+    #[serde(default = "default_true")]
     pub ore_unlocked: bool,
     
     // Статистика добычи
@@ -41,12 +47,12 @@ pub struct GameState {
     pub rebel_activity: u32,
     
     // ТУРБИНА
-    pub turbine_heat: u32,          // 0–100, перегрев турбины
-    pub turbine_upgrade_level: u32, // 0–5, уровень улучшения турбины
-    pub turbine_cooling: bool,      // true = турбина остывает, добыча заблокирована
+    pub turbine_heat: u32,
+    pub turbine_upgrade_level: u32,
+    pub turbine_cooling: bool,
     
     // Время последнего клика для расчета нагрева
-    pub last_click_time: u64,       // Unix timestamp в миллисекундах
+    pub last_click_time: u64,
     
     // Квесты
     pub current_quest: usize,
@@ -141,21 +147,37 @@ pub struct GameState {
     pub attack_warning_faction: String,
     
     // Чертежи
+    #[serde(default)]
     pub blueprint_cargo_unlocked: bool,
+    #[serde(default)]
     pub blueprint_scout_unlocked: bool,
+    #[serde(default)]
     pub blueprint_combat_unlocked: bool,
+    #[serde(default)]
     pub blueprint_research_progress: u32,
     
     // Типы ночей и блокировка торговли
+    #[serde(default)]
     pub current_night_type: String,
+    #[serde(default)]
     pub trade_blocked: bool,
     
     // НОВЫЕ ПОЛЯ ДЛЯ МОДУЛЕЙ
-    pub power_tier: u32,  // тир мощности (0,1,2,3...)
+    #[serde(default)]
+    pub power_tier: u32,
     
     // Пассивный ИИ по углю
-    pub last_ai_coal_threshold: u32,  // последний достигнутый порог
+    #[serde(default)]
+    pub last_ai_coal_threshold: u32,
+    
+    // ========== ДОБАВЛЕНО ДЛЯ SUPABASE ИНТЕГРАЦИИ ==========
+    #[serde(default)]
+    pub prestige_level: u32,
 }
+
+// ========== ФУНКЦИИ ДЛЯ ЗНАЧЕНИЙ ПО УМОЛЧАНИЮ ==========
+fn default_true() -> bool { true }
+fn default_false() -> bool { false }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Inventory {
@@ -171,9 +193,10 @@ pub struct Upgrades {
     pub mining: u32,
     pub defense: bool,
     pub defense_level: u32,
-    // НОВЫЕ ПОЛЯ ДЛЯ МОДУЛЕЙ
-    pub crit_level: u32,     // уровень крит-модуля (макс. 10)
-    pub cooling_level: u32,  // уровень охлаждения (макс. 10)
+    #[serde(default)]
+    pub crit_level: u32,
+    #[serde(default)]
+    pub cooling_level: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -296,6 +319,7 @@ impl Default for GameState {
             trade_blocked: false,
             power_tier: 0,
             last_ai_coal_threshold: 0,
+            prestige_level: 0,
         }
     }
 }
@@ -470,11 +494,9 @@ impl GameState {
                 }
             }
     
-            // ✅ ИСПРАВЛЕНИЕ БАГА №4: убраны дублирующиеся LogMessage
             if !self.is_day && was_day {
                 self.nights_survived += 1;
                 events.push(GameEvent::NightStarted);
-                // ❌ УБРАНО: events.push(GameEvent::LogMessage("🌙 Наступила ночь".to_string()));
                 
                 if self.rebel_protection_active && self.rebel_protection_nights > 0 {
                     self.rebel_protection_nights -= 1;
@@ -492,7 +514,6 @@ impl GameState {
                 
             } else if self.is_day && !was_day {
                 events.push(GameEvent::DayStarted);
-                // ❌ УБРАНО: events.push(GameEvent::LogMessage("☀️ Наступил день".to_string()));
                 
                 // Сброс блокировки торговли
                 self.trade_blocked = false;

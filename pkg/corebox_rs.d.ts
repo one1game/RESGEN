@@ -21,6 +21,7 @@ export class CoreGame {
   subtract_power(amount: number): void;
   upgrade_mining(): void;
   debug_time_info(): string;
+  load_game_state(state_json: string): void;
   sync_blueprints(cargo: boolean, scout: boolean, combat: boolean): void;
   upgrade_defense(): void;
   upgrade_turbine(): boolean;
@@ -107,6 +108,7 @@ export interface InitOutput {
   readonly coregame_init: (a: number) => void;
   readonly coregame_is_auto_clicking: (a: number) => number;
   readonly coregame_is_turbine_cooling: (a: number) => number;
+  readonly coregame_load_game_state: (a: number, b: number, c: number) => [number, number];
   readonly coregame_new: () => number;
   readonly coregame_reload_config: (a: number) => void;
   readonly coregame_repair_systems: (a: number) => void;
@@ -138,6 +140,7 @@ export interface InitOutput {
   readonly __externref_table_alloc: () => number;
   readonly __wbindgen_externrefs: WebAssembly.Table;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+  readonly __externref_table_dealloc: (a: number) => void;
   readonly __wbindgen_start: () => void;
 }
 
